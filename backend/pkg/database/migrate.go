@@ -14,6 +14,7 @@ func AutoMigrate(db *gorm.DB) {
 		&models.User{},
 		&models.Upload{},
 		&models.UserStorageUsage{},
+		&models.VerificationToken{},
 		&models.NewsPost{},
 		&models.Game{},
 		&models.GameMember{},
@@ -35,14 +36,14 @@ func AutoMigrate(db *gorm.DB) {
 	if !db.Migrator().HasConstraint(&models.Upload{}, "fk_uploads_user") {
 		err = db.Exec(`ALTER TABLE uploads ADD CONSTRAINT fk_uploads_user FOREIGN KEY (user_id) REFERENCES users(id)`).Error
 		if err != nil {
-			log.Printf("⚠️ FK uploads.user_id: %v (possibly already exists)", err)
+			log.Printf("FK uploads.user_id: %v (possibly already exists)", err)
 		}
 	}
 
 	if !db.Migrator().HasConstraint(&models.User{}, "fk_users_avatar") {
 		err = db.Exec(`ALTER TABLE users ADD CONSTRAINT fk_users_avatar FOREIGN KEY (avatar_id) REFERENCES uploads(id)`).Error
 		if err != nil {
-			log.Printf("⚠️ FK users.avatar_id: %v (possibly already exists)", err)
+			log.Printf("FK users.avatar_id: %v (possibly already exists)", err)
 		}
 	}
 

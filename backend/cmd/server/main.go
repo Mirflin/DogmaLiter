@@ -3,28 +3,28 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/joho/godotenv"
 
+	"backend/internal/auth"
+	"backend/internal/config"
 	"backend/pkg/database"
+	"encoding/json"
 )
 
 func main() {
-	loadEnv()
+	cfg := config.Load()
 
-	dsn := os.Getenv("DATABASE_URL")
-
-	allowedOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
-
-	db := database.Connect(dsn)
+	db := database.Connect(cfg.DatabaseURL)
 	database.AutoMigrate(db)
 
-	_ = db
+	jwtManager := auth.NewJWTManager(cfg.JWTSecret)
+	mailer := auth.NewMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPassword, cfg.SMTPFrom)
+	authRepo := auth.NewRepository(db)
+	authService := auth.NewService(authRepo, jwtManager, mailer, cfg.FrontendURL)
+	authHandler := auth.NewHandler(authService)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -33,7 +33,7 @@ func main() {
 
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Access-Control-Allow-Origin", allowedOrigin)
+			w.Header().Set("Access-Control-Allow-Origin", cfg.FrontendURL)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			if r.Method == "OPTIONS" {
@@ -44,26 +44,53 @@ func main() {
 		})
 	})
 
-	r.Get("/api/test", func(w http.ResponseWriter, r *http.Request) {
+	// Публичные маршруты
+	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	port := os.Getenv("PORT")
+	r.Mount("/api/auth", authHandler.Routes())
 
-	log.Printf("Tabletop App: http://localhost:%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	// Защищённые маршруты (требуют JWT)
+	r.Group(func(r chi.Router) {
+		r.Use(auth.JWTMiddleware(jwtManager))
+
+		// Профиль текущего пользователя
+		r.Get("/api/me", func(w http.ResponseWriter, r *http.Request) {
+			userID := auth.GetUserID(r)
+			user, err := authRepo.GetUserByID(userID)
+			if err != nil {
+				http.Error(w, `{"error":"Пользователь не найден"}`, 404)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			respondJSON(w, 200, map[string]interface{}{
+				"id":          user.ID,
+				"username":    user.Username,
+				"email":       user.Email,
+				"role":        user.Role,
+				"plan_id":     user.PlanID,
+				"is_verified": user.IsVerified,
+			})
+		})
+
+		// Только для админа
+		r.Group(func(r chi.Router) {
+			r.Use(auth.RequireAdmin)
+			// r.Mount("/api/admin/news", newsHandler.Routes())
+		})
+
+		// Здесь будут маршруты для games, characters, items...
+		// r.Mount("/api/games", gameHandler.Routes())
+	})
+
+	log.Printf("DogmaLiter: http://localhost:%s", cfg.Port)
+	log.Fatal(http.ListenAndServe(":"+cfg.Port, r))
 }
 
-func loadEnv() {
-	candidates := []string{
-		".env",
-		filepath.Join("..", ".env"),
-	}
-
-	for _, envPath := range candidates {
-		if err := godotenv.Load(envPath); err == nil {
-			return
-		}
-	}
+func respondJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
 }
