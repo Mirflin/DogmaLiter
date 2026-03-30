@@ -44,7 +44,6 @@ func main() {
 		})
 	})
 
-	// Публичные маршруты
 	r.Get("/api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok"}`))
@@ -52,16 +51,14 @@ func main() {
 
 	r.Mount("/api/auth", authHandler.Routes())
 
-	// Защищённые маршруты (требуют JWT)
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware(jwtManager))
 
-		// Профиль текущего пользователя
 		r.Get("/api/me", func(w http.ResponseWriter, r *http.Request) {
 			userID := auth.GetUserID(r)
 			user, err := authRepo.GetUserByID(userID)
 			if err != nil {
-				http.Error(w, `{"error":"Пользователь не найден"}`, 404)
+				http.Error(w, `{"error":"User not found"}`, 404)
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -75,13 +72,11 @@ func main() {
 			})
 		})
 
-		// Только для админа
 		r.Group(func(r chi.Router) {
 			r.Use(auth.RequireAdmin)
 			// r.Mount("/api/admin/news", newsHandler.Routes())
 		})
 
-		// Здесь будут маршруты для games, characters, items...
 		// r.Mount("/api/games", gameHandler.Routes())
 	})
 
