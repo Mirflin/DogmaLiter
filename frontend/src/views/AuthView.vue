@@ -213,21 +213,16 @@ async function handleRegister() {
 </template>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700&family=Cinzel:wght@400;600;700&display=swap');
-
-/* Slide animation timing */
 .auth-container .form-side,
 .auth-container .overlay-container,
 .auth-container .overlay {
   transition-timing-function: cubic-bezier(0.68, -0.15, 0.27, 1.15);
 }
 
-/* Initial overlay position */
 .overlay {
   transform: translateX(-50%);
 }
 
-/* Register mode: slide forms & overlay */
 .register-mode .login-side {
   transform: translateX(-20%);
   opacity: 0;
@@ -248,7 +243,6 @@ async function handleRegister() {
   transform: translateX(0);
 }
 
-/* Overlay radial glow */
 .overlay-panel::before {
   content: '';
   position: absolute;
@@ -259,7 +253,6 @@ async function handleRegister() {
   pointer-events: none;
 }
 
-/* Button hover glow layer */
 .btn-primary::before {
   content: '';
   position: absolute;
@@ -272,7 +265,6 @@ async function handleRegister() {
   opacity: 1;
 }
 
-/* Particles */
 .particle {
   position: absolute;
   width: 4px;
@@ -320,7 +312,6 @@ async function handleRegister() {
   animation: shake 0.4s ease;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
   .auth-container {
     flex-direction: column;

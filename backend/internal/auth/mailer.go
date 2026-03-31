@@ -54,6 +54,7 @@ func (m *Mailer) SendVerificationEmail(toEmail, username, verifyURL string) erro
 
 	dialer := gomail.NewDialer(m.host, m.port, m.user, m.password)
 	if err := dialer.DialAndSend(msg); err != nil {
+		fmt.Printf("Error details: host=%s, port=%d, user=%s, password=%s\n", m.host, m.port, m.user, m.password)
 		return fmt.Errorf("error sending email: %w", err)
 	}
 

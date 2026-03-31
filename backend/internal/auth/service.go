@@ -68,7 +68,7 @@ func (s *Service) Register(input RegisterInput) (*RegisterResponse, error) {
 		Username:     input.Username,
 		Email:        input.Email,
 		PasswordHash: &hashStr,
-		PlanID:       "free",
+		PlanID:       "1",
 		IsVerified:   false,
 	}
 
@@ -112,6 +112,39 @@ func (s *Service) VerifyEmail(token string) error {
 	}
 
 	s.repo.DeleteVerificationToken(vt.ID)
+
+	return nil
+}
+
+func (s *Service) ResendVerification(email string) error {
+	user, err := s.repo.GetUserByEmail(email)
+	if err != nil {
+		return fmt.Errorf("user not found")
+	}
+	if user.IsVerified {
+		return fmt.Errorf("email is already verified")
+	}
+
+	s.repo.DeleteUserVerificationTokens(user.ID, "email_verify")
+
+	verifyToken := &models.VerificationToken{
+		ID:        uuid.New().String(),
+		UserID:    user.ID,
+		Token:     uuid.New().String(),
+		Type:      "email_verify",
+		ExpiresAt: time.Now().Add(24 * time.Hour),
+	}
+
+	if err := s.repo.CreateVerificationToken(verifyToken); err != nil {
+		return fmt.Errorf("error creating verification token: %w", err)
+	}
+
+	verifyURL := fmt.Sprintf("%s/verify?token=%s", s.frontendURL, verifyToken.Token)
+	go func() {
+		if err := s.mailer.SendVerificationEmail(user.Email, user.Username, verifyURL); err != nil {
+			fmt.Printf("Error sending email to %s: %v\n", user.Email, err)
+		}
+	}()
 
 	return nil
 }

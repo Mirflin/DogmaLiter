@@ -93,9 +93,39 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Restore session on load
-  if (localStorage.getItem('access_token')) {
-    fetchUser()
+  async function verifyEmail(token) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await api.get('/auth/verify', { params: { token } })
+      return data
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Email verification failed'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function resendVerification(email) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await api.post('/auth/resend-verification', { email })
+      return data
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Failed to resend verification email'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+
+  const initPromise = localStorage.getItem('access_token') ? fetchUser() : Promise.resolve()
+
+  async function waitForInit() {
+    await initPromise
   }
 
   return {
@@ -107,7 +137,10 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     logout,
     fetchUser,
+    waitForInit,
     forgotPassword,
     resetPassword,
+    verifyEmail,
+    resendVerification,
   }
 })

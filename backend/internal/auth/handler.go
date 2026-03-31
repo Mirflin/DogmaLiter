@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -20,6 +21,7 @@ func (h *Handler) Routes() chi.Router {
 	r.Post("/register", h.Register)
 	r.Post("/login", h.Login)
 	r.Get("/verify", h.VerifyEmail)
+	r.Post("/resend-verification", h.ResendVerification)
 	r.Post("/refresh", h.RefreshToken)
 	r.Post("/forgot-password", h.ForgotPassword)
 	r.Post("/reset-password", h.ResetPassword)
@@ -60,6 +62,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
+	fmt.Printf("Received verification request with token: %s\n", token)
 	if token == "" {
 		respondJSON(w, 400, map[string]string{"error": "token is required"})
 		return
@@ -71,6 +74,23 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, 200, map[string]string{"message": "Email successfully verified!"})
+}
+
+func (h *Handler) ResendVerification(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Email string `json:"email"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		return
+	}
+
+	if err := h.service.ResendVerification(input.Email); err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, 200, map[string]string{"message": "Verification email sent!"})
 }
 
 func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
