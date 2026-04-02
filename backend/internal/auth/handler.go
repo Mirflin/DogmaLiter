@@ -32,7 +32,7 @@ func (h *Handler) Routes() chi.Router {
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var input RegisterInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
@@ -48,7 +48,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var input LoginInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
@@ -65,7 +65,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	fmt.Printf("Received verification request with token: %s\n", token)
 	if token == "" {
-		respondJSON(w, 400, map[string]string{"error": "token is required"})
+		respondJSON(w, 400, map[string]string{"error": "Token is required"})
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *Handler) ResendVerification(w http.ResponseWriter, r *http.Request) {
 		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
@@ -99,7 +99,7 @@ func (h *Handler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		RefreshToken string `json:"refresh_token"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		Email string `json:"email"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
@@ -131,7 +131,7 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	var input ResetPasswordInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *Handler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
 	userID := GetUserID(r)
 	var input UpdateUsernameInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
@@ -163,7 +163,7 @@ func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	userID := GetUserID(r)
 	var input ChangePasswordInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid JSON"})
 		return
 	}
 
@@ -181,13 +181,13 @@ func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 2*1024*1024+1024)
 
 	if err := r.ParseMultipartForm(2 * 1024 * 1024); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "file too large, maximum 2MB"})
+		respondJSON(w, 400, map[string]string{"error": "File too large, maximum 2MB"})
 		return
 	}
 
 	file, header, err := r.FormFile("avatar")
 	if err != nil {
-		respondJSON(w, 400, map[string]string{"error": "avatar file is required"})
+		respondJSON(w, 400, map[string]string{"error": "Avatar file is required"})
 		return
 	}
 	defer file.Close()
@@ -242,7 +242,7 @@ func (h *Handler) GetStorageUsage(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetPlans(w http.ResponseWriter, r *http.Request) {
 	plans, err := h.service.GetAllPlans()
 	if err != nil {
-		respondJSON(w, 500, map[string]string{"error": "failed to load plans"})
+		respondJSON(w, 500, map[string]string{"error": "Failed to load plans"})
 		return
 	}
 	respondJSON(w, 200, plans)

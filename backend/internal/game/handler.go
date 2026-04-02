@@ -38,7 +38,7 @@ func (h *Handler) GetMyGames(w http.ResponseWriter, r *http.Request) {
 
 	games, err := h.service.GetUserGames(userID)
 	if err != nil {
-		respondJSON(w, 500, map[string]string{"error": "failed to load games"})
+		respondJSON(w, 500, map[string]string{"error": "Failed to load games"})
 		return
 	}
 
@@ -89,7 +89,7 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		EnableItemTrading *bool  `json:"enable_item_trading"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid request body"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
@@ -130,7 +130,7 @@ func (h *Handler) JoinByCode(w http.ResponseWriter, r *http.Request) {
 		Code string `json:"code"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid request body"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
@@ -168,11 +168,11 @@ func (h *Handler) GetInviteCode(w http.ResponseWriter, r *http.Request) {
 
 	game, err := h.service.repo.GetGameByID(gameID)
 	if err != nil {
-		respondJSON(w, 404, map[string]string{"error": "game not found"})
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Game %s not found", gameID)})
 		return
 	}
 	if game.OwnerID != userID {
-		respondJSON(w, 403, map[string]string{"error": "only the game owner can view the invite code"})
+		respondJSON(w, 403, map[string]string{"error": "Only the game owner can view the invite code"})
 		return
 	}
 
@@ -188,13 +188,13 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 
 	game, err := h.service.repo.GetGameByID(gameID)
 	if err != nil {
-		respondJSON(w, 404, map[string]string{"error": "game not found"})
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Game %s not found", gameID)})
 		return
 	}
 
 	isMember, _ := h.service.repo.IsMember(gameID, userID)
 	if game.OwnerID != userID && !isMember {
-		respondJSON(w, 403, map[string]string{"error": "not a member of this game"})
+		respondJSON(w, 403, map[string]string{"error": fmt.Sprintf("User %s is not a member of game")})
 		return
 	}
 
@@ -218,22 +218,22 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := map[string]interface{}{
-		"id":                  game.ID,
-		"title":               game.Title,
-		"description":         game.Description,
-		"system":              game.System,
-		"max_players":         game.MaxPlayers,
-		"owner_id":            game.OwnerID,
-		"cover_image_id":      game.CoverImageID,
-		"show_standard_attrs": game.ShowStandardAttrs,
-		"enable_chat":         game.EnableChat,
-		"enable_item_trading": game.EnableItemTrading,
-		"invite_code":         game.InviteCode,
+		"id":                     game.ID,
+		"title":                  game.Title,
+		"description":            game.Description,
+		"system":                 game.System,
+		"max_players":            game.MaxPlayers,
+		"owner_id":               game.OwnerID,
+		"cover_image_id":         game.CoverImageID,
+		"show_standard_attrs":    game.ShowStandardAttrs,
+		"enable_chat":            game.EnableChat,
+		"enable_item_trading":    game.EnableItemTrading,
+		"invite_code":            game.InviteCode,
 		"invite_code_expires_at": game.InviteCodeExpiresAt,
-		"created_at":          game.CreatedAt,
-		"updated_at":          game.UpdatedAt,
-		"members":             members,
-		"owner":               owner,
+		"created_at":             game.CreatedAt,
+		"updated_at":             game.UpdatedAt,
+		"members":                members,
+		"owner":                  owner,
 	}
 
 	if game.OwnerID != userID {
@@ -250,11 +250,11 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 
 	game, err := h.service.repo.GetGameByID(gameID)
 	if err != nil {
-		respondJSON(w, 404, map[string]string{"error": "game not found"})
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Game %s not found", gameID)})
 		return
 	}
 	if game.OwnerID != userID {
-		respondJSON(w, 403, map[string]string{"error": "only the game owner can update settings"})
+		respondJSON(w, 403, map[string]string{"error": "Only the game owner can update settings"})
 		return
 	}
 
@@ -267,13 +267,13 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 		EnableItemTrading *bool   `json:"enable_item_trading"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "invalid request body"})
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
 	if req.Title != nil {
 		if len(*req.Title) < 1 || len(*req.Title) > 200 {
-			respondJSON(w, 400, map[string]string{"error": "title must be 1-200 characters"})
+			respondJSON(w, 400, map[string]string{"error": "Title must be 1-200 characters"})
 			return
 		}
 		game.Title = *req.Title
@@ -284,7 +284,7 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	if req.MaxPlayers != nil && *req.MaxPlayers >= 1 {
 		plan, err := h.service.repo.GetUserPlan(userID)
 		if err == nil && plan.MaxPlayersPerGame != -1 && *req.MaxPlayers > plan.MaxPlayersPerGame {
-			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("your plan allows max %d players", plan.MaxPlayersPerGame)})
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("Your plan allows max %d players", plan.MaxPlayersPerGame)})
 			return
 		}
 		game.MaxPlayers = *req.MaxPlayers
@@ -300,7 +300,7 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.repo.UpdateGame(game); err != nil {
-		respondJSON(w, 500, map[string]string{"error": "failed to update game"})
+		respondJSON(w, 500, map[string]string{"error": "Failed to update game"})
 		return
 	}
 
@@ -323,7 +323,7 @@ func (h *Handler) LeaveGame(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
-	respondJSON(w, 200, map[string]string{"message": "left game"})
+	respondJSON(w, 200, map[string]string{"message": "Left game"})
 }
 
 func (h *Handler) DeleteGame(w http.ResponseWriter, r *http.Request) {
@@ -334,7 +334,7 @@ func (h *Handler) DeleteGame(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
-	respondJSON(w, 200, map[string]string{"message": "game deleted"})
+	respondJSON(w, 200, map[string]string{"message": "Game deleted"})
 }
 
 func (h *Handler) UploadCoverImage(w http.ResponseWriter, r *http.Request) {
@@ -343,13 +343,13 @@ func (h *Handler) UploadCoverImage(w http.ResponseWriter, r *http.Request) {
 
 	r.Body = http.MaxBytesReader(w, r.Body, 5*1024*1024+512)
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
-		respondJSON(w, 400, map[string]string{"error": "file too large (max 5MB)"})
+		respondJSON(w, 400, map[string]string{"error": "File too large (max 5MB)"})
 		return
 	}
 
 	file, header, err := r.FormFile("cover")
 	if err != nil {
-		respondJSON(w, 400, map[string]string{"error": "cover file is required"})
+		respondJSON(w, 400, map[string]string{"error": "Cover file is required"})
 		return
 	}
 	defer file.Close()
