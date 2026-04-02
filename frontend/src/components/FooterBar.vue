@@ -1,5 +1,6 @@
 <script setup>
 import logo from '@/assets/DLlogo.png'
+import moment from 'moment';
 </script>
 
 <template>
@@ -14,7 +15,7 @@ import logo from '@/assets/DLlogo.png'
         <span class="text-[#7ec8e3]/20 text-xs">|</span>
         <router-link to="/privacy" class="text-[#7ec8e3]/40 text-xs no-underline hover:text-[#7ec8e3]/70 transition-colors">Privacy Policy</router-link>
       </div>
-      <span class="text-[#7ec8e3]/30 text-xs">&copy; 2026 DogmaLiter. All rights reserved.</span>
+      <span class="text-[#7ec8e3]/30 text-xs">&copy; {{ moment().format('YYYY') }} DogmaLiter. All rights reserved.</span>
     </div>
   </footer>
 </template>

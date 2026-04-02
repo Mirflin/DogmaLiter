@@ -148,12 +148,6 @@ function onGameJoined() {
       </div>
       <div v-else-if="filteredGames.length === 0 && !searchQuery" class="text-center py-16">
         <p class="text-[#7ec8e3]/40 text-sm mb-4">You don't have any games yet</p>
-        <router-link
-          to="/games/create"
-          class="inline-block px-6 py-3 bg-linear-to-br from-[#e94560] to-[#c23152] text-white text-[14px] font-semibold no-underline rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300"
-        >
-          Create Game
-        </router-link>
       </div>
       <div v-else-if="filteredGames.length === 0 && searchQuery" class="text-center py-16">
         <p class="text-[#7ec8e3]/40 text-sm">No results found for "{{ searchQuery }}"</p>

@@ -46,7 +46,7 @@ func (s *Service) CreateGame(userID string, title, description, system string, m
 	if err != nil {
 		return nil, errors.New("failed to check game count")
 	}
-	if count >= int64(plan.MaxGamesOwned) {
+	if plan.MaxGamesOwned != -1 && count >= int64(plan.MaxGamesOwned) {
 		return nil, errors.New("game limit reached for your plan")
 	}
 
@@ -56,7 +56,7 @@ func (s *Service) CreateGame(userID string, title, description, system string, m
 	if maxPlayers < 1 {
 		maxPlayers = 6
 	}
-	if maxPlayers > plan.MaxPlayersPerGame {
+	if plan.MaxPlayersPerGame != -1 && maxPlayers > plan.MaxPlayersPerGame {
 		maxPlayers = plan.MaxPlayersPerGame
 	}
 
@@ -102,7 +102,7 @@ func (s *Service) JoinByCode(userID, code string) (*models.Game, error) {
 	if err != nil {
 		return nil, errors.New("failed to check game count")
 	}
-	if count >= int64(plan.MaxGamesOwned) {
+	if plan.MaxGamesOwned != -1 && count >= int64(plan.MaxGamesOwned) {
 		return nil, errors.New("game limit reached for your plan")
 	}
 

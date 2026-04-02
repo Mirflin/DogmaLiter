@@ -283,7 +283,7 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.MaxPlayers != nil && *req.MaxPlayers >= 1 {
 		plan, err := h.service.repo.GetUserPlan(userID)
-		if err == nil && *req.MaxPlayers > plan.MaxPlayersPerGame {
+		if err == nil && plan.MaxPlayersPerGame != -1 && *req.MaxPlayers > plan.MaxPlayersPerGame {
 			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("your plan allows max %d players", plan.MaxPlayersPerGame)})
 			return
 		}

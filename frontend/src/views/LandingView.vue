@@ -164,7 +164,7 @@ function getPreviewText(content) {
           class="bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.08)] rounded-xl overflow-hidden hover:border-[rgba(126,200,227,0.18)] hover:-translate-y-1 transition-all duration-300 no-underline"
         >
           <div class="h-40 bg-[rgba(126,200,227,0.05)] overflow-hidden">
-            <img v-if="post.image_url" :src="`${API_URL}${post.image_url}`" :alt="post.title" class="w-full h-full object-cover" />
+            <img v-if="post.image_id" :src="`${API_URL}/api/uploads/${post.image_id}`" :alt="post.title" class="w-full h-full object-cover" />
             <div v-else class="w-full h-full flex items-center justify-center">
               <span class="text-[#7ec8e3]/20 text-sm">No image</span>
             </div>
