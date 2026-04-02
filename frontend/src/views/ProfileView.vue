@@ -17,6 +17,19 @@ const hasPaidPlan = computed(() => {
   return pid && pid !== 'free'
 })
 
+const subscriptionEnding = computed(() => {
+  return auth.user?.subscription_ends_at != null
+})
+
+const subscriptionEndsFormatted = computed(() => {
+  if (!auth.user?.subscription_ends_at) return ''
+  return new Date(auth.user.subscription_ends_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+})
+
+const storageFrozen = computed(() => {
+  return auth.user?.storage_frozen === true
+})
+
 const avatarUrl = computed(() => {
   if (auth.user?.avatar_id) return `${API_URL}/api/uploads/${auth.user.avatar_id}`
   return null
@@ -61,7 +74,7 @@ async function cancelSubscription() {
     await api.post('/payment/cancel')
     await auth.fetchProfile()
     showCancelConfirm.value = false
-    cancelMessage.value = 'Subscription canceled. You have been downgraded to the Free plan.'
+    cancelMessage.value = 'Subscription will be canceled at the end of the billing period.'
   } catch (err) {
     cancelMessage.value = err.response?.data?.error || 'Failed to cancel subscription'
   } finally {
@@ -136,15 +149,21 @@ onMounted(async () => {
                 </svg>
                 <span class="text-[#7ec8e3]/40 text-[13px] w-36">Plan</span>
                 <span class="text-[#e94560] text-[14px] font-semibold">{{ auth.user?.plan_name }}</span>
+                <span
+                  v-if="subscriptionEnding"
+                  class="ml-2 text-[12px] text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full"
+                >
+                  Ends {{ subscriptionEndsFormatted }}
+                </span>
                 <button
-                  v-if="hasPaidPlan"
+                  v-if="hasPaidPlan && !subscriptionEnding"
                   @click="showCancelConfirm = true"
                   class="ml-3 text-[12px] text-[#7ec8e3]/40 hover:text-[#e94560] transition-colors duration-200 cursor-pointer underline underline-offset-2"
                 >
                   Cancel subscription
                 </button>
                 <router-link
-                  v-else
+                  v-if="!hasPaidPlan"
                   to="/plans"
                   class="ml-3 text-[12px] text-[#7ec8e3]/40 hover:text-[#e94560] transition-colors duration-200 no-underline"
                 >
@@ -210,6 +229,24 @@ onMounted(async () => {
               <span class="text-[#7ec8e3]/50 text-[12px]">Free ({{ storageLimitFormatted }})</span>
             </div>
           </div>
+
+          <div
+            v-if="storageFrozen"
+            class="mt-5 p-4 rounded-xl bg-[rgba(233,69,96,0.08)] border border-[rgba(233,69,96,0.2)]"
+          >
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="w-4 h-4 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <span class="text-[#e94560] text-[13px] font-semibold">Storage Frozen</span>
+            </div>
+            <p class="text-[#7ec8e3]/50 text-[12px]">
+              Your files exceed the Free plan limit. Uploads are disabled until you upgrade your plan or free up space.
+            </p>
+            <router-link to="/plans" class="inline-block mt-2 text-[12px] text-[#e94560] hover:underline no-underline">
+              Upgrade plan →
+            </router-link>
+          </div>
         </div>
 
         <div v-if="cancelMessage" class="mt-6 p-4 rounded-xl text-[14px] text-center"
@@ -235,7 +272,7 @@ onMounted(async () => {
             Are you sure you want to cancel your <span class="text-[#e94560] font-semibold">{{ auth.user?.plan_name }}</span> subscription?
           </p>
           <p class="text-[#7ec8e3]/40 text-[13px] mb-6">
-            You will be immediately downgraded to the Free plan. Your uploaded files will be kept, but you may exceed the Free plan storage limit.
+            Your subscription will remain active until the end of the current billing period. After that, you will be downgraded to the Free plan and files exceeding the limit will be frozen.
           </p>
           <div class="flex gap-3">
             <button

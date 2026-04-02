@@ -232,13 +232,13 @@ onUnmounted(() => clearInterval(countdownTimer))
         <div>
           <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">
             Max Players
-            <span class="text-[#7ec8e3]/30 ml-1">(including GM)</span>
+            <span class="text-[#7ec8e3]/30 ml-1">(including GM, max {{ auth.user?.max_players_per_game || '?' }} on your plan)</span>
           </label>
           <input
             v-model.number="maxPlayers"
             type="number"
             min="2"
-            max="20"
+            :max="auth.user?.max_players_per_game || 20"
             class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors"
           />
         </div>

@@ -198,8 +198,13 @@ func (s *Service) UploadCoverImage(userID, gameID string, file multipart.File, h
 		return "", errors.New("only the game owner can upload a cover image")
 	}
 
-	usage, _ := s.repo.GetStorageUsage(userID)
 	plan, _ := s.repo.GetUserPlan(userID)
+	var user models.User
+	s.repo.db.First(&user, "id = ?", userID)
+	if user.StorageFrozen {
+		return "", errors.New("storage is frozen, please upgrade your plan to upload files")
+	}
+	usage, _ := s.repo.GetStorageUsage(userID)
 	var usedBytes int64
 	if usage != nil {
 		usedBytes = usage.UsedBytes

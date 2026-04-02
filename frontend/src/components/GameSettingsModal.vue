@@ -223,7 +223,10 @@ function close() {
           </div>
           <div>
             <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Max Players</label>
-            <input v-model.number="maxPlayers" type="number" min="1" max="50" class="w-24 px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors" />
+            <div class="flex items-center gap-3">
+              <input v-model.number="maxPlayers" type="number" min="1" :max="auth.user?.max_players_per_game || 50" class="w-24 px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors" />
+              <span class="text-[#7ec8e3]/30 text-[12px]">max {{ auth.user?.max_players_per_game || '?' }} on your plan</span>
+            </div>
           </div>
           <div class="space-y-3">
             <label class="flex items-center gap-3 cursor-pointer">

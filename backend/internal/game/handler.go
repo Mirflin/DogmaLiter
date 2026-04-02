@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"backend/internal/auth"
@@ -281,6 +282,11 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 		game.Description = *req.Description
 	}
 	if req.MaxPlayers != nil && *req.MaxPlayers >= 1 {
+		plan, err := h.service.repo.GetUserPlan(userID)
+		if err == nil && *req.MaxPlayers > plan.MaxPlayersPerGame {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("your plan allows max %d players", plan.MaxPlayersPerGame)})
+			return
+		}
 		game.MaxPlayers = *req.MaxPlayers
 	}
 	if req.ShowStandardAttrs != nil {

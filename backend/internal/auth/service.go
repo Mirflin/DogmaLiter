@@ -363,6 +363,9 @@ func (s *Service) UploadAvatar(userID string, file multipart.File, header *multi
 	if err != nil {
 		return nil, fmt.Errorf("failed to load plan")
 	}
+	if userWithPlan.StorageFrozen {
+		return nil, fmt.Errorf("storage is frozen, please upgrade your plan to upload files")
+	}
 	usage, _ := s.repo.GetStorageUsage(userID)
 	var usedBytes int64
 	if usage != nil {

@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stripe/stripe-go/v82"
@@ -14,6 +15,7 @@ import (
 
 	"backend/internal/auth"
 	"backend/internal/config"
+	"backend/internal/models"
 	"gorm.io/gorm"
 )
 
@@ -118,16 +120,24 @@ func (h *Handler) CancelSubscription(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := subscription.Cancel(*subID, nil)
+	updatedSub, err := subscription.Update(*subID, &stripe.SubscriptionParams{
+		CancelAtPeriodEnd: stripe.Bool(true),
+	})
 	if err != nil {
 		log.Printf("Stripe cancel error: %v", err)
 		respondJSON(w, 500, map[string]string{"error": "failed to cancel subscription"})
 		return
 	}
 
-	h.db.Exec("UPDATE users SET plan_id = 'free', stripe_subscription_id = NULL WHERE id = ?", userID)
+	endsAt := time.Unix(updatedSub.CancelAt, 0)
+	h.db.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+		"subscription_ends_at": endsAt,
+	})
 
-	respondJSON(w, 200, map[string]string{"message": "subscription canceled"})
+	respondJSON(w, 200, map[string]interface{}{
+		"message":              "subscription will be canceled at the end of the billing period",
+		"subscription_ends_at": endsAt,
+	})
 }
 
 func (h *Handler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
@@ -171,10 +181,13 @@ func (h *Handler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 			subscriptionID = sess.Subscription.ID
 		}
 
-		h.db.Exec(
-			"UPDATE users SET plan_id = ?, stripe_customer_id = ?, stripe_subscription_id = ? WHERE id = ?",
-			planID, customerID, subscriptionID, userID,
-		)
+		h.db.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+			"plan_id":                planID,
+			"stripe_customer_id":     customerID,
+			"stripe_subscription_id": subscriptionID,
+			"subscription_ends_at":   nil,
+			"storage_frozen":         false,
+		})
 		log.Printf("User %s upgraded to plan %s", userID, planID)
 
 	case "customer.subscription.deleted":
@@ -185,11 +198,28 @@ func (h *Handler) HandleWebhook(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.db.Exec(
-			"UPDATE users SET plan_id = 'free', stripe_subscription_id = NULL WHERE stripe_subscription_id = ?",
-			sub.ID,
-		)
-		log.Printf("Subscription %s canceled, user downgraded to free", sub.ID)
+		var user models.User
+		if err := h.db.Preload("Plan").Where("stripe_subscription_id = ?", sub.ID).First(&user).Error; err != nil {
+			log.Printf("Webhook: user not found for subscription %s", sub.ID)
+			w.WriteHeader(200)
+			return
+		}
+
+		var freePlan models.Plan
+		h.db.First(&freePlan, "id = ?", "free")
+
+		var usage models.UserStorageUsage
+		h.db.Where("user_id = ?", user.ID).First(&usage)
+
+		frozen := usage.UsedBytes > int64(freePlan.StorageLimitMB)*1024*1024
+
+		h.db.Model(&models.User{}).Where("id = ?", user.ID).Updates(map[string]interface{}{
+			"plan_id":                "free",
+			"stripe_subscription_id": nil,
+			"subscription_ends_at":   nil,
+			"storage_frozen":         frozen,
+		})
+		log.Printf("Subscription %s expired, user %s downgraded to free (frozen=%v)", sub.ID, user.ID, frozen)
 	}
 
 	w.WriteHeader(200)
