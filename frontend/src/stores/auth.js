@@ -52,6 +52,9 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchUser() {
     try {
       const { data } = await api.get('/me')
+      if (data.access_token && data.refresh_token) {
+        setTokens(data.access_token, data.refresh_token)
+      }
       user.value = data
       isAuthenticated.value = true
     } catch {
@@ -121,6 +124,136 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function updateUsername(username) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await api.put('/me/username', { username })
+      user.value = { ...user.value, username }
+      return data
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Failed to update username'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function changePassword(currentPassword, newPassword) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await api.put('/me/password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
+      return data
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Failed to change password'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function uploadAvatar(file) {
+    loading.value = true
+    error.value = null
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+      const { data } = await api.post('/me/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      user.value = { ...user.value, avatar_id: data.avatar_id }
+      return data
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Failed to upload avatar'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function deleteAvatar() {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await api.delete('/me/avatar')
+      user.value = { ...user.value, avatar_id: null }
+      return data
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Failed to remove avatar'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchProfile() {
+    const { data } = await api.get('/me')
+    user.value = data
+    return data
+  }
+
+  async function fetchStorageUsage() {
+    const { data } = await api.get('/me/storage')
+    return data
+  }
+
+  async function fetchMyGames() {
+    const { data } = await api.get('/games')
+    return data
+  }
+
+  async function createGame(gameData) {
+    const { data } = await api.post('/games', gameData)
+    return data
+  }
+
+  async function joinGameByCode(code) {
+    const { data } = await api.post('/games/join', { code })
+    return data
+  }
+
+  async function getInviteInfo(code) {
+    const { data } = await api.get(`/games/invite/${code}`)
+    return data
+  }
+
+  async function leaveGame(gameID) {
+    const { data } = await api.post(`/games/${gameID}/leave`)
+    return data
+  }
+
+  async function deleteGame(gameID) {
+    const { data } = await api.delete(`/games/${gameID}`)
+    return data
+  }
+
+  async function uploadCoverImage(gameID, file) {
+    const formData = new FormData()
+    formData.append('cover', file)
+    const { data } = await api.post(`/games/${gameID}/cover`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  }
+
+  async function getGame(gameID) {
+    const { data } = await api.get(`/games/${gameID}`)
+    return data
+  }
+
+  async function updateGame(gameID, updates) {
+    const { data } = await api.put(`/games/${gameID}`, updates)
+    return data
+  }
+
+  async function regenerateInviteCode(gameID) {
+    const { data } = await api.post(`/games/${gameID}/regenerate-code`)
+    return data
+  }
 
   const initPromise = localStorage.getItem('access_token') ? fetchUser() : Promise.resolve()
 
@@ -142,5 +275,21 @@ export const useAuthStore = defineStore('auth', () => {
     resetPassword,
     verifyEmail,
     resendVerification,
+    updateUsername,
+    changePassword,
+    uploadAvatar,
+    deleteAvatar,
+    fetchProfile,
+    fetchStorageUsage,
+    fetchMyGames,
+    createGame,
+    joinGameByCode,
+    getInviteInfo,
+    leaveGame,
+    deleteGame,
+    uploadCoverImage,
+    getGame,
+    updateGame,
+    regenerateInviteCode,
   }
 })

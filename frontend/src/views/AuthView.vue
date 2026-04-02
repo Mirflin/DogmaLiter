@@ -15,6 +15,8 @@ const regUsername = ref('')
 const regEmail = ref('')
 const regPassword = ref('')
 const regPasswordConfirm = ref('')
+const agreeToTerms = ref(false)
+const subscribeNewsletter = ref(false)
 
 const successMessage = ref('')
 const errorMessage = ref('')
@@ -58,6 +60,10 @@ async function handleRegister() {
     errorMessage.value = 'Username must be at least 3 characters'
     return
   }
+  if (!agreeToTerms.value) {
+    errorMessage.value = 'You must agree to the Terms of Service and Privacy Policy'
+    return
+  }
 
   try {
     await auth.register(regUsername.value, regEmail.value, regPassword.value)
@@ -66,6 +72,8 @@ async function handleRegister() {
     regEmail.value = ''
     regPassword.value = ''
     regPasswordConfirm.value = ''
+    agreeToTerms.value = false
+    subscribeNewsletter.value = false
     setTimeout(() => switchToLogin(), 3000)
   } catch (err) {
     errorMessage.value = auth.error || 'Registration failed'
@@ -138,7 +146,7 @@ async function handleRegister() {
           </div>
 
           <form @submit.prevent="handleRegister">
-            <div class="mb-5 group">
+            <div class="mb-3.5 group">
               <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Username</label>
               <input
                 v-model="regUsername"
@@ -146,11 +154,11 @@ async function handleRegister() {
                 placeholder="Choose a username"
                 required
                 autocomplete="username"
-                class="w-full py-3 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-2.5 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
               />
             </div>
 
-            <div class="mb-5 group">
+            <div class="mb-3.5 group">
               <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Email</label>
               <input
                 v-model="regEmail"
@@ -158,11 +166,11 @@ async function handleRegister() {
                 placeholder="your@email.com"
                 required
                 autocomplete="email"
-                class="w-full py-3 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-2.5 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
               />
             </div>
 
-            <div class="mb-5 group">
+            <div class="mb-3.5 group">
               <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Password</label>
               <input
                 v-model="regPassword"
@@ -170,11 +178,11 @@ async function handleRegister() {
                 placeholder="Min 8 characters"
                 required
                 autocomplete="new-password"
-                class="w-full py-3 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-2.5 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
               />
             </div>
 
-            <div class="mb-5 group">
+            <div class="mb-4 group">
               <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Confirm Password</label>
               <input
                 v-model="regPasswordConfirm"
@@ -182,11 +190,25 @@ async function handleRegister() {
                 placeholder="Repeat password"
                 required
                 autocomplete="new-password"
-                class="w-full py-3 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-2.5 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
               />
             </div>
 
-            <button type="submit" class="btn-primary w-full py-3.5 mt-2 bg-linear-to-br from-[#e94560] to-[#c23152] text-white border-none rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(233,69,96,0.4)] active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" :disabled="auth.loading">
+            <div class="mb-2.5">
+              <label class="flex items-start gap-2.5 cursor-pointer">
+                <input v-model="agreeToTerms" type="checkbox" class="mt-0.5 w-4 h-4 accent-[#e94560] cursor-pointer flex-shrink-0" />
+                <span class="text-[#7ec8e3]/50 text-[12px] leading-relaxed">I agree to the <router-link to="/terms" class="text-[#e94560] no-underline hover:text-[#ff6b81]" target="_blank">Terms of Service</router-link> and <router-link to="/privacy" class="text-[#e94560] no-underline hover:text-[#ff6b81]" target="_blank">Privacy Policy</router-link></span>
+              </label>
+            </div>
+
+            <div class="mb-4">
+              <label class="flex items-start gap-2.5 cursor-pointer">
+                <input v-model="subscribeNewsletter" type="checkbox" class="mt-0.5 w-4 h-4 accent-[#e94560] cursor-pointer flex-shrink-0" />
+                <span class="text-[#7ec8e3]/50 text-[12px] leading-relaxed">Subscribe to news and updates via email</span>
+              </label>
+            </div>
+
+            <button type="submit" class="btn-primary w-full py-3.5 bg-linear-to-br from-[#e94560] to-[#c23152] text-white border-none rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(233,69,96,0.4)] active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" :disabled="auth.loading">
               <span v-if="auth.loading" class="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span v-else class="relative z-1">Create Account</span>
             </button>

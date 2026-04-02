@@ -3,6 +3,10 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,14 +21,16 @@ type Service struct {
 	jwt         *JWTManager
 	mailer      *Mailer
 	frontendURL string
+	uploadDir   string
 }
 
-func NewService(repo *Repository, jwt *JWTManager, mailer *Mailer, frontendURL string) *Service {
+func NewService(repo *Repository, jwt *JWTManager, mailer *Mailer, frontendURL string, uploadDir string) *Service {
 	return &Service{
 		repo:        repo,
 		jwt:         jwt,
 		mailer:      mailer,
 		frontendURL: frontendURL,
+		uploadDir:   uploadDir,
 	}
 }
 
@@ -68,13 +74,15 @@ func (s *Service) Register(input RegisterInput) (*RegisterResponse, error) {
 		Username:     input.Username,
 		Email:        input.Email,
 		PasswordHash: &hashStr,
-		PlanID:       "1",
+		PlanID:       "free",
 		IsVerified:   false,
 	}
 
 	if err := s.repo.CreateUser(user); err != nil {
 		return nil, fmt.Errorf("error creating user: %w", err)
 	}
+
+	s.repo.CreateStorageUsage(user.ID)
 
 	verifyToken := &models.VerificationToken{
 		ID:        uuid.New().String(),
@@ -278,4 +286,238 @@ func (s *Service) ResetPassword(input ResetPasswordInput) error {
 	s.repo.DeleteVerificationToken(vt.ID)
 
 	return nil
+}
+
+type UpdateUsernameInput struct {
+	Username string `json:"username"`
+}
+
+func (s *Service) UpdateUsername(userID string, input UpdateUsernameInput) error {
+	if len(input.Username) < 3 || len(input.Username) > 50 {
+		return fmt.Errorf("username needs to be between 3 and 50 characters")
+	}
+
+	existing, _ := s.repo.GetUserByUsername(input.Username)
+	if existing != nil && existing.ID != userID {
+		return fmt.Errorf("username is already taken")
+	}
+
+	return s.repo.UpdateUsername(userID, input.Username)
+}
+
+type ChangePasswordInput struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+func (s *Service) ChangePassword(userID string, input ChangePasswordInput) error {
+	if len(input.NewPassword) < 8 {
+		return fmt.Errorf("password must be at least 8 characters")
+	}
+
+	user, err := s.repo.GetUserByID(userID)
+	if err != nil {
+		return fmt.Errorf("user not found")
+	}
+
+	if user.PasswordHash == nil {
+		return fmt.Errorf("password change not available for this account")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(*user.PasswordHash), []byte(input.CurrentPassword)); err != nil {
+		return fmt.Errorf("current password is incorrect")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(input.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("error hashing password: %w", err)
+	}
+
+	return s.repo.UpdatePassword(userID, string(hash))
+}
+
+var allowedAvatarMimes = map[string]string{
+	"image/jpeg": ".jpg",
+	"image/png":  ".png",
+	"image/webp": ".webp",
+}
+
+const maxAvatarSize = 2 * 1024 * 1024 // 2MB
+
+func (s *Service) UploadAvatar(userID string, file multipart.File, header *multipart.FileHeader) (*models.Upload, error) {
+	if header.Size > maxAvatarSize {
+		return nil, fmt.Errorf("file too large, maximum 2MB")
+	}
+
+	ext, ok := allowedAvatarMimes[header.Header.Get("Content-Type")]
+	if !ok {
+		return nil, fmt.Errorf("only JPEG, PNG, and WebP images are allowed")
+	}
+
+	user, err := s.repo.GetUserByID(userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	userWithPlan, err := s.repo.GetUserWithPlan(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load plan")
+	}
+	usage, _ := s.repo.GetStorageUsage(userID)
+	var usedBytes int64
+	if usage != nil {
+		usedBytes = usage.UsedBytes
+	}
+	limitBytes := int64(userWithPlan.Plan.StorageLimitMB) * 1024 * 1024
+	if usedBytes+header.Size > limitBytes {
+		return nil, fmt.Errorf("storage limit exceeded")
+	}
+
+
+	if user.AvatarID != nil {
+		oldUpload, err := s.repo.GetUploadByID(*user.AvatarID)
+		if err == nil {
+			os.Remove(filepath.Join(s.uploadDir, oldUpload.StorageKey))
+			s.repo.SubtractStorageUsage(userID, oldUpload.SizeBytes)
+			s.repo.UpdateAvatarID(userID, nil)
+			s.repo.DeleteUpload(oldUpload.ID)
+		}
+	}
+
+	uploadID := uuid.New().String()
+	storageKey := filepath.Join("avatars", uploadID+ext)
+	fullPath := filepath.Join(s.uploadDir, storageKey)
+
+	if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+		return nil, fmt.Errorf("error creating directory: %w", err)
+	}
+
+	dst, err := os.Create(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("error saving file: %w", err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, file); err != nil {
+		os.Remove(fullPath)
+		return nil, fmt.Errorf("error writing file: %w", err)
+	}
+
+	upload := &models.Upload{
+		ID:           uploadID,
+		UserID:       userID,
+		FileType:     "avatar",
+		OriginalName: header.Filename,
+		StorageKey:   storageKey,
+		MimeType:     header.Header.Get("Content-Type"),
+		SizeBytes:    header.Size,
+	}
+
+	if err := s.repo.CreateUpload(upload); err != nil {
+		os.Remove(fullPath)
+		return nil, fmt.Errorf("error saving upload record: %w", err)
+	}
+
+	if err := s.repo.UpdateAvatarID(userID, &uploadID); err != nil {
+		return nil, fmt.Errorf("error linking avatar: %w", err)
+	}
+
+	s.repo.AddStorageUsage(userID, header.Size)
+
+	return upload, nil
+}
+
+func (s *Service) DeleteAvatar(userID string) error {
+	user, err := s.repo.GetUserByID(userID)
+	if err != nil {
+		return fmt.Errorf("user not found")
+	}
+
+	if user.AvatarID == nil {
+		return fmt.Errorf("no avatar to remove")
+	}
+
+	upload, err := s.repo.GetUploadByID(*user.AvatarID)
+	if err != nil {
+		return fmt.Errorf("avatar not found")
+	}
+
+	if err := s.repo.UpdateAvatarID(userID, nil); err != nil {
+		return fmt.Errorf("error unlinking avatar: %w", err)
+	}
+
+	os.Remove(filepath.Join(s.uploadDir, upload.StorageKey))
+	s.repo.SubtractStorageUsage(userID, upload.SizeBytes)
+	s.repo.DeleteUpload(upload.ID)
+
+	return nil
+}
+
+func (s *Service) GetUploadByID(id string) (*models.Upload, error) {
+	return s.repo.GetUploadByID(id)
+}
+
+func (s *Service) GetUploadDir() string {
+	return s.uploadDir
+}
+
+type StorageUsageResponse struct {
+	UsedBytes      int64 `json:"used_bytes"`
+	FilesCount     int   `json:"files_count"`
+	StorageLimitMB int   `json:"storage_limit_mb"`
+}
+
+func (s *Service) GetStorageUsage(userID string) (*StorageUsageResponse, error) {
+	user, err := s.repo.GetUserWithPlan(userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	usage, err := s.repo.GetStorageUsage(userID)
+	if err != nil {
+		return &StorageUsageResponse{
+			UsedBytes:      0,
+			FilesCount:     0,
+			StorageLimitMB: user.Plan.StorageLimitMB,
+		}, nil
+	}
+
+	return &StorageUsageResponse{
+		UsedBytes:      usage.UsedBytes,
+		FilesCount:     usage.FilesCount,
+		StorageLimitMB: user.Plan.StorageLimitMB,
+	}, nil
+}
+
+type ProfileResponse struct {
+	ID         string  `json:"id"`
+	Username   string  `json:"username"`
+	Email      string  `json:"email"`
+	Role       string  `json:"role"`
+	AvatarID   *string `json:"avatar_id"`
+	PlanName   string  `json:"plan_name"`
+	IsVerified bool    `json:"is_verified"`
+	CreatedAt  string  `json:"created_at"`
+}
+
+func (s *Service) GetProfile(userID string) (*ProfileResponse, error) {
+	user, err := s.repo.GetUserWithPlan(userID)
+	if err != nil {
+		return nil, fmt.Errorf("user not found")
+	}
+
+	return &ProfileResponse{
+		ID:         user.ID,
+		Username:   user.Username,
+		Email:      user.Email,
+		Role:       user.Role,
+		AvatarID:   user.AvatarID,
+		PlanName:   user.Plan.Name,
+		IsVerified: user.IsVerified,
+		CreatedAt:  user.CreatedAt.Format("02.01.2006"),
+	}, nil
+}
+
+func (s *Service) GetAllPlans() ([]models.Plan, error) {
+	return s.repo.GetAllPlans()
 }

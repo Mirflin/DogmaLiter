@@ -8,9 +8,9 @@ type Game struct {
 	Title             string    `gorm:"type:varchar(200);not null" json:"title"`
 	Description       string    `gorm:"type:text" json:"description"`
 	System            string    `gorm:"type:varchar(50);default:'dnd5e'" json:"system"`
-	InviteCode        string    `gorm:"type:varchar(20);uniqueIndex" json:"invite_code"`
-	MaxPlayers        int       `gorm:"default:6" json:"max_players"`
-	IsActive          bool      `gorm:"default:true" json:"is_active"`
+	InviteCode          string     `gorm:"type:varchar(20);uniqueIndex" json:"invite_code"`
+	InviteCodeExpiresAt *time.Time `json:"invite_code_expires_at"`
+	MaxPlayers          int        `gorm:"default:6" json:"max_players"`
 	CoverImageID      *string   `gorm:"type:varchar(36)" json:"cover_image_id"`
 	ShowStandardAttrs bool      `gorm:"default:true" json:"show_standard_attrs"`
 	EnableChat        bool      `gorm:"default:true" json:"enable_chat"`

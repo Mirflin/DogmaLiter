@@ -1,17 +1,61 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { API_URL } from '@/api'
 import logo from '@/assets/DLlogo.png'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 const showDropdown = ref(false)
+
+const navLinks = ref(null)
+const indicatorStyle = ref({ left: '0px', width: '0px', opacity: 0 })
+
+const navItems = [
+  { path: '/dashboard', label: 'Home' },
+  { path: '/games', label: 'Games' },
+  { path: '/news', label: 'News' },
+  { path: '/plans', label: 'Subscriptions' },
+]
+
+function updateIndicator() {
+  if (!navLinks.value) return
+  const activeEl = navLinks.value.querySelector('[data-active="true"]')
+  if (activeEl) {
+    const parentRect = navLinks.value.getBoundingClientRect()
+    const rect = activeEl.getBoundingClientRect()
+    indicatorStyle.value = {
+      left: `${rect.left - parentRect.left}px`,
+      width: `${rect.width}px`,
+      opacity: 1,
+    }
+  } else {
+    indicatorStyle.value = { ...indicatorStyle.value, opacity: 0 }
+  }
+}
+
+watch(() => route.path, () => nextTick(updateIndicator))
+onMounted(() => nextTick(updateIndicator))
 
 function handleLogout() {
   auth.logout()
   showDropdown.value = false
-  router.push('/auth')
+  router.push('/')
+}
+
+const avatarPreview = ref(null)
+
+const avatarUrl = computed(() => {
+  if (avatarPreview.value) return avatarPreview.value
+  if (auth.user?.avatar_id) return `${API_URL}/api/uploads/${auth.user.avatar_id}`
+  return null
+})
+
+function isActive(path) {
+  if (path === '/dashboard') return route.path === '/dashboard'
+  return route.path.startsWith(path)
 }
 </script>
 
@@ -24,28 +68,24 @@ function handleLogout() {
           <span class="font-[Cinzel] text-[20px] font-bold text-[#e94560] tracking-wider hidden sm:inline">DogmaLiter</span>
         </router-link>
 
-        <div v-if="auth.isAuthenticated" class="hidden md:flex items-center gap-1">
+        <div v-if="auth.isAuthenticated" ref="navLinks" class="hidden md:flex items-center gap-1 relative">
+          <div
+            class="absolute bottom-0 h-[2px] bg-[#e94560] rounded-full transition-all duration-300 ease-in-out"
+            :style="{ left: indicatorStyle.left, width: indicatorStyle.width, opacity: indicatorStyle.opacity }"
+          />
           <router-link
-            to="/games"
-            class="px-4 py-2 text-[14px] text-[#e8e8f0]/70 no-underline rounded-lg hover:text-[#e8e8f0] hover:bg-[rgba(126,200,227,0.08)] transition-all duration-200"
+            v-for="item in navItems"
+            :key="item.path"
+            :to="item.path"
+            :data-active="isActive(item.path)"
+            :class="isActive(item.path) ? 'text-[#e94560]' : 'text-[#e8e8f0]/70 hover:text-[#e8e8f0] hover:bg-[rgba(126,200,227,0.08)]'"
+            class="px-4 py-2 text-[14px] no-underline rounded-lg transition-all duration-200"
           >
-            Games
-          </router-link>
-          <router-link
-            to="/news"
-            class="px-4 py-2 text-[14px] text-[#e8e8f0]/70 no-underline rounded-lg hover:text-[#e8e8f0] hover:bg-[rgba(126,200,227,0.08)] transition-all duration-200"
-          >
-            News
+            {{ item.label }}
           </router-link>
         </div>
 
         <div v-else class="hidden md:flex items-center gap-1">
-          <router-link
-            to="/news"
-            class="px-4 py-2 text-[14px] text-[#e8e8f0]/70 no-underline rounded-lg hover:text-[#e8e8f0] hover:bg-[rgba(126,200,227,0.08)] transition-all duration-200"
-          >
-            News
-          </router-link>
         </div>
       </div>
 
@@ -56,9 +96,11 @@ function handleLogout() {
             class="flex items-center gap-2 px-3 py-2 bg-transparent border-none cursor-pointer rounded-lg hover:bg-[rgba(126,200,227,0.08)] transition-all duration-200"
           >
             <div class="w-8 h-8 rounded-full bg-[rgba(233,69,96,0.2)] border border-[rgba(233,69,96,0.4)] flex items-center justify-center">
-              <span class="text-[#e94560] text-[13px] font-bold">{{ auth.user?.username?.charAt(0)?.toUpperCase() }}</span>
+              <img v-if="avatarUrl" :src="avatarUrl" alt="Avatar" class="w-full h-full object-cover rounded-full" />
+              <span v-else class="text-[#e94560] text-[13px] font-bold">{{ auth.user?.username?.charAt(0)?.toUpperCase() }}</span>
             </div>
             <span class="text-[#e8e8f0] text-[14px] font-medium">{{ auth.user?.username }}</span>
+            <span v-if="auth.user?.role === 'admin'" class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#e94560] bg-[rgba(233,69,96,0.15)] border border-[rgba(233,69,96,0.3)] rounded">Admin</span>
             <svg class="w-4 h-4 text-[#7ec8e3]/50 transition-transform duration-200" :class="{ 'rotate-180': showDropdown }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
             </svg>

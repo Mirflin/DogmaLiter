@@ -1,8 +1,28 @@
 <script setup>
+import { ref, onMounted } from 'vue'
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import bgImage from '@/assets/background1.jpg'
 import bg2Image from '@/assets/background2.jpg'
 import logo from '@/assets/DLlogo.png'
+import api, { API_URL } from '@/api'
+
+const news = ref([])
+
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/news?page=1&limit=3')
+    news.value = data.posts || []
+  } catch (e) {}
+})
+
+function getPreviewText(content) {
+  try {
+    const sections = JSON.parse(content)
+    return sections[0]?.text || ''
+  } catch {
+    return content || ''
+  }
+}
 </script>
 
 <template>
@@ -64,7 +84,7 @@ import logo from '@/assets/DLlogo.png'
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <div class="relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(233,69,96,0.25)] hover:-translate-y-1 transition-all duration-300 group">
-            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#e94560] to-[#c23152] flex items-center justify-center shadow-[0_8px_25px_rgba(233,69,96,0.3)] group-hover:shadow-[0_12px_35px_rgba(233,69,96,0.4)] transition-shadow">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#e94560] to-[#c23152] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(233,69,96,0.4)] transition-shadow">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
             </div>
             <h3 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] mb-2">Sign Up Free</h3>
@@ -72,7 +92,7 @@ import logo from '@/assets/DLlogo.png'
           </div>
 
           <div class="relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(126,200,227,0.25)] hover:-translate-y-1 transition-all duration-300 group">
-            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#7ec8e3] to-[#4a9bb5] flex items-center justify-center shadow-[0_8px_25px_rgba(126,200,227,0.25)] group-hover:shadow-[0_12px_35px_rgba(126,200,227,0.35)] transition-shadow">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#7ec8e3] to-[#4a9bb5] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(126,200,227,0.35)] transition-shadow">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
             </div>
             <h3 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] mb-2">Create a Game</h3>
@@ -80,7 +100,7 @@ import logo from '@/assets/DLlogo.png'
           </div>
 
           <div class="relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(167,139,250,0.25)] hover:-translate-y-1 transition-all duration-300 group">
-            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#a78bfa] to-[#7c3aed] flex items-center justify-center shadow-[0_8px_25px_rgba(167,139,250,0.25)] group-hover:shadow-[0_12px_35px_rgba(167,139,250,0.35)] transition-shadow">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#a78bfa] to-[#7c3aed] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(167,139,250,0.35)] transition-shadow">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
             </div>
             <h3 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] mb-2">Find Your Party</h3>
@@ -88,7 +108,7 @@ import logo from '@/assets/DLlogo.png'
           </div>
 
           <div class="relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(251,146,60,0.25)] hover:-translate-y-1 transition-all duration-300 group">
-            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#fb923c] to-[#ea580c] flex items-center justify-center shadow-[0_8px_25px_rgba(251,146,60,0.25)] group-hover:shadow-[0_12px_35px_rgba(251,146,60,0.35)] transition-shadow">
+            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#fb923c] to-[#ea580c] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(251,146,60,0.35)] transition-shadow">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" /></svg>
             </div>
             <h3 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] mb-2">Play</h3>
@@ -137,15 +157,25 @@ import logo from '@/assets/DLlogo.png'
         </router-link>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div v-for="n in 3" :key="n" class="bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.08)] rounded-xl overflow-hidden hover:border-[rgba(126,200,227,0.18)] hover:-translate-y-1 transition-all duration-300 cursor-pointer">
-          <div class="h-40 bg-[rgba(126,200,227,0.05)] flex items-center justify-center">
-            <span class="text-[#7ec8e3]/20 text-sm">No image</span>
+        <router-link
+          v-for="post in news"
+          :key="post.id"
+          :to="`/news/${post.id}`"
+          class="bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.08)] rounded-xl overflow-hidden hover:border-[rgba(126,200,227,0.18)] hover:-translate-y-1 transition-all duration-300 no-underline"
+        >
+          <div class="h-40 bg-[rgba(126,200,227,0.05)] overflow-hidden">
+            <img v-if="post.image_url" :src="`${API_URL}${post.image_url}`" :alt="post.title" class="w-full h-full object-cover" />
+            <div v-else class="w-full h-full flex items-center justify-center">
+              <span class="text-[#7ec8e3]/20 text-sm">No image</span>
+            </div>
           </div>
           <div class="p-5">
-            <p class="text-[#7ec8e3]/30 text-xs mb-2">Coming soon</p>
-            <h3 class="text-[#e8e8f0]/40 text-[16px] font-semibold">News post placeholder</h3>
+            <p class="text-[#7ec8e3]/30 text-xs mb-2">{{ new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}</p>
+            <h3 class="text-[#e8e8f0] text-[16px] font-semibold mb-2">{{ post.title }}</h3>
+            <p class="text-[#7ec8e3]/40 text-[13px] leading-relaxed line-clamp-2">{{ getPreviewText(post.content) }}</p>
           </div>
-        </div>
+        </router-link>
+        <div v-if="news.length === 0" class="col-span-3 text-center py-12 text-[#7ec8e3]/30 text-sm">No news yet</div>
       </div>
     </section>
 

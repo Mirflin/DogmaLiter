@@ -10,10 +10,12 @@ type User struct {
 	GoogleID     *string   `gorm:"type:varchar(100);uniqueIndex" json:"-"`
 	Role         string    `gorm:"type:enum('user','admin');default:'user'" json:"role"`
 	AvatarID     *string   `gorm:"type:varchar(36)" json:"avatar_id"`
-	PlanID       string    `gorm:"type:varchar(30);default:'1'" json:"plan_id"`
-	IsVerified   bool      `gorm:"default:false" json:"is_verified"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	PlanID               string    `gorm:"type:varchar(30);default:'free'" json:"plan_id"`
+	StripeCustomerID     *string   `gorm:"type:varchar(100)" json:"-"`
+	StripeSubscriptionID *string   `gorm:"type:varchar(100)" json:"-"`
+	IsVerified           bool      `gorm:"default:false" json:"is_verified"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
 
 	Plan       Plan        `gorm:"foreignKey:PlanID" json:"plan,omitempty"`
 	OwnedGames []Game      `gorm:"foreignKey:OwnerID" json:"owned_games,omitempty"`

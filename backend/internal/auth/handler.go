@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -140,6 +141,121 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, 200, map[string]string{"message": "Password successfully reset!"})
+}
+
+func (h *Handler) UpdateUsername(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserID(r)
+	var input UpdateUsernameInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		return
+	}
+
+	if err := h.service.UpdateUsername(userID, input); err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, 200, map[string]string{"message": "Username updated"})
+}
+
+func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserID(r)
+	var input ChangePasswordInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "invalid JSON"})
+		return
+	}
+
+	if err := h.service.ChangePassword(userID, input); err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, 200, map[string]string{"message": "Password changed"})
+}
+
+func (h *Handler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserID(r)
+
+	r.Body = http.MaxBytesReader(w, r.Body, 2*1024*1024+1024)
+
+	if err := r.ParseMultipartForm(2 * 1024 * 1024); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "file too large, maximum 2MB"})
+		return
+	}
+
+	file, header, err := r.FormFile("avatar")
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": "avatar file is required"})
+		return
+	}
+	defer file.Close()
+
+	upload, err := h.service.UploadAvatar(userID, file, header)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"message":   "Avatar uploaded",
+		"avatar_id": upload.ID,
+	})
+}
+
+func (h *Handler) DeleteAvatar(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserID(r)
+
+	if err := h.service.DeleteAvatar(userID); err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, 200, map[string]string{"message": "Avatar removed"})
+}
+
+func (h *Handler) ServeUpload(w http.ResponseWriter, r *http.Request) {
+	uploadID := chi.URLParam(r, "id")
+	upload, err := h.service.GetUploadByID(uploadID)
+	if err != nil {
+		http.Error(w, "not found", 404)
+		return
+	}
+
+	fullPath := filepath.Join(h.service.GetUploadDir(), upload.StorageKey)
+	w.Header().Set("Content-Type", upload.MimeType)
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	http.ServeFile(w, r, fullPath)
+}
+
+func (h *Handler) GetStorageUsage(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserID(r)
+	usage, err := h.service.GetStorageUsage(userID)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+	respondJSON(w, 200, usage)
+}
+
+func (h *Handler) GetPlans(w http.ResponseWriter, r *http.Request) {
+	plans, err := h.service.GetAllPlans()
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "failed to load plans"})
+		return
+	}
+	respondJSON(w, 200, plans)
+}
+
+func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
+	userID := GetUserID(r)
+	profile, err := h.service.GetProfile(userID)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+	respondJSON(w, 200, profile)
 }
 
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {
