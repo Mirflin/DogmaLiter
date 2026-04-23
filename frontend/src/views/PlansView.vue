@@ -39,6 +39,12 @@ function yearlyPrice(monthly) {
 }
 
 const currentPlanId = computed(() => auth.user?.plan_id)
+const currentPlan = computed(() => plans.value.find(p => p.id === currentPlanId.value))
+
+function isLowerTier(plan) {
+  if (!currentPlan.value) return false
+  return plan.price_monthly < currentPlan.value.price_monthly
+}
 
 function planFeatures(plan) {
   return [
@@ -166,16 +172,17 @@ onMounted(async () => {
           <button
             @click="selectPlan(plan)"
             class="w-full py-3 rounded-xl text-[14px] font-semibold cursor-pointer border transition-all duration-200 mb-7"
-            :class="currentPlanId === plan.id
+            :class="currentPlanId === plan.id || isLowerTier(plan)
               ? 'bg-transparent border-[rgba(126,200,227,0.2)] text-[#7ec8e3]/50 cursor-default'
               : index === 2
                 ? 'bg-[#a078ff] border-[#a078ff] text-white hover:bg-[#8d62ff]'
                 : index === 1
                   ? 'bg-[#e94560] border-[#e94560] text-white hover:bg-[#d63b55]'
                   : 'bg-transparent border-[rgba(126,200,227,0.25)] text-[#e8e8f0] hover:bg-[rgba(126,200,227,0.08)]'"
-            :disabled="currentPlanId === plan.id || plan.price_monthly === 0 || purchasing"
+            :disabled="currentPlanId === plan.id || plan.price_monthly === 0 || purchasing || isLowerTier(plan)"
           >
             <template v-if="currentPlanId === plan.id">Current plan</template>
+            <template v-else-if="isLowerTier(plan)">Not available</template>
             <template v-else-if="plan.price_monthly === 0">Free</template>
             <template v-else-if="purchasing">Processing...</template>
             <template v-else>Subscribe to {{ plan.name }}</template>

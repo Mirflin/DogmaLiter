@@ -53,6 +53,7 @@ onMounted(async () => {
   if (route.query.join) {
     joinInitialCode.value = route.query.join
     showJoinModal.value = true
+    router.replace({ query: { ...route.query, join: undefined } })
   }
 })
 
@@ -270,7 +271,7 @@ function getPreviewText(content) {
             <div class="space-y-2 text-[13px]">
               <div class="flex justify-between">
                 <span class="text-[#7ec8e3]/40">Plan</span>
-                <span class="text-[#e8e8f0]/60">{{ auth.user?.plan_name }}</span>
+                <span class="text-[#e94560]">{{ auth.user?.plan_name }}</span>
               </div>
             </div>
           </div>

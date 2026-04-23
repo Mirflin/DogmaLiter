@@ -38,8 +38,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const { data } = await api.post('/auth/login', { email, password })
       setTokens(data.access_token, data.refresh_token)
-      user.value = data.user
       isAuthenticated.value = true
+      await fetchUser()
       return data
     } catch (err) {
       error.value = err.response?.data?.error || 'Login failed'

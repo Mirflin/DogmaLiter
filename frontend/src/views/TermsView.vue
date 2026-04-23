@@ -1,11 +1,25 @@
 <script setup>
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 const router = useRouter()
+const auth = useAuthStore()
+function goBack() {
+  router.push(auth.isAuthenticated ? '/dashboard' : '/')
+}
 </script>
 
 <template>
   <div class="min-h-screen py-16 px-6">
     <div class="max-w-[800px] mx-auto">
+      <button
+        @click="goBack"
+        class="flex items-center gap-2 text-[#7ec8e3]/50 hover:text-[#e8e8f0] bg-transparent border-none cursor-pointer text-[14px] mb-8 transition-colors"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+        Back
+      </button>
       <h1 class="font-[Cinzel] text-[36px] font-bold text-[#e8e8f0] mb-2">Terms of Service</h1>
       <p class="text-[#7ec8e3]/50 text-sm mb-10">Last updated: April 2, 2026</p>
 

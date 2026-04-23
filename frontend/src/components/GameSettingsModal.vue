@@ -32,6 +32,8 @@ const countdown = ref('')
 const codeExpired = ref(false)
 let countdownTimer = null
 
+const inviteLinkText = computed(() => `${window.location.origin}/join/${inviteCode.value}`)
+
 const coverFile = ref(null)
 const coverPreview = ref(null)
 const uploadingCover = ref(false)
@@ -119,10 +121,24 @@ async function regenerate() {
 }
 
 function copyInviteLink() {
-  const link = `${window.location.origin}/join/${inviteCode.value}`
-  navigator.clipboard.writeText(link)
-  codeCopied.value = true
-  setTimeout(() => codeCopied.value = false, 2000)
+  const text = inviteLinkText.value
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      codeCopied.value = true
+      setTimeout(() => { codeCopied.value = false }, 2000)
+    })
+  } else {
+    const el = document.createElement('textarea')
+    el.value = text
+    el.style.position = 'fixed'
+    el.style.opacity = '0'
+    document.body.appendChild(el)
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+    codeCopied.value = true
+    setTimeout(() => { codeCopied.value = false }, 2000)
+  }
 }
 
 async function handleSave() {
@@ -229,17 +245,35 @@ function close() {
             </div>
           </div>
           <div class="space-y-3">
-            <label class="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" v-model="showStandardAttrs" class="w-4 h-4 accent-[#e94560]" />
-              <span class="text-[#e8e8f0]/70 text-[13px]">Standard Attributes</span>
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
+                :class="showStandardAttrs ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                <svg v-if="showStandardAttrs" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <input type="checkbox" v-model="showStandardAttrs" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
+              </span>
+              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Standard Attributes</span>
             </label>
-            <label class="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" v-model="enableChat" class="w-4 h-4 accent-[#e94560]" />
-              <span class="text-[#e8e8f0]/70 text-[13px]">Chat</span>
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
+                :class="enableChat ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                <svg v-if="enableChat" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <input type="checkbox" v-model="enableChat" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
+              </span>
+              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Chat</span>
             </label>
-            <label class="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" v-model="enableItemTrading" class="w-4 h-4 accent-[#e94560]" />
-              <span class="text-[#e8e8f0]/70 text-[13px]">Item Trading</span>
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
+                :class="enableItemTrading ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                <svg v-if="enableItemTrading" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <input type="checkbox" v-model="enableItemTrading" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
+              </span>
+              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Item Trading</span>
             </label>
           </div>
           <div class="border-t border-[rgba(126,200,227,0.08)] pt-5">
