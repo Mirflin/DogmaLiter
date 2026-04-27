@@ -25,6 +25,13 @@ func (h *Handler) Routes() chi.Router {
 	r.Post("/join", h.JoinByCode)
 	r.Post("/{gameID}/regenerate-code", h.RegenerateInviteCode)
 	r.Get("/{gameID}/invite-code", h.GetInviteCode)
+	r.Get("/{gameID}/session", h.GetSession)
+	r.Post("/{gameID}/characters", h.CreateCharacter)
+	r.Get("/{gameID}/characters/{characterID}", h.GetCharacter)
+	r.Patch("/{gameID}/characters/{characterID}", h.UpdateCharacter)
+	r.Post("/{gameID}/characters/{characterID}/portrait", h.UploadCharacterPortrait)
+	r.Get("/{gameID}/chat-messages", h.GetChatMessages)
+	r.Post("/{gameID}/chat-messages", h.CreateChatMessage)
 	r.Get("/{gameID}", h.GetGame)
 	r.Put("/{gameID}", h.UpdateGame)
 	r.Post("/{gameID}/leave", h.LeaveGame)
@@ -194,7 +201,7 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 
 	isMember, _ := h.service.repo.IsMember(gameID, userID)
 	if game.OwnerID != userID && !isMember {
-		respondJSON(w, 403, map[string]string{"error": fmt.Sprintf("User %s is not a member of game")})
+		respondJSON(w, 403, map[string]string{"error": fmt.Sprintf("User %s is not a member of game %s", userID, gameID)})
 		return
 	}
 
@@ -361,6 +368,59 @@ func (h *Handler) UploadCoverImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, 200, map[string]interface{}{"cover_image_id": uploadID})
+}
+
+func (h *Handler) UploadCharacterPortrait(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	characterID := chi.URLParam(r, "characterID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+
+	character, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": "Character not found"})
+		return
+	}
+
+	if !isGM && character.UserID != userID {
+		respondJSON(w, 403, map[string]string{"error": "You do not have access to update this character"})
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 5*1024*1024+512)
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "File too large (max 5MB)"})
+		return
+	}
+
+	file, header, err := r.FormFile("portrait")
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": "Portrait file is required"})
+		return
+	}
+	defer file.Close()
+
+	upload, err := h.service.UploadCharacterPortrait(userID, character, file, header)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	character, err = h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Portrait uploaded but character could not be reloaded"})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"portrait_id": upload.ID,
+		"character":   serializeCharacterDetail(character),
+	})
 }
 
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {

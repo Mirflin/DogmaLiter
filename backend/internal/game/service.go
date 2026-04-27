@@ -267,3 +267,84 @@ func (s *Service) UploadCoverImage(userID, gameID string, file multipart.File, h
 	s.repo.AddStorageUsage(userID, header.Size)
 	return upload.ID, nil
 }
+
+func (s *Service) UploadCharacterPortrait(userID string, character *models.Character, file multipart.File, header *multipart.FileHeader) (*models.Upload, error) {
+	plan, err := s.repo.GetUserPlan(userID)
+	if err != nil {
+		return nil, errors.New("failed to load plan")
+	}
+
+	var user models.User
+	s.repo.db.First(&user, "id = ?", userID)
+	if user.StorageFrozen {
+		return nil, errors.New("storage is frozen, please upgrade your plan to upload files")
+	}
+
+	usage, _ := s.repo.GetStorageUsage(userID)
+	var usedBytes int64
+	if usage != nil {
+		usedBytes = usage.UsedBytes
+	}
+	limitBytes := int64(plan.StorageLimitMB) * 1024 * 1024
+	if usedBytes+header.Size > limitBytes {
+		return nil, errors.New("storage limit exceeded")
+	}
+
+	contentType := header.Header.Get("Content-Type")
+	allowed := map[string]string{
+		"image/jpeg": ".jpg",
+		"image/png":  ".png",
+		"image/webp": ".webp",
+	}
+	ext, ok := allowed[contentType]
+	if !ok {
+		return nil, errors.New("only JPEG, PNG, and WebP images are allowed")
+	}
+	if header.Size > 5*1024*1024 {
+		return nil, errors.New("file must be under 5MB")
+	}
+
+	portraitDir := filepath.Join(s.uploadDir, "portraits")
+	if err := os.MkdirAll(portraitDir, 0755); err != nil {
+		return nil, errors.New("failed to prepare portrait storage")
+	}
+
+	filename := fmt.Sprintf("portrait_%s%s", uuid.New().String(), ext)
+	dst, err := os.Create(filepath.Join(portraitDir, filename))
+	if err != nil {
+		return nil, errors.New("failed to save file")
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, file); err != nil {
+		return nil, errors.New("failed to save file")
+	}
+
+	if character.PortraitID != nil {
+		oldUpload, err := s.repo.GetUploadByID(*character.PortraitID)
+		if err == nil {
+			os.Remove(filepath.Join(s.uploadDir, oldUpload.StorageKey))
+			s.repo.SubtractStorageUsage(oldUpload.UserID, oldUpload.SizeBytes)
+			s.repo.DeleteUpload(oldUpload.ID)
+		}
+	}
+
+	upload := &models.Upload{
+		ID:           uuid.New().String(),
+		UserID:       userID,
+		StorageKey:   filepath.Join("portraits", filename),
+		OriginalName: header.Filename,
+		FileType:     "portrait",
+		SizeBytes:    header.Size,
+		MimeType:     contentType,
+	}
+	if err := s.repo.CreateUpload(upload); err != nil {
+		return nil, errors.New("failed to save upload record")
+	}
+
+	if err := s.repo.UpdateCharacterPortrait(character.GameID, character.ID, &upload.ID); err != nil {
+		return nil, errors.New("failed to link portrait")
+	}
+
+	s.repo.AddStorageUsage(userID, header.Size)
+	return upload, nil
+}

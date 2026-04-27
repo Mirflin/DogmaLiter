@@ -27,8 +27,8 @@ function getPreviewText(content) {
 
 <template>
   <HomeLayout>
-  <div>
-    <section class="relative overflow-hidden min-h-[600px] md:min-h-[700px] flex items-center">
+  <div class="landing-page">
+    <section class="landing-hero relative overflow-hidden min-h-[600px] md:min-h-[700px] flex items-center">
       <div class="absolute inset-0">
         <img :src="bg2Image" alt="" class="w-full h-full object-cover blur-[3px] scale-105 opacity-30" />
       </div>
@@ -39,8 +39,9 @@ function getPreviewText(content) {
         <div class="absolute bottom-20 right-32 w-96 h-96 bg-[#7ec8e3]/8 rounded-full blur-[160px]" />
       </div>
 
-      <div class="relative max-w-[1400px] mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center gap-12">
-        <div class="flex-1 max-w-2xl">
+      <div class="landing-hero__content relative max-w-[1400px] mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center gap-12">
+        <div class="landing-hero__copy flex-1 max-w-2xl">
+          <p class="landing-eyebrow mb-4 text-[11px] uppercase tracking-[0.26em] text-[#7ec8e3]/55">Campaign Platform</p>
           <h1 class="font-[Cinzel] text-[40px] md:text-[54px] font-bold text-[#e8e8f0] leading-tight mb-6 tracking-wide">
             Your Tabletop,<br />
             <span class="text-transparent bg-clip-text bg-linear-to-r from-[#e94560] to-[#ff6b81]">Reimagined.</span>
@@ -68,22 +69,60 @@ function getPreviewText(content) {
           >
             Create Free Account
           </router-link>
+
+          <div class="landing-hero__metrics mt-8 grid gap-3 sm:grid-cols-3">
+            <article class="landing-metric px-4 py-4">
+              <p class="text-[10px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">No Setup</p>
+              <p class="mt-2 font-[Cinzel] text-[22px] text-[#f6f7fb]">Browser First</p>
+            </article>
+            <article class="landing-metric px-4 py-4">
+              <p class="text-[10px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">Game Flow</p>
+              <p class="mt-2 font-[Cinzel] text-[22px] text-[#f6f7fb]">Sheets, Loot, Chat</p>
+            </article>
+            <article class="landing-metric px-4 py-4">
+              <p class="text-[10px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">Access</p>
+              <p class="mt-2 font-[Cinzel] text-[22px] text-[#f6f7fb]">Join by Link</p>
+            </article>
+          </div>
         </div>
 
-        <div class="hidden md:flex flex-shrink-0 items-center justify-center">
-          <img :src="logo" alt="DogmaLiter" class="w-64 h-64 object-contain drop-shadow-[0_0_40px_rgba(233,69,96,0.3)] animate-float" />
+        <div class="landing-hero__aside hidden md:flex flex-shrink-0 items-center justify-center">
+          <div class="landing-atlas w-full max-w-[390px] p-6">
+            <div class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.1)] pb-5">
+              <img :src="logo" alt="DogmaLiter" class="w-20 h-20 object-contain drop-shadow-[0_0_40px_rgba(233,69,96,0.3)] animate-float" />
+              <div>
+                <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">Live Board</p>
+                <p class="mt-2 font-[Cinzel] text-[28px] font-bold text-[#f6f7fb]">Campaign Atlas</p>
+              </div>
+            </div>
+
+            <div class="mt-5 grid gap-3 sm:grid-cols-2">
+              <article class="landing-atlas__cell p-4">
+                <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">GM Control</p>
+                <p class="mt-2 text-[15px] leading-relaxed text-[#e8e8f0]/82">Run parties, items, sheets and invites from one place.</p>
+              </article>
+              <article class="landing-atlas__cell p-4">
+                <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">Player Ready</p>
+                <p class="mt-2 text-[15px] leading-relaxed text-[#e8e8f0]/82">Choose a character, open inventory and stay in chat instantly.</p>
+              </article>
+              <article class="landing-atlas__cell p-4 sm:col-span-2">
+                <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">Why It Feels Better</p>
+                <p class="mt-2 text-[15px] leading-relaxed text-[#e8e8f0]/82">DogmaLiter keeps the tabletop rhythm intact: less setup friction, more space for party management, fast entry into play.</p>
+              </article>
+            </div>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="relative py-20 overflow-hidden">
+    <section class="landing-section landing-section--framed relative py-20 overflow-hidden">
       <div class="absolute inset-0 bg-[#0a0a1a]" />
-      <div class="relative max-w-[1400px] mx-auto px-6">
+      <div class="landing-section-shell relative max-w-[1400px] mx-auto px-6 py-10">
         <h2 class="font-[Cinzel] text-[32px] font-bold text-[#e8e8f0] tracking-wide text-center mb-4">How It Works</h2>
         <p class="text-[#7ec8e3]/50 text-center text-[16px] mb-14 max-w-lg mx-auto">Get started in minutes. No complicated setup.</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(233,69,96,0.25)] hover:-translate-y-1 transition-all duration-300 group">
+          <div class="landing-process-card relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(233,69,96,0.25)] hover:-translate-y-1 transition-all duration-300 group">
             <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#e94560] to-[#c23152] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(233,69,96,0.4)] transition-shadow">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
             </div>
@@ -91,7 +130,7 @@ function getPreviewText(content) {
             <p class="text-[#7ec8e3]/45 text-[14px] leading-relaxed">Create your account in seconds. Free tier available forever, whether you're a GM or player.</p>
           </div>
 
-          <div class="relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(126,200,227,0.25)] hover:-translate-y-1 transition-all duration-300 group">
+          <div class="landing-process-card relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(126,200,227,0.25)] hover:-translate-y-1 transition-all duration-300 group">
             <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#7ec8e3] to-[#4a9bb5] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(126,200,227,0.35)] transition-shadow">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
             </div>
@@ -99,7 +138,7 @@ function getPreviewText(content) {
             <p class="text-[#7ec8e3]/45 text-[14px] leading-relaxed">Set up your campaign with custom rules, maps, and items. Full creative control in your hands.</p>
           </div>
 
-          <div class="relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(167,139,250,0.25)] hover:-translate-y-1 transition-all duration-300 group">
+          <div class="landing-process-card relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(167,139,250,0.25)] hover:-translate-y-1 transition-all duration-300 group">
             <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#a78bfa] to-[#7c3aed] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(167,139,250,0.35)] transition-shadow">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
             </div>
@@ -107,7 +146,7 @@ function getPreviewText(content) {
             <p class="text-[#7ec8e3]/45 text-[14px] leading-relaxed">Invite friends with a link or let them join by code. Build your group and get ready to play.</p>
           </div>
 
-          <div class="relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(251,146,60,0.25)] hover:-translate-y-1 transition-all duration-300 group">
+          <div class="landing-process-card relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(251,146,60,0.25)] hover:-translate-y-1 transition-all duration-300 group">
             <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#fb923c] to-[#ea580c] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(251,146,60,0.35)] transition-shadow">
               <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" /></svg>
             </div>
@@ -118,12 +157,12 @@ function getPreviewText(content) {
       </div>
     </section>
 
-    <section class="max-w-[1400px] mx-auto px-6 py-20">
+    <section class="landing-section max-w-[1400px] mx-auto px-6 py-20">
       <h2 class="font-[Cinzel] text-[32px] font-bold text-[#e8e8f0] tracking-wide text-center mb-4">Everything You Need</h2>
       <p class="text-[#7ec8e3]/50 text-center text-[16px] mb-14 max-w-lg mx-auto">Powerful tools for GMs and players alike.</p>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div class="landing-feature-card p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
           <div class="w-14 h-14 rounded-xl bg-[rgba(233,69,96,0.15)] flex items-center justify-center mb-5 group-hover:bg-[rgba(233,69,96,0.25)] transition-colors">
             <svg class="w-7 h-7 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" /></svg>
           </div>
@@ -131,7 +170,7 @@ function getPreviewText(content) {
           <p class="text-[#7ec8e3]/50 text-[15px] leading-relaxed">Built-in chat where you can share items for inspection, discuss strategies, and keep the story flowing.</p>
         </div>
 
-        <div class="p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div class="landing-feature-card p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
           <div class="w-14 h-14 rounded-xl bg-[rgba(233,69,96,0.15)] flex items-center justify-center mb-5 group-hover:bg-[rgba(233,69,96,0.25)] transition-colors">
             <svg class="w-7 h-7 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
           </div>
@@ -139,7 +178,7 @@ function getPreviewText(content) {
           <p class="text-[#7ec8e3]/50 text-[15px] leading-relaxed">Fully customizable character sheets with attributes, inventory, and equipment management.</p>
         </div>
 
-        <div class="p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
+        <div class="landing-feature-card p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
           <div class="w-14 h-14 rounded-xl bg-[rgba(233,69,96,0.15)] flex items-center justify-center mb-5 group-hover:bg-[rgba(233,69,96,0.25)] transition-colors">
             <svg class="w-7 h-7 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>
           </div>
@@ -149,7 +188,7 @@ function getPreviewText(content) {
       </div>
     </section>
 
-    <section class="max-w-[1400px] mx-auto px-6 py-16 border-t border-[rgba(126,200,227,0.08)]">
+    <section class="landing-section landing-section--news max-w-[1400px] mx-auto px-6 py-16 border-t border-[rgba(126,200,227,0.08)]">
       <div class="flex items-center justify-between mb-10">
         <h2 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide">Latest News</h2>
         <router-link to="/news" class="text-[#e94560] text-[14px] font-medium no-underline hover:text-[#ff6b81] transition-colors">
@@ -161,7 +200,7 @@ function getPreviewText(content) {
           v-for="post in news"
           :key="post.id"
           :to="`/news/${post.id}`"
-          class="bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.08)] rounded-xl overflow-hidden hover:border-[rgba(126,200,227,0.18)] hover:-translate-y-1 transition-all duration-300 no-underline"
+          class="landing-news-card bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.08)] rounded-xl overflow-hidden hover:border-[rgba(126,200,227,0.18)] hover:-translate-y-1 transition-all duration-300 no-underline"
         >
           <div class="h-40 bg-[rgba(126,200,227,0.05)] overflow-hidden">
             <img v-if="post.image_id" :src="`${API_URL}/api/uploads/${post.image_id}`" :alt="post.title" class="w-full h-full object-cover" />
@@ -179,12 +218,12 @@ function getPreviewText(content) {
       </div>
     </section>
 
-    <section class="relative py-20 overflow-hidden">
+    <section class="landing-section landing-cta relative py-20 overflow-hidden">
       <div class="absolute inset-0">
         <img :src="bgImage" alt="" class="w-full h-full object-cover blur-[4px] scale-105 opacity-20" />
       </div>
       <div class="absolute inset-0 bg-[#0a0a1a]/75" />
-      <div class="relative max-w-[700px] mx-auto px-6 text-center">
+      <div class="landing-cta-shell relative max-w-[700px] mx-auto px-6 py-10 text-center">
         <h2 class="font-[Cinzel] text-[32px] md:text-[38px] font-bold text-[#e8e8f0] mb-5 tracking-wide">Ready to Start Your Adventure?</h2>
         <p class="text-[#7ec8e3]/60 text-[16px] mb-10">Join DogmaLiter and bring your tabletop stories to life. It's free.</p>
         <router-link
@@ -200,11 +239,127 @@ function getPreviewText(content) {
 </template>
 
 <style scoped>
+.landing-page {
+  position: relative;
+}
+
+.landing-hero__content,
+.landing-section-shell,
+.landing-cta-shell {
+  position: relative;
+  z-index: 1;
+}
+
+.landing-hero__copy {
+  padding: 1.75rem;
+  border: 1px solid rgba(126, 200, 227, 0.1);
+  border-radius: 1.75rem;
+  background: linear-gradient(180deg, rgba(12, 17, 31, 0.72), rgba(8, 12, 24, 0.84));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.landing-eyebrow {
+  color: rgba(126, 200, 227, 0.55);
+}
+
+.landing-hero__aside {
+  width: min(100%, 24.5rem);
+}
+
+.landing-atlas,
+.landing-section-shell,
+.landing-feature-card,
+.landing-news-card,
+.landing-cta-shell,
+.landing-metric,
+.landing-atlas__cell,
+.landing-process-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(126, 200, 227, 0.1);
+  background: linear-gradient(180deg, rgba(12, 18, 32, 0.78), rgba(8, 12, 24, 0.9));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+}
+
+.landing-atlas::before,
+.landing-section-shell::before,
+.landing-feature-card::before,
+.landing-news-card::before,
+.landing-cta-shell::before,
+.landing-metric::before,
+.landing-atlas__cell::before,
+.landing-process-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 18px);
+  opacity: 0.7;
+}
+
+.landing-atlas,
+.landing-section-shell,
+.landing-cta-shell {
+  border-radius: 2rem;
+}
+
+.landing-feature-card,
+.landing-news-card,
+.landing-process-card,
+.landing-metric,
+.landing-atlas__cell {
+  border-radius: 1.35rem;
+}
+
+.landing-hero__metrics {
+  align-items: stretch;
+}
+
+.landing-section--framed {
+  padding-inline: 1.5rem;
+}
+
+.landing-section-shell {
+  backdrop-filter: blur(10px);
+}
+
+.landing-news-card,
+.landing-feature-card,
+.landing-process-card {
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.landing-news-card:hover,
+.landing-feature-card:hover,
+.landing-process-card:hover {
+  border-color: rgba(233, 69, 96, 0.22);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.26);
+}
+
+.landing-cta-shell {
+  backdrop-filter: blur(10px);
+}
+
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-12px); }
 }
 .animate-float {
   animation: float 4s ease-in-out infinite;
+}
+
+@media (max-width: 767px) {
+  .landing-hero__copy,
+  .landing-section-shell,
+  .landing-cta-shell {
+    border-radius: 1.5rem;
+  }
+
+  .landing-section--framed {
+    padding-inline: 0;
+  }
 }
 </style>

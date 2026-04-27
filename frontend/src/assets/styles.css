@@ -1,2 +1,56 @@
-@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700&family=Cinzel:wght@400;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+	--dl-brand-primary: #e94560;
+	--dl-brand-primary-strong: #c23152;
+	--dl-brand-primary-soft: rgba(233, 69, 96, 0.14);
+	--dl-brand-secondary: #7ec8e3;
+	--dl-brand-secondary-strong: #8fd7ef;
+	--dl-brand-secondary-soft: rgba(126, 200, 227, 0.14);
+	--dl-brand-text: #e8e8f0;
+	--dl-brand-text-dim: rgba(232, 232, 240, 0.64);
+	--dl-surface-0: #070b15;
+	--dl-surface-1: #0b1120;
+	--dl-surface-2: #10182b;
+	--dl-surface-3: #151f35;
+	--dl-panel-bg: linear-gradient(180deg, rgba(16, 24, 43, 0.94), rgba(9, 14, 26, 0.98));
+	--dl-panel-bg-soft: linear-gradient(180deg, rgba(14, 21, 38, 0.86), rgba(9, 14, 26, 0.92));
+	--dl-panel-border: rgba(126, 200, 227, 0.14);
+	--dl-panel-border-strong: rgba(233, 69, 96, 0.22);
+	--dl-shadow-soft: 0 20px 48px rgba(0, 0, 0, 0.22);
+	--dl-shadow-strong: 0 30px 80px rgba(0, 0, 0, 0.3);
+}
+
+html,
+body,
+#app {
+	min-height: 100%;
+}
+
+body {
+	margin: 0;
+	color: var(--dl-brand-text);
+	font-family: 'Raleway', sans-serif;
+	background:
+		radial-gradient(circle at 50% -12%, rgba(233, 69, 96, 0.1), transparent 28%),
+		radial-gradient(circle at 80% 18%, rgba(126, 200, 227, 0.08), transparent 24%),
+		linear-gradient(90deg, rgba(126, 200, 227, 0.03) 1px, transparent 1px),
+		linear-gradient(0deg, rgba(126, 200, 227, 0.02) 1px, transparent 1px),
+		linear-gradient(180deg, #070b15 0%, #0a1120 54%, #060911 100%);
+	background-attachment: fixed;
+	background-size: auto, auto, 120px 120px, 120px 120px, auto;
+}
+
+a {
+	color: inherit;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+::selection {
+	background: rgba(233, 69, 96, 0.28);
+	color: #ffffff;
+}

@@ -76,6 +76,158 @@ func (r *Repository) IsMember(gameID, userID string) (bool, error) {
 	return count > 0, err
 }
 
+func (r *Repository) ListGameCharacters(gameID string, userID *string) ([]models.Character, error) {
+	var characters []models.Character
+
+	query := r.db.Where("game_id = ?", gameID)
+	if userID != nil {
+		query = query.Where("user_id = ?", *userID)
+	}
+
+	err := query.
+		Preload("User").
+		Preload("Portrait").
+		Preload("CustomAttributes", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sort_order ASC, created_at ASC")
+		}).
+		Order("updated_at DESC, created_at DESC").
+		Find(&characters).Error
+
+	return characters, err
+}
+
+func (r *Repository) GetCharacterByID(gameID, characterID string) (*models.Character, error) {
+	var character models.Character
+
+	err := r.db.
+		Where("game_id = ? AND id = ?", gameID, characterID).
+		Preload("User").
+		Preload("Portrait").
+		Preload("CustomAttributes", func(db *gorm.DB) *gorm.DB {
+			return db.Order("sort_order ASC, created_at ASC")
+		}).
+		Preload("Inventory", func(db *gorm.DB) *gorm.DB {
+			return db.Order("grid_y ASC, grid_x ASC, created_at ASC")
+		}).
+		Preload("Inventory.Item").
+		Preload("Inventory.Item.Image").
+		Preload("Inventory.Item.Types").
+		Preload("Inventory.Item.RequiredAttributes").
+		Preload("Inventory.Item.AttributeModifiers").
+		Preload("Equipment", func(db *gorm.DB) *gorm.DB {
+			return db.Order("slot ASC")
+		}).
+		Preload("Equipment.InventoryItem").
+		Preload("Equipment.InventoryItem.Item").
+		Preload("Equipment.InventoryItem.Item.Image").
+		Preload("Equipment.InventoryItem.Item.Types").
+		Preload("Equipment.InventoryItem.Item.RequiredAttributes").
+		Preload("Equipment.InventoryItem.Item.AttributeModifiers").
+		First(&character).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &character, nil
+}
+
+func (r *Repository) CountGameCharactersForUser(gameID, userID string) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.Character{}).
+		Where("game_id = ? AND user_id = ?", gameID, userID).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *Repository) CreateCharacter(character *models.Character) error {
+	return r.db.Create(character).Error
+}
+
+func (r *Repository) UpdateCharacter(character *models.Character) error {
+	return r.db.Model(&models.Character{}).
+		Where("game_id = ? AND id = ?", character.GameID, character.ID).
+		Updates(map[string]interface{}{
+			"name":            character.Name,
+			"backstory":       character.Backstory,
+			"currency_gold":   character.CurrencyGold,
+			"currency_silver": character.CurrencySilver,
+			"currency_copper": character.CurrencyCopper,
+			"updated_at":      time.Now(),
+		}).Error
+}
+
+func (r *Repository) UpdateCharacterPortrait(gameID, characterID string, portraitID *string) error {
+	return r.db.Model(&models.Character{}).
+		Where("game_id = ? AND id = ?", gameID, characterID).
+		Updates(map[string]interface{}{
+			"portrait_id": portraitID,
+			"updated_at":  time.Now(),
+		}).Error
+}
+
+func (r *Repository) ListGameItems(gameID string) ([]models.Item, error) {
+	var items []models.Item
+
+	err := r.db.
+		Where("game_id = ?", gameID).
+		Preload("Image").
+		Preload("Types").
+		Preload("RequiredAttributes").
+		Preload("AttributeModifiers").
+		Order("updated_at DESC, created_at DESC").
+		Find(&items).Error
+
+	return items, err
+}
+
+func (r *Repository) ListGameChatMessages(gameID string, limit int) ([]models.ChatMessage, error) {
+	if limit <= 0 || limit > 40 {
+		limit = 40
+	}
+
+	var messages []models.ChatMessage
+	err := r.db.
+		Where("game_id = ?", gameID).
+		Preload("User").
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&messages).Error
+	if err != nil {
+		return nil, err
+	}
+
+	for left, right := 0, len(messages)-1; left < right; left, right = left+1, right-1 {
+		messages[left], messages[right] = messages[right], messages[left]
+	}
+
+	return messages, nil
+}
+
+func (r *Repository) CreateChatMessage(message *models.ChatMessage) error {
+	return r.db.Create(message).Error
+}
+
+func (r *Repository) TrimGameChatMessages(gameID string, keep int) error {
+	if keep <= 0 {
+		keep = 40
+	}
+
+	var staleIDs []string
+	if err := r.db.Model(&models.ChatMessage{}).
+		Where("game_id = ?", gameID).
+		Order("created_at DESC, id DESC").
+		Offset(keep).
+		Pluck("id", &staleIDs).Error; err != nil {
+		return err
+	}
+
+	if len(staleIDs) == 0 {
+		return nil
+	}
+
+	return r.db.Where("game_id = ? AND id IN ?", gameID, staleIDs).Delete(&models.ChatMessage{}).Error
+}
+
 func (r *Repository) GetUserPlan(userID string) (*models.Plan, error) {
 	var user models.User
 	err := r.db.Preload("Plan").First(&user, "id = ?", userID).Error

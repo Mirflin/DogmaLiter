@@ -209,7 +209,7 @@ function getPreviewText(content) {
             </router-link>
           </div>
 
-          <div class="border-t border-[rgba(126,200,227,0.08)] pt-8">
+          <div>
             <div class="flex items-center justify-between mb-6">
               <h2 class="font-[Cinzel] text-[22px] font-bold text-[#e8e8f0] tracking-wide">Latest News</h2>
               <div class="flex items-center gap-3">

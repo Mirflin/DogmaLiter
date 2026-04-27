@@ -60,17 +60,17 @@ function isActive(path) {
 </script>
 
 <template>
-  <nav class="sticky top-0 z-50 w-full bg-[rgba(10,10,26,0.95)] backdrop-blur-md border-b border-[rgba(126,200,227,0.1)]">
-    <div class="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+  <nav class="site-nav sticky top-0 z-50 w-full bg-[rgba(10,10,26,0.95)] backdrop-blur-md border-b border-[rgba(126,200,227,0.1)]">
+    <div class="site-nav__inner max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
       <div class="flex items-center gap-8">
-        <router-link to="/" class="flex items-center gap-3 no-underline hover:opacity-90 transition-opacity">
-          <img :src="logo" alt="DogmaLiter" class="h-10 w-10 object-contain" />
+        <router-link to="/" class="site-nav__brand flex items-center gap-3 no-underline hover:opacity-90 transition-opacity">
+          <img :src="logo" alt="DogmaLiter" class="site-nav__brand-mark h-10 w-10 object-contain" />
           <span class="font-[Cinzel] text-[20px] font-bold text-[#e94560] tracking-wider hidden sm:inline">DogmaLiter</span>
         </router-link>
 
-        <div v-if="auth.isAuthenticated" ref="navLinks" class="hidden md:flex items-center gap-1 relative">
+        <div v-if="auth.isAuthenticated" ref="navLinks" class="site-nav__links hidden md:flex items-center gap-1 relative">
           <div
-            class="absolute bottom-0 h-[2px] bg-[#e94560] rounded-full transition-all duration-300 ease-in-out"
+            class="site-nav__indicator absolute bottom-0 h-[2px] bg-[#e94560] rounded-full transition-all duration-300 ease-in-out"
             :style="{ left: indicatorStyle.left, width: indicatorStyle.width, opacity: indicatorStyle.opacity }"
           />
           <router-link
@@ -79,7 +79,7 @@ function isActive(path) {
             :to="item.path"
             :data-active="isActive(item.path)"
             :class="isActive(item.path) ? 'text-[#e94560]' : 'text-[#e8e8f0]/70 hover:text-[#e8e8f0] hover:bg-[rgba(126,200,227,0.08)]'"
-            class="px-4 py-2 text-[14px] no-underline rounded-lg transition-all duration-200"
+            class="site-nav__link px-4 py-2 text-[14px] no-underline rounded-lg transition-all duration-200"
           >
             {{ item.label }}
           </router-link>
@@ -93,7 +93,7 @@ function isActive(path) {
         <div v-if="auth.isAuthenticated" class="relative">
           <button
             @click="showDropdown = !showDropdown"
-            class="flex items-center gap-2 px-3 py-2 bg-transparent border-none cursor-pointer rounded-lg hover:bg-[rgba(126,200,227,0.08)] transition-all duration-200"
+            class="site-nav__account-button flex items-center gap-2 px-3 py-2 bg-transparent border-none cursor-pointer rounded-lg hover:bg-[rgba(126,200,227,0.08)] transition-all duration-200"
           >
             <div class="w-8 h-8 rounded-full bg-[rgba(233,69,96,0.2)] border border-[rgba(233,69,96,0.4)] flex items-center justify-center">
               <img v-if="avatarUrl" :src="avatarUrl" alt="Avatar" class="w-full h-full object-cover rounded-full" />
@@ -109,7 +109,7 @@ function isActive(path) {
           <Transition name="dropdown">
             <div
               v-if="showDropdown"
-              class="absolute right-0 top-[calc(100%+8px)] w-52 bg-[rgba(15,15,35,0.97)] backdrop-blur-xl border border-[rgba(126,200,227,0.15)] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden"
+              class="site-nav__dropdown absolute right-0 top-[calc(100%+8px)] w-52 bg-[rgba(15,15,35,0.97)] backdrop-blur-xl border border-[rgba(126,200,227,0.15)] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden"
             >
               <router-link
                 to="/profile"
@@ -142,7 +142,7 @@ function isActive(path) {
         <router-link
           v-else
           to="/auth"
-          class="px-5 py-2 text-[14px] font-semibold text-white no-underline bg-linear-to-br from-[#e94560] to-[#c23152] rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300"
+          class="site-nav__signin px-5 py-2 text-[14px] font-semibold text-white no-underline bg-linear-to-br from-[#e94560] to-[#c23152] rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300"
         >
           Sign In
         </router-link>
@@ -162,5 +162,78 @@ function isActive(path) {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+
+.site-nav {
+  position: sticky;
+  background: linear-gradient(180deg, rgba(11, 16, 29, 0.94), rgba(8, 12, 24, 0.9)) !important;
+  border-bottom-color: rgba(126, 200, 227, 0.12) !important;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
+}
+
+.site-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 68%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 72px);
+  opacity: 0.8;
+}
+
+.site-nav__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.site-nav__brand {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.site-nav__brand-mark {
+  filter: drop-shadow(0 8px 18px rgba(233, 69, 96, 0.18));
+}
+
+.site-nav__links {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.site-nav__indicator {
+  bottom: 0.35rem;
+  height: 2px;
+  box-shadow: 0 0 18px rgba(233, 69, 96, 0.32);
+}
+
+.site-nav__link {
+  position: relative;
+  z-index: 1;
+}
+
+.site-nav__account-button,
+.site-nav__signin {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.site-nav__account-button {
+  border: 1px solid rgba(126, 200, 227, 0.12);
+  background: rgba(9, 14, 27, 0.56);
+}
+
+.site-nav__dropdown {
+  background: linear-gradient(180deg, rgba(13, 18, 33, 0.98), rgba(8, 12, 24, 0.98)) !important;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.34);
+}
+
+.site-nav__signin {
+  border: 1px solid rgba(233, 69, 96, 0.2);
 }
 </style>

@@ -52,7 +52,7 @@ func main() {
 	r.Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Origin", cfg.FrontendURL)
-			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(204)
@@ -111,21 +111,21 @@ func main() {
 			}
 
 			respondJSON(w, 200, map[string]interface{}{
-				"id":                    user.ID,
-				"username":              user.Username,
-				"email":                 user.Email,
-				"role":                  user.Role,
-				"avatar_id":             user.AvatarID,
-				"plan_id":               user.PlanID,
-				"plan_name":             user.Plan.Name,
-				"max_games_owned":       user.Plan.MaxGamesOwned,
-				"max_players_per_game":  user.Plan.MaxPlayersPerGame,
-				"subscription_ends_at":  user.SubscriptionEndsAt,
-				"storage_frozen":        user.StorageFrozen,
-				"is_verified":           user.IsVerified,
-				"created_at":            user.CreatedAt.Format("02.01.2006"),
-				"access_token":          tokens.AccessToken,
-				"refresh_token":         tokens.RefreshToken,
+				"id":                   user.ID,
+				"username":             user.Username,
+				"email":                user.Email,
+				"role":                 user.Role,
+				"avatar_id":            user.AvatarID,
+				"plan_id":              user.PlanID,
+				"plan_name":            user.Plan.Name,
+				"max_games_owned":      user.Plan.MaxGamesOwned,
+				"max_players_per_game": user.Plan.MaxPlayersPerGame,
+				"subscription_ends_at": user.SubscriptionEndsAt,
+				"storage_frozen":       user.StorageFrozen,
+				"is_verified":          user.IsVerified,
+				"created_at":           user.CreatedAt.Format("02.01.2006"),
+				"access_token":         tokens.AccessToken,
+				"refresh_token":        tokens.RefreshToken,
 			})
 		})
 
@@ -136,7 +136,6 @@ func main() {
 		r.Get("/api/me/storage", authHandler.GetStorageUsage)
 
 		r.Mount("/api/games", gameHandler.Routes())
-
 
 	})
 

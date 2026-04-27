@@ -245,6 +245,45 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function getGameSession(gameID) {
+    const { data } = await api.get(`/games/${gameID}/session`)
+    return data
+  }
+
+  async function getGameCharacter(gameID, characterID) {
+    const { data } = await api.get(`/games/${gameID}/characters/${characterID}`)
+    return data
+  }
+
+  async function createGameCharacter(gameID) {
+    const { data } = await api.post(`/games/${gameID}/characters`)
+    return data
+  }
+
+  async function updateGameCharacter(gameID, characterID, updates) {
+    const { data } = await api.patch(`/games/${gameID}/characters/${characterID}`, updates)
+    return data
+  }
+
+  async function uploadCharacterPortrait(gameID, characterID, file) {
+    const formData = new FormData()
+    formData.append('portrait', file)
+    const { data } = await api.post(`/games/${gameID}/characters/${characterID}/portrait`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  }
+
+  async function getGameChatMessages(gameID) {
+    const { data } = await api.get(`/games/${gameID}/chat-messages`)
+    return data
+  }
+
+  async function sendGameChatMessage(gameID, content) {
+    const { data } = await api.post(`/games/${gameID}/chat-messages`, { content })
+    return data
+  }
+
   async function updateGame(gameID, updates) {
     const { data } = await api.put(`/games/${gameID}`, updates)
     return data
@@ -289,6 +328,13 @@ export const useAuthStore = defineStore('auth', () => {
     deleteGame,
     uploadCoverImage,
     getGame,
+    getGameSession,
+    getGameCharacter,
+    createGameCharacter,
+    updateGameCharacter,
+    uploadCharacterPortrait,
+    getGameChatMessages,
+    sendGameChatMessage,
     updateGame,
     regenerateInviteCode,
   }

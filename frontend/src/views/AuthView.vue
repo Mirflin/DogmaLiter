@@ -82,7 +82,7 @@ async function handleRegister() {
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-linear-to-br from-[#0a0a1a] via-[#1a1a3e] to-[#0f2847] font-[Raleway] relative overflow-hidden">
+  <div class="auth-page min-h-screen flex items-center justify-center font-[Raleway] relative overflow-hidden px-4 py-10">
     <div class="absolute inset-0 pointer-events-none">
       <span v-for="n in 20" :key="n" class="particle" />
     </div>
@@ -235,6 +235,58 @@ async function handleRegister() {
 </template>
 
 <style scoped>
+.auth-page {
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% -12%, rgba(233, 69, 96, 0.12), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(126, 200, 227, 0.08), transparent 22%),
+    linear-gradient(90deg, rgba(126, 200, 227, 0.025) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(126, 200, 227, 0.02) 1px, transparent 1px),
+    linear-gradient(180deg, #070b15 0%, #0a1120 56%, #060911 100%);
+  background-size: auto, auto, 120px 120px, 120px 120px, auto;
+}
+
+.auth-page::before {
+  content: '';
+  position: absolute;
+  inset: 18px;
+  pointer-events: none;
+  border: 1px solid rgba(126, 200, 227, 0.08);
+}
+
+.auth-container {
+  position: relative;
+  border-color: rgba(126, 200, 227, 0.14) !important;
+  background: linear-gradient(180deg, rgba(12, 18, 32, 0.9), rgba(8, 12, 24, 0.95)) !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.34) !important;
+}
+
+.auth-container::before {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  pointer-events: none;
+  border: 1px solid rgba(126, 200, 227, 0.1);
+  clip-path: polygon(0 16px, 16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
+}
+
+.auth-container::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 18px);
+  opacity: 0.75;
+}
+
+.auth-container > * {
+  position: relative;
+  z-index: 1;
+}
+
 .auth-container .form-side,
 .auth-container .overlay-container,
 .auth-container .overlay {
