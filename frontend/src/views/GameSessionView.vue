@@ -1,6 +1,7 @@
 <script setup>
 import { API_URL } from '@/api'
 import SessionCharacterPickerModal from '@/components/session/SessionCharacterPickerModal.vue'
+import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemManager from '@/components/session/SessionItemManager.vue'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -1018,49 +1019,15 @@ onBeforeUnmount(() => {
             </article>
           </section>
 
-          <section v-else-if="activeTab === 'inventory'" class="session-inventory-layout grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <article class="session-inventory-board rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-6 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-8">
-              <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Inventory</p>
-              <h2 class="mt-3 font-[Cinzel] text-[34px] font-bold text-[#f6f7fb]">Reserved Empty Workspace</h2>
-              <p class="mt-4 max-w-[38rem] text-[15px] leading-relaxed text-[#d8dce7]/60">
-                This tab stays intentionally empty for the actual inventory canvas. Currency and capacity remain visible here, but the storage surface itself is left blank for the next iteration.
-              </p>
-
-              <div class="session-empty-bay session-empty-bay--inventory mt-8 rounded-[1.8rem] border border-dashed border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.04)] px-6 py-16 text-center">
-                <div class="session-inventory-grid-phantom" aria-hidden="true">
-                  <span v-for="index in 40" :key="`inventory-cell-${index}`" class="session-inventory-grid-phantom__cell"></span>
-                </div>
-                <div class="session-inventory-grid-copy">
-                  <p class="text-[12px] uppercase tracking-[0.2em] text-[#7ec8e3]/48">Inventory Canvas</p>
-                  <p class="mt-4 text-[15px] text-[#d8dce7]/58">The surface stays empty for now, but the layout now reads like a storage board instead of a generic placeholder.</p>
-                </div>
-              </div>
-            </article>
-
-            <aside class="session-inventory-sidebar space-y-5">
-              <article class="session-inventory-summary rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Currency</p>
-                <div class="mt-4 grid gap-3">
-                  <div
-                    v-for="currency in currencyCards"
-                    :key="currency.key"
-                    class="flex items-center justify-between rounded-2xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3"
-                  >
-                    <span class="text-[12px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ currency.label }}</span>
-                    <span class="text-[16px] font-semibold text-[#f6f7fb]">{{ currency.value }}</span>
-                  </div>
-                </div>
-              </article>
-
-              <article class="session-inventory-meta rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Storage Stats</p>
-                <div class="mt-4 space-y-3 text-[13px] text-[#d8dce7]/62">
-                  <div class="rounded-2xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">Grid: {{ inventoryWidth }} x {{ inventoryHeight }}</div>
-                  <div class="rounded-2xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">Capacity: {{ inventoryCapacity }} cells</div>
-                  <div class="rounded-2xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">Occupied: {{ occupiedInventoryCells }} cells</div>
-                </div>
-              </article>
-            </aside>
+          <section v-else-if="activeTab === 'inventory'">
+            <SessionInventoryBoard
+              :character-name="characterSnapshot?.name || ''"
+              :inventory-items="inventoryItems"
+              :equipment="equipment"
+              :currency-cards="currencyCards"
+              :inventory-width="inventoryWidth"
+              :inventory-height="inventoryHeight"
+            />
           </section>
 
           <section v-else-if="activeTab === 'characters'" class="space-y-5">

@@ -283,7 +283,6 @@ async function handleRegister() {
 }
 
 .auth-container > * {
-  position: relative;
   z-index: 1;
 }
 

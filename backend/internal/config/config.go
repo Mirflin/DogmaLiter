@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -11,6 +12,7 @@ type Config struct {
 	Port        string
 	JWTSecret   string
 	FrontendURL string
+	FrontendOrigins []string
 
 	SMTPHost     string
 	SMTPPort     string
@@ -27,12 +29,21 @@ type Config struct {
 }
 
 func Load() *Config {
-	_ = godotenv.Load("../.env")
+	loadDotEnv()
+	frontendURL := getEnv("FRONTEND_URL", "http://89.254.131.120:5175")
+	frontendOrigins := getEnvList("FRONTEND_URLS")
+	if len(frontendOrigins) == 0 {
+		frontendOrigins = []string{frontendURL}
+	} else if !contains(frontendOrigins, frontendURL) {
+		frontendOrigins = append([]string{frontendURL}, frontendOrigins...)
+	}
+
 	return &Config{
 		DatabaseURL: getEnv("DATABASE_URL", "admin:FD371D79102981608CD4@tcp(89.254.131.120:3307)/DogmaLiter?charset=utf8mb4&parseTime=True&loc=Local"),
 		Port:        getEnv("PORT", "8006"),
 		JWTSecret:   getEnv("JWT_SECRET", "verysecretkey"),
-		FrontendURL: getEnv("FRONTEND_URL", "http://89.254.131.120:5175"),
+		FrontendURL: frontendURL,
+		FrontendOrigins: frontendOrigins,
 
 		SMTPHost:     getEnv("SMTP_HOST", "smtp.gmail.com"),
 		SMTPPort:     getEnv("SMTP_PORT", "587"),
@@ -54,4 +65,39 @@ func getEnv(key, fallback string) string {
 		return val
 	}
 	return fallback
+}
+
+func getEnvList(key string) []string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return nil
+	}
+
+	parts := strings.Split(value, ",")
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed == "" || contains(values, trimmed) {
+			continue
+		}
+		values = append(values, trimmed)
+	}
+	return values
+}
+
+func loadDotEnv() {
+	for _, path := range []string{".env", "backend/.env", "../.env", "../../.env"} {
+		if _, err := os.Stat(path); err == nil {
+			_ = godotenv.Load(path)
+		}
+	}
+}
+
+func contains(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
 }
