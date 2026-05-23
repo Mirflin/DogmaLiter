@@ -3,6 +3,7 @@ import { API_URL } from '@/api'
 import SessionCharacterPickerModal from '@/components/session/SessionCharacterPickerModal.vue'
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemManager from '@/components/session/SessionItemManager.vue'
+import { notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -32,7 +33,6 @@ const error = ref(null)
 const characterError = ref(null)
 const characterSaveError = ref('')
 const characterSaveNotice = ref('')
-const pickerError = ref('')
 const chatError = ref(null)
 const chatDraft = ref('')
 const chatMessagesRef = ref(null)
@@ -220,7 +220,6 @@ function charactersForUser(userId) {
 
 function openCharacterPicker() {
   if (!characters.value.length && !viewer.value?.can_create_character) return
-  pickerError.value = ''
   pickerVisible.value = true
 }
 
@@ -326,7 +325,6 @@ async function switchCharacter(characterId, { nextTab = 'sheet', prefetchedChara
   activeCharacterId.value = characterId
   activeTab.value = nextTab
   pickerVisible.value = false
-  pickerError.value = ''
 
   if (prefetchedCharacter) {
     activeCharacter.value = prefetchedCharacter
@@ -386,7 +384,6 @@ function mergeUpdatedCharacterIntoSession(character) {
 async function loadSession({ preserveCharacter = true, promptSelection = false } = {}) {
   const previousCharacterId = preserveCharacter ? activeCharacterId.value : ''
   error.value = null
-  pickerError.value = ''
 
   if (session.value) {
     refreshing.value = true
@@ -437,7 +434,6 @@ async function createCharacter() {
   if (creatingCharacter.value || !viewer.value?.can_create_character) return
 
   creatingCharacter.value = true
-  pickerError.value = ''
 
   try {
     const data = await auth.createGameCharacter(gameId.value)
@@ -451,7 +447,7 @@ async function createCharacter() {
 
     await loadSession({ preserveCharacter: true, promptSelection: false })
   } catch (err) {
-    pickerError.value = err.response?.data?.error || 'Failed to create a new character'
+    notify.error(err, 'Failed to create a new character')
   } finally {
     creatingCharacter.value = false
   }
@@ -614,7 +610,6 @@ onBeforeUnmount(() => {
         :characters="characters"
         :viewer="viewer"
         :creating="creatingCharacter"
-        :error-message="pickerError"
         @select="switchCharacter"
         @create="createCharacter"
       />

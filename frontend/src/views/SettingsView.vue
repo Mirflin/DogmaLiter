@@ -3,65 +3,54 @@ import { ref, computed } from 'vue'
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { API_URL } from '@/api'
+import { notify } from '@/notify'
 
 const auth = useAuthStore()
 
 const newUsername = ref(auth.user?.username || '')
-const usernameSuccess = ref('')
-const usernameError = ref('')
 const usernameUnchanged = computed(() => newUsername.value === auth.user?.username)
 
 async function handleUpdateUsername() {
-  usernameSuccess.value = ''
-  usernameError.value = ''
   try {
     await auth.updateUsername(newUsername.value)
-    usernameSuccess.value = 'Username updated successfully'
-  } catch {
-    usernameError.value = auth.error || 'Failed to update username'
+    notify.success({
+      title: 'Username updated',
+      message: 'Your profile name was updated successfully.',
+    })
+  } catch (err) {
+    notify.error(err, 'Failed to update username')
   }
-  setTimeout(() => {
-    usernameSuccess.value = ''
-    usernameError.value = ''
-  }, 5000)
 }
 
 const currentPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
-const passwordSuccess = ref('')
-const passwordError = ref('')
 
 async function handleChangePassword() {
-  passwordSuccess.value = ''
-  passwordError.value = ''
   if (newPassword.value !== confirmPassword.value) {
-    passwordError.value = 'Passwords do not match'
+    notify.error('Passwords do not match')
     return
   }
   if (newPassword.value.length < 8) {
-    passwordError.value = 'Password must be at least 8 characters'
+    notify.error('Password must be at least 8 characters')
     return
   }
   try {
     await auth.changePassword(currentPassword.value, newPassword.value)
-    passwordSuccess.value = 'Password changed successfully'
     currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
-  } catch {
-    passwordError.value = auth.error || 'Failed to change password'
+    notify.success({
+      title: 'Password changed',
+      message: 'Your password has been updated.',
+    })
+  } catch (err) {
+    notify.error(err, 'Failed to change password')
   }
-  setTimeout(() => {
-    passwordSuccess.value = ''
-    passwordError.value = ''
-  }, 5000)
 }
 
 const avatarPreview = ref(null)
 const avatarFile = ref(null)
-const avatarSuccess = ref('')
-const avatarError = ref('')
 
 const avatarUrl = computed(() => {
   if (avatarPreview.value) return avatarPreview.value
@@ -73,51 +62,50 @@ function onAvatarSelect(e) {
   const file = e.target.files[0]
   if (!file) return
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-    avatarError.value = 'Only JPEG, PNG, and WebP images are allowed'
+    notify.error({
+      title: 'Invalid avatar format',
+      message: 'Only JPEG, PNG, and WebP images are allowed.',
+    })
     return
   }
   if (file.size > 2 * 1024 * 1024) {
-    avatarError.value = 'File too large, maximum 2MB'
+    notify.error({
+      title: 'Avatar too large',
+      message: 'The maximum avatar size is 2MB.',
+    })
     return
   }
-  avatarError.value = ''
   avatarFile.value = file
   avatarPreview.value = URL.createObjectURL(file)
 }
 
 async function handleUploadAvatar() {
   if (!avatarFile.value) return
-  avatarSuccess.value = ''
-  avatarError.value = ''
   try {
     await auth.uploadAvatar(avatarFile.value)
-    avatarSuccess.value = 'Avatar uploaded successfully'
     avatarFile.value = null
     avatarPreview.value = null
-  } catch {
-    avatarError.value = auth.error || 'Failed to upload avatar'
+    notify.success({
+      title: 'Avatar updated',
+      message: 'Your new avatar is now visible on your profile.',
+    })
+  } catch (err) {
+    notify.error(err, 'Failed to upload avatar')
   }
-  setTimeout(() => {
-    avatarSuccess.value = ''
-    avatarError.value = ''
-  }, 5000)
 }
 
 async function handleDeleteAvatar() {
-  avatarSuccess.value = ''
-  avatarError.value = ''
   try {
     await auth.deleteAvatar()
-    avatarSuccess.value = 'Avatar removed'
     avatarFile.value = null
     avatarPreview.value = null
-  } catch {
-    avatarError.value = auth.error || 'Failed to remove avatar'
+    notify.success({
+      title: 'Avatar removed',
+      message: 'Your profile avatar has been removed.',
+    })
+  } catch (err) {
+    notify.error(err, 'Failed to remove avatar')
   }
-  setTimeout(() => {
-    avatarSuccess.value = ''
-    avatarError.value = ''
-  }, 5000)
 }
 
 function triggerFileInput() {
@@ -131,13 +119,6 @@ function triggerFileInput() {
       <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-8">Settings</h1>
       <div class="bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-xl p-6 mb-6">
         <h2 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] tracking-wide mb-5">Avatar</h2>
-
-        <div v-if="avatarSuccess" class="px-4 py-3 rounded-lg text-[13px] mb-4 border border-[rgba(46,204,113,0.3)] bg-[rgba(46,204,113,0.15)] text-[#6deca9]">
-          {{ avatarSuccess }}
-        </div>
-        <div v-if="avatarError" class="px-4 py-3 rounded-lg text-[13px] mb-4 border border-[rgba(233,69,96,0.3)] bg-[rgba(233,69,96,0.15)] text-[#ff8fa3]">
-          {{ avatarError }}
-        </div>
 
         <div class="flex items-center gap-6">
           <div
@@ -183,13 +164,6 @@ function triggerFileInput() {
       <div class="bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-xl p-6 mb-6">
         <h2 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] tracking-wide mb-5">Username</h2>
 
-        <div v-if="usernameSuccess" class="px-4 py-3 rounded-lg text-[13px] mb-4 border border-[rgba(46,204,113,0.3)] bg-[rgba(46,204,113,0.15)] text-[#6deca9]">
-          {{ usernameSuccess }}
-        </div>
-        <div v-if="usernameError" class="px-4 py-3 rounded-lg text-[13px] mb-4 border border-[rgba(233,69,96,0.3)] bg-[rgba(233,69,96,0.15)] text-[#ff8fa3]">
-          {{ usernameError }}
-        </div>
-
         <form @submit.prevent="handleUpdateUsername" class="flex gap-3 items-end">
           <div class="flex-1 group">
             <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Username</label>
@@ -213,13 +187,6 @@ function triggerFileInput() {
       </div>
       <div class="bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-xl p-6">
         <h2 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] tracking-wide mb-5">Change Password</h2>
-
-        <div v-if="passwordSuccess" class="px-4 py-3 rounded-lg text-[13px] mb-4 border border-[rgba(46,204,113,0.3)] bg-[rgba(46,204,113,0.15)] text-[#6deca9]">
-          {{ passwordSuccess }}
-        </div>
-        <div v-if="passwordError" class="px-4 py-3 rounded-lg text-[13px] mb-4 border border-[rgba(233,69,96,0.3)] bg-[rgba(233,69,96,0.15)] text-[#ff8fa3]">
-          {{ passwordError }}
-        </div>
 
         <form @submit.prevent="handleChangePassword" class="space-y-4">
           <div class="group">

@@ -1,6 +1,7 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { ref, watch } from 'vue'
+import { notify } from '@/notify'
 
 const props = defineProps({
   visible: Boolean,
@@ -13,8 +14,6 @@ const auth = useAuthStore()
 const code = ref('')
 const loading = ref(false)
 const checking = ref(false)
-const errorMsg = ref('')
-const successMsg = ref('')
 const gameInfo = ref(null)
 
 watch(() => props.visible, (val) => {
@@ -22,8 +21,6 @@ watch(() => props.visible, (val) => {
     code.value = props.initialCode || ''
     loading.value = false
     checking.value = false
-    errorMsg.value = ''
-    successMsg.value = ''
     gameInfo.value = null
     if (code.value) checkInvite()
   }
@@ -32,34 +29,38 @@ watch(() => props.visible, (val) => {
 async function checkInvite() {
   if (!code.value.trim()) return
   checking.value = true
-  errorMsg.value = ''
   gameInfo.value = null
   try {
     gameInfo.value = await auth.getInviteInfo(code.value.trim())
   } catch (err) {
-    errorMsg.value = err.response?.data?.error || 'Invalid invite code'
+    notify.error({
+      title: 'Invite not found',
+      message: err.response?.data?.error || 'Invalid invite code',
+    })
   } finally {
     checking.value = false
   }
 }
 
 async function handleJoin() {
-  errorMsg.value = ''
-  successMsg.value = ''
   if (!code.value.trim()) {
-    errorMsg.value = 'Enter an invite code'
+    notify.warning({
+      title: 'Invite code required',
+      message: 'Enter an invite code to continue.',
+    })
     return
   }
   loading.value = true
   try {
     const data = await auth.joinGameByCode(code.value.trim())
-    successMsg.value = `Joined "${data.title}" successfully!`
-    setTimeout(() => {
-      emit('joined', data)
-      emit('close')
-    }, 1200)
+    notify.success({
+      title: 'Game joined',
+      message: `You joined "${data.title}" successfully.`,
+    })
+    emit('joined', data)
+    emit('close')
   } catch (err) {
-    errorMsg.value = err.response?.data?.error || 'Failed to join game'
+    notify.error(err, 'Failed to join game')
   } finally {
     loading.value = false
   }
@@ -79,17 +80,7 @@ function close() {
 
         <h2 class="font-[Cinzel] text-[24px] font-bold text-[#e8e8f0] tracking-wide mb-2">Join a Game</h2>
         <p class="text-[#7ec8e3]/40 text-[14px] mb-6">Enter an invite code from your GM</p>
-
-        <div v-if="successMsg" class="text-center py-8">
-          <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-[rgba(76,175,80,0.15)] flex items-center justify-center">
-            <svg class="w-7 h-7 text-[#4caf50]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <p class="text-[#e8e8f0] text-[16px] font-semibold">{{ successMsg }}</p>
-        </div>
-
-        <div v-else class="space-y-5">
+        <div class="space-y-5">
           <div>
             <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Invite Code</label>
             <input
@@ -113,8 +104,6 @@ function close() {
             <p class="text-[#e8e8f0] text-[16px] font-bold">{{ gameInfo.title }}</p>
             <p v-if="gameInfo.member_count" class="text-[#7ec8e3]/40 text-[13px] mt-1">{{ gameInfo.member_count }} members</p>
           </div>
-
-          <p v-if="errorMsg" class="text-[#e94560] text-[13px]">{{ errorMsg }}</p>
 
           <div class="flex gap-3 pt-1">
             <button

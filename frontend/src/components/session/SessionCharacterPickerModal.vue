@@ -24,10 +24,6 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  errorMessage: {
-    type: String,
-    default: '',
-  },
 })
 
 const emit = defineEmits(['select', 'create'])
@@ -73,10 +69,6 @@ function createCharacter() {
             <h2 class="mt-2 font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">Session Entry</h2>
           </div>
 
-        </div>
-
-        <div v-if="errorMessage" class="mt-5 rounded-[1rem] border border-[rgba(143,79,51,0.34)] bg-[rgba(52,25,20,0.76)] px-4 py-3 text-[13px] text-[#f4d2c3]">
-          {{ errorMessage }}
         </div>
 
         <div v-if="characters.length" class="session-picker-scroll mt-6 max-h-[62vh] overflow-y-auto pr-1">

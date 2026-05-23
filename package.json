@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@vueuse/core": "^14.2.1"
+    "@vueuse/core": "^14.2.1",
+    "notivue": "^2.4.5"
   }
 }

@@ -2,6 +2,7 @@
 import { useAuthStore } from '@/stores/auth'
 import { API_URL } from '@/api'
 import { ref, watch, computed, onUnmounted } from 'vue'
+import { notify } from '@/notify'
 
 const props = defineProps({
   visible: Boolean,
@@ -13,8 +14,7 @@ const auth = useAuthStore()
 
 const loading = ref(true)
 const saving = ref(false)
-const errorMsg = ref('')
-const successMsg = ref('')
+const loadError = ref('')
 const game = ref(null)
 
 const title = ref('')
@@ -27,7 +27,6 @@ const enableItemTrading = ref(true)
 const inviteCode = ref('')
 const inviteExpiresAt = ref(null)
 const regenerating = ref(false)
-const codeCopied = ref(false)
 const countdown = ref('')
 const codeExpired = ref(false)
 let countdownTimer = null
@@ -43,8 +42,7 @@ const isOwner = computed(() => game.value?.owner_id === auth.user?.id)
 watch(() => props.visible, async (val) => {
   if (val && props.gameId) {
     loading.value = true
-    errorMsg.value = ''
-    successMsg.value = ''
+    loadError.value = ''
     try {
       const data = await auth.getGame(props.gameId)
       game.value = data
@@ -60,11 +58,16 @@ watch(() => props.visible, async (val) => {
       coverFile.value = null
       startCountdown()
     } catch {
-      errorMsg.value = 'Failed to load game'
+      loadError.value = 'Failed to load game settings.'
+      notify.error({
+        title: 'Unable to open settings',
+        message: loadError.value,
+      })
     } finally {
       loading.value = false
     }
   } else {
+    loadError.value = ''
     stopCountdown()
   }
 })
@@ -113,38 +116,44 @@ async function regenerate() {
     inviteExpiresAt.value = data.invite_code_expires_at
     codeExpired.value = false
     startCountdown()
+    notify.success({
+      title: 'Invite code refreshed',
+      message: 'A new invite code is ready to share.',
+    })
   } catch (err) {
-    errorMsg.value = err.response?.data?.error || 'Failed to regenerate code'
+    notify.error(err, 'Failed to regenerate code')
   } finally {
     regenerating.value = false
   }
 }
 
-function copyInviteLink() {
+async function copyInviteLink() {
   const text = inviteLinkText.value
-  if (navigator.clipboard?.writeText) {
-    navigator.clipboard.writeText(text).then(() => {
-      codeCopied.value = true
-      setTimeout(() => { codeCopied.value = false }, 2000)
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      const el = document.createElement('textarea')
+      el.value = text
+      el.style.position = 'fixed'
+      el.style.opacity = '0'
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+    }
+
+    notify.success({
+      title: 'Invite link copied',
+      message: 'Share it with your players.',
     })
-  } else {
-    const el = document.createElement('textarea')
-    el.value = text
-    el.style.position = 'fixed'
-    el.style.opacity = '0'
-    document.body.appendChild(el)
-    el.select()
-    document.execCommand('copy')
-    document.body.removeChild(el)
-    codeCopied.value = true
-    setTimeout(() => { codeCopied.value = false }, 2000)
+  } catch {
+    notify.error('Failed to copy invite link')
   }
 }
 
 async function handleSave() {
   saving.value = true
-  errorMsg.value = ''
-  successMsg.value = ''
   try {
     await auth.updateGame(props.gameId, {
       title: title.value,
@@ -159,11 +168,14 @@ async function handleSave() {
       await auth.uploadCoverImage(props.gameId, coverFile.value)
     }
 
-    successMsg.value = 'Settings saved'
-    setTimeout(() => successMsg.value = '', 2000)
+    notify.success({
+      title: 'Settings saved',
+      message: 'Game settings were updated.',
+    })
     emit('updated')
+    emit('close')
   } catch (err) {
-    errorMsg.value = err.response?.data?.error || 'Failed to save'
+    notify.error(err, 'Failed to save')
   } finally {
     saving.value = false
   }
@@ -185,10 +197,14 @@ async function handleDelete() {
   if (!confirm(`Delete "${title.value}"? This cannot be undone.`)) return
   try {
     await auth.deleteGame(props.gameId)
+    notify.success({
+      title: 'Game deleted',
+      message: `"${title.value}" was removed.`,
+    })
     emit('deleted', props.gameId)
     emit('close')
   } catch (err) {
-    errorMsg.value = err.response?.data?.error || 'Failed to delete'
+    notify.error(err, 'Failed to delete')
   }
 }
 
@@ -208,6 +224,10 @@ function close() {
 
         <div v-if="loading" class="text-center py-12">
           <div class="w-8 h-8 border-2 border-[#e94560] border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+
+        <div v-else-if="loadError" class="text-center py-8">
+          <p class="text-[#ff8fa3] text-[14px]">{{ loadError }}</p>
         </div>
 
         <div v-else-if="!isOwner" class="text-center py-8">
@@ -295,12 +315,10 @@ function close() {
                 @click="copyInviteLink"
                 class="px-4 py-2 text-[12px] font-medium text-[#e8e8f0]/60 border border-[rgba(126,200,227,0.15)] rounded-lg hover:border-[#e94560] hover:text-[#e94560] transition-all bg-transparent cursor-pointer"
               >
-                {{ codeCopied ? 'Copied!' : 'Copy Link' }}
+                Copy Link
               </button>
             </div>
           </div>
-          <p v-if="errorMsg" class="text-[#e94560] text-[13px]">{{ errorMsg }}</p>
-          <p v-if="successMsg" class="text-[#4caf50] text-[13px]">{{ successMsg }}</p>
           <div class="flex items-center justify-between pt-2 border-t border-[rgba(126,200,227,0.08)]">
             <button
               @click="handleDelete"

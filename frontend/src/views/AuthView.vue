@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { notify } from '@/notify'
 import { useRouter } from 'vue-router'
 
 const auth = useAuthStore()
@@ -18,65 +19,56 @@ const regPasswordConfirm = ref('')
 const agreeToTerms = ref(false)
 const subscribeNewsletter = ref(false)
 
-const successMessage = ref('')
-const errorMessage = ref('')
-
 function switchToRegister() {
   isRegisterMode.value = true
-  errorMessage.value = ''
-  successMessage.value = ''
 }
 
 function switchToLogin() {
   isRegisterMode.value = false
-  errorMessage.value = ''
-  successMessage.value = ''
 }
 
 async function handleLogin() {
-  errorMessage.value = ''
-  successMessage.value = ''
   try {
     await auth.login(loginEmail.value, loginPassword.value)
     router.push('/')
   } catch (err) {
-    errorMessage.value = auth.error || 'Login failed'
+    notify.error(err, 'Login failed')
   }
 }
 
 async function handleRegister() {
-  errorMessage.value = ''
-  successMessage.value = ''
-
   if (regPassword.value !== regPasswordConfirm.value) {
-    errorMessage.value = 'Passwords do not match'
+    notify.error('Passwords do not match')
     return
   }
   if (regPassword.value.length < 8) {
-    errorMessage.value = 'Password must be at least 8 characters'
+    notify.error('Password must be at least 8 characters')
     return
   }
   if (regUsername.value.length < 3) {
-    errorMessage.value = 'Username must be at least 3 characters'
+    notify.error('Username must be at least 3 characters')
     return
   }
   if (!agreeToTerms.value) {
-    errorMessage.value = 'You must agree to the Terms of Service and Privacy Policy'
+    notify.error('You must agree to the Terms of Service and Privacy Policy')
     return
   }
 
   try {
     await auth.register(regUsername.value, regEmail.value, regPassword.value)
-    successMessage.value = 'Registration successful! Please check your email to verify your account.'
+    notify.success({
+      title: 'Registration successful',
+      message: 'Please check your email to verify your account.',
+    })
     regUsername.value = ''
     regEmail.value = ''
     regPassword.value = ''
     regPasswordConfirm.value = ''
     agreeToTerms.value = false
     subscribeNewsletter.value = false
-    setTimeout(() => switchToLogin(), 3000)
+    switchToLogin()
   } catch (err) {
-    errorMessage.value = auth.error || 'Registration failed'
+    notify.error(err, 'Registration failed')
   }
 }
 </script>
@@ -95,10 +87,6 @@ async function handleRegister() {
         <div class="w-full max-w-[320px]">
           <h2 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] mb-2 tracking-wide">Sign In</h2>
           <p class="text-[#7ec8e3]/60 text-sm mb-8">Welcome back, adventurer</p>
-
-          <div v-if="errorMessage && !isRegisterMode" class="alert-error px-4 py-3 rounded-lg text-[13px] mb-5 border border-[rgba(233,69,96,0.3)] bg-[rgba(233,69,96,0.15)] text-[#ff8fa3] animate-shake">
-            {{ errorMessage }}
-          </div>
 
           <form @submit.prevent="handleLogin">
             <div class="mb-5 group">
@@ -137,13 +125,6 @@ async function handleRegister() {
         <div class="w-full max-w-[320px]">
           <h2 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] mb-2 tracking-wide">Sign Up</h2>
           <p class="text-[#7ec8e3]/60 text-sm mb-8">Start your adventure</p>
-
-          <div v-if="errorMessage && isRegisterMode" class="px-4 py-3 rounded-lg text-[13px] mb-5 border border-[rgba(233,69,96,0.3)] bg-[rgba(233,69,96,0.15)] text-[#ff8fa3] animate-shake">
-            {{ errorMessage }}
-          </div>
-          <div v-if="successMessage" class="px-4 py-3 rounded-lg text-[13px] mb-5 border border-[rgba(46,204,113,0.3)] bg-[rgba(46,204,113,0.15)] text-[#6deca9] animate-shake">
-            {{ successMessage }}
-          </div>
 
           <form @submit.prevent="handleRegister">
             <div class="mb-3.5 group">

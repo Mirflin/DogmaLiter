@@ -2,17 +2,17 @@
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api from '@/api'
+import { notify } from '@/notify'
 
 const auth = useAuthStore()
 const route = useRoute()
+const router = useRouter()
 const plans = ref([])
 const loading = ref(true)
 const purchasing = ref(false)
 const billingCycle = ref('monthly')
-const successMessage = ref('')
-const errorMessage = ref('')
 
 const planAccents = {
   0: { border: 'rgba(126,200,227,0.15)', bg: 'rgba(126,200,227,0.03)', badge: null },
@@ -58,11 +58,20 @@ function planFeatures(plan) {
   ]
 }
 
+function clearCheckoutQuery() {
+  if (route.query.success !== 'true' && route.query.canceled !== 'true') return
+
+  const query = { ...route.query }
+  delete query.success
+  delete query.canceled
+
+  router.replace({ query })
+}
+
 async function selectPlan(plan) {
   if (plan.price_monthly === 0 || currentPlanId.value === plan.id) return
 
   purchasing.value = true
-  errorMessage.value = ''
   try {
     const { data } = await api.post('/payment/checkout', {
       plan_id: plan.id,
@@ -70,7 +79,7 @@ async function selectPlan(plan) {
     })
     window.location.href = data.url
   } catch (err) {
-    errorMessage.value = err.response?.data?.error || 'Failed to start checkout'
+    notify.error(err, 'Failed to start checkout')
   } finally {
     purchasing.value = false
   }
@@ -78,12 +87,20 @@ async function selectPlan(plan) {
 
 onMounted(async () => {
   if (route.query.success === 'true') {
-    successMessage.value = 'Payment successful! Your plan has been upgraded.'
+    notify.success({
+      title: 'Payment successful',
+      message: 'Your plan has been upgraded.',
+    })
     await auth.fetchProfile()
   }
   if (route.query.canceled === 'true') {
-    errorMessage.value = 'Payment was canceled.'
+    notify.info({
+      title: 'Payment canceled',
+      message: 'No changes were made to your plan.',
+    })
   }
+
+  clearCheckoutQuery()
 
   try {
     const { data } = await api.get('/plans')
@@ -104,13 +121,6 @@ onMounted(async () => {
       <p class="text-center text-[#7ec8e3]/50 text-[16px] mb-10 max-w-lg mx-auto">
         Flexible pricing for every play style.
       </p>
-
-      <div v-if="successMessage" class="max-w-lg mx-auto mb-8 p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-[14px] text-center">
-        {{ successMessage }}
-      </div>
-      <div v-if="errorMessage" class="max-w-lg mx-auto mb-8 p-4 rounded-xl bg-[rgba(233,69,96,0.1)] border border-[rgba(233,69,96,0.2)] text-[#e94560] text-[14px] text-center">
-        {{ errorMessage }}
-      </div>
       <div class="flex items-center justify-center gap-0 mb-12">
         <button
           @click="billingCycle = 'monthly'"

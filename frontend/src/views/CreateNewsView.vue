@@ -3,6 +3,7 @@ import HomeLayout from '@/layouts/HomeLayout.vue'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api'
+import { notify } from '@/notify'
 
 const router = useRouter()
 const title = ref('')
@@ -10,7 +11,6 @@ const sections = ref([{ subtitle: '', text: '' }])
 const imageFile = ref(null)
 const imagePreview = ref(null)
 const submitting = ref(false)
-const error = ref(null)
 
 function addSection() {
   sections.value.push({ subtitle: '', text: '' })
@@ -35,17 +35,16 @@ function removeImage() {
 
 async function submit() {
   if (!title.value.trim()) {
-    error.value = 'Title is required'
+    notify.error('Title is required')
     return
   }
   const hasContent = sections.value.some(s => s.text.trim())
   if (!hasContent) {
-    error.value = 'At least one section must have content'
+    notify.error('At least one section must have content')
     return
   }
 
   submitting.value = true
-  error.value = null
 
   try {
     const formData = new FormData()
@@ -62,9 +61,13 @@ async function submit() {
       headers: { 'Content-Type': undefined },
     })
 
+    notify.success({
+      title: 'News published',
+      message: 'The post is now live.',
+    })
     router.push(`/news/${data.id}`)
   } catch (err) {
-    error.value = err.response?.data?.error || 'Failed to create news post'
+    notify.error(err, 'Failed to create news post')
   } finally {
     submitting.value = false
   }
@@ -75,10 +78,6 @@ async function submit() {
   <HomeLayout>
     <div class="max-w-[800px] mx-auto px-6 py-8">
       <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-8">Create News Post</h1>
-
-      <div v-if="error" class="mb-6 p-4 bg-[rgba(233,69,96,0.1)] border border-[rgba(233,69,96,0.3)] rounded-lg text-[#e94560] text-[13px]">
-        {{ error }}
-      </div>
 
       <div class="space-y-6">
         <div>

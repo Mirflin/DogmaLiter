@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { notify } from '@/notify'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -9,7 +10,6 @@ const auth = useAuthStore()
 const status = ref('loading')
 const message = ref('')
 const resendEmail = ref('')
-const resendMessage = ref('')
 
 onMounted(async () => {
   const token = router.currentRoute.value.query.token
@@ -31,12 +31,14 @@ onMounted(async () => {
 
 async function handleResend() {
   if (!resendEmail.value) return
-  resendMessage.value = ''
   try {
     const data = await auth.resendVerification(resendEmail.value)
-    resendMessage.value = data?.message || 'A new verification email has been sent!'
-  } catch {
-    resendMessage.value = auth.error || 'Failed to resend verification email.'
+    notify.success({
+      title: 'Verification email sent',
+      message: data?.message || 'A new verification email has been sent!',
+    })
+  } catch (err) {
+    notify.error(err, 'Failed to resend verification email.')
   }
 }
 </script>
@@ -90,9 +92,6 @@ async function handleResend() {
               <span v-else>Resend</span>
             </button>
           </form>
-          <p v-if="resendMessage" class="mt-3 text-[13px]" :class="resendMessage.includes('sent') ? 'text-[#6deca9]' : 'text-[#ff8fa3]'">
-            {{ resendMessage }}
-          </p>
         </div>
       </div>
 

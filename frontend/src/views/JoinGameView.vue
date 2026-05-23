@@ -3,6 +3,7 @@ import HomeLayout from '@/layouts/HomeLayout.vue'
 import { useAuthStore } from '@/stores/auth'
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { notify } from '@/notify'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -11,8 +12,6 @@ const route = useRoute()
 const code = ref('')
 const loading = ref(false)
 const checking = ref(false)
-const errorMsg = ref('')
-const successMsg = ref('')
 const gameInfo = ref(null)
 
 onMounted(async () => {
@@ -26,32 +25,38 @@ onMounted(async () => {
 async function checkInvite() {
   if (!code.value.trim()) return
   checking.value = true
-  errorMsg.value = ''
   gameInfo.value = null
   try {
     gameInfo.value = await auth.getInviteInfo(code.value.trim())
   } catch (err) {
-    errorMsg.value = err.response?.data?.error || 'Invalid invite code'
+    notify.error({
+      title: 'Invite not found',
+      message: err.response?.data?.error || 'Invalid invite code',
+    })
   } finally {
     checking.value = false
   }
 }
 
 async function handleJoin() {
-  errorMsg.value = ''
-  successMsg.value = ''
   if (!code.value.trim()) {
-    errorMsg.value = 'Enter an invite code'
+    notify.warning({
+      title: 'Invite code required',
+      message: 'Enter an invite code to continue.',
+    })
     return
   }
 
   loading.value = true
   try {
     const data = await auth.joinGameByCode(code.value.trim())
-    successMsg.value = `Joined "${data.title}" successfully!`
-    setTimeout(() => router.push('/games'), 1500)
+    notify.success({
+      title: 'Game joined',
+      message: `You joined "${data.title}" successfully.`,
+    })
+    router.push('/games')
   } catch (err) {
-    errorMsg.value = err.response?.data?.error || 'Failed to join game'
+    notify.error(err, 'Failed to join game')
   } finally {
     loading.value = false
   }
@@ -63,16 +68,7 @@ async function handleJoin() {
     <div class="max-w-[480px] mx-auto px-6 py-8">
       <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-2">Join a Game</h1>
       <p class="text-[#7ec8e3]/40 text-[14px] mb-8">Enter an invite code from your GM to join their game</p>
-      <div v-if="successMsg" class="text-center py-12">
-        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[rgba(76,175,80,0.15)] flex items-center justify-center">
-          <svg class="w-8 h-8 text-[#4caf50]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-        <p class="text-[#e8e8f0] text-[18px] font-semibold">{{ successMsg }}</p>
-        <p class="text-[#7ec8e3]/40 text-[13px] mt-2">Redirecting...</p>
-      </div>
-      <div v-else class="space-y-6">
+      <div class="space-y-6">
         <div>
           <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Invite Code</label>
           <div class="flex gap-3">
@@ -96,7 +92,6 @@ async function handleJoin() {
           <p class="text-[#e8e8f0] text-[18px] font-bold">{{ gameInfo.title }}</p>
           <p class="text-[#7ec8e3]/40 text-[13px] mt-1">System: {{ gameInfo.system }}</p>
         </div>
-        <p v-if="errorMsg" class="text-[#e94560] text-[13px]">{{ errorMsg }}</p>
         <div class="flex gap-4 pt-2">
           <button
             @click="handleJoin"

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '@/api'
+import { notify } from '@/notify'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -18,7 +19,6 @@ const coverFile = ref(null)
 const coverPreview = ref(null)
 
 const loading = ref(false)
-const errorMsg = ref('')
 const successData = ref(null)
 
 const plan = ref(null)
@@ -50,11 +50,17 @@ function handleCoverSelect(e) {
   if (!file) return
   const allowed = ['image/jpeg', 'image/png', 'image/webp']
   if (!allowed.includes(file.type)) {
-    errorMsg.value = 'Only JPEG, PNG, and WebP images are allowed'
+    notify.error({
+      title: 'Invalid cover format',
+      message: 'Only JPEG, PNG, and WebP images are allowed.',
+    })
     return
   }
   if (file.size > 5 * 1024 * 1024) {
-    errorMsg.value = 'Cover image must be under 5MB'
+    notify.error({
+      title: 'Cover image too large',
+      message: 'Cover image must be under 5MB.',
+    })
     return
   }
   coverFile.value = file
@@ -70,13 +76,15 @@ function removeCover() {
 }
 
 async function handleCreate() {
-  errorMsg.value = ''
   if (!title.value.trim()) {
-    errorMsg.value = 'Game title is required'
+    notify.error('Game title is required')
     return
   }
   if (limitReached()) {
-    errorMsg.value = 'Game limit reached for your plan. Upgrade to create more games.'
+    notify.warning({
+      title: 'Game limit reached',
+      message: 'Upgrade your plan to create more games.',
+    })
     return
   }
 
@@ -97,9 +105,13 @@ async function handleCreate() {
       } catch {}
     }
     successData.value = data
+    notify.success({
+      title: 'Game created',
+      message: `"${data.title}" is ready for players.`,
+    })
     startCountdown()
   } catch (err) {
-    errorMsg.value = err.response?.data?.error || 'Failed to create game'
+    notify.error(err, 'Failed to create game')
   } finally {
     loading.value = false
   }
@@ -109,10 +121,18 @@ function goToGames() {
   router.push('/games')
 }
 
-function copyInviteLink() {
+async function copyInviteLink() {
   if (successData.value?.invite_code) {
     const link = `${window.location.origin}/join/${successData.value.invite_code}`
-    navigator.clipboard.writeText(link)
+    try {
+      await navigator.clipboard.writeText(link)
+      notify.success({
+        title: 'Invite link copied',
+        message: 'Share it with your players.',
+      })
+    } catch {
+      notify.error('Failed to copy invite link')
+    }
   }
 }
 
@@ -273,7 +293,6 @@ onUnmounted(() => clearInterval(countdownTimer))
             </div>
           </label>
         </div>
-        <p v-if="errorMsg" class="text-[#e94560] text-[13px]">{{ errorMsg }}</p>
         <div class="flex gap-4 pt-2">
           <button
             @click="handleCreate"
