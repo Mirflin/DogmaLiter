@@ -22,6 +22,22 @@ var errGameAccessDenied = errors.New("game access denied")
 const nonGMCharacterLimit = 5
 const gameChatMessageLimit = 40
 
+type updateCharacterBaseAttributesRequest struct {
+	Strength     *int `json:"strength"`
+	Dexterity    *int `json:"dexterity"`
+	Constitution *int `json:"constitution"`
+	Intelligence *int `json:"intelligence"`
+	Wisdom       *int `json:"wisdom"`
+	Charisma     *int `json:"charisma"`
+}
+
+type updateCharacterCustomAttributeRequest struct {
+	ID        *string `json:"id"`
+	Name      string  `json:"name"`
+	Value     int     `json:"value"`
+	SortOrder *int    `json:"sort_order"`
+}
+
 func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
@@ -192,11 +208,15 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Name           *string `json:"name"`
-		Backstory      *string `json:"backstory"`
-		CurrencyGold   *int    `json:"currency_gold"`
-		CurrencySilver *int    `json:"currency_silver"`
-		CurrencyCopper *int    `json:"currency_copper"`
+		Name             *string                                 `json:"name"`
+		Backstory        *string                                 `json:"backstory"`
+		CurrencyGold     *int                                    `json:"currency_gold"`
+		CurrencySilver   *int                                    `json:"currency_silver"`
+		CurrencyCopper   *int                                    `json:"currency_copper"`
+		InventoryWidth   *int                                    `json:"inventory_width"`
+		InventoryHeight  *int                                    `json:"inventory_height"`
+		BaseAttributes   *updateCharacterBaseAttributesRequest   `json:"base_attributes"`
+		CustomAttributes *[]updateCharacterCustomAttributeRequest `json:"custom_attributes"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -205,6 +225,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hasChanges := false
+	replaceCustomAttributes := false
 
 	if req.Name != nil {
 		name := strings.TrimSpace(*req.Name)
@@ -258,8 +279,120 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		hasChanges = true
 	}
 
+	if req.InventoryWidth != nil || req.InventoryHeight != nil || req.BaseAttributes != nil || req.CustomAttributes != nil {
+		if !isGM {
+			respondJSON(w, 403, map[string]string{"error": "Only the GM can edit advanced character settings"})
+			return
+		}
+	}
+
+	if req.InventoryWidth != nil {
+		value, err := validateInventoryDimension(*req.InventoryWidth, "Inventory width")
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		character.InventoryWidth = value
+		hasChanges = true
+	}
+
+	if req.InventoryHeight != nil {
+		value, err := validateInventoryDimension(*req.InventoryHeight, "Inventory height")
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		character.InventoryHeight = value
+		hasChanges = true
+	}
+
+	if req.BaseAttributes != nil {
+		if req.BaseAttributes.Strength != nil {
+			value, err := validateBaseAttribute(*req.BaseAttributes.Strength, "Strength")
+			if err != nil {
+				respondJSON(w, 400, map[string]string{"error": err.Error()})
+				return
+			}
+			character.BaseStrength = value
+			hasChanges = true
+		}
+
+		if req.BaseAttributes.Dexterity != nil {
+			value, err := validateBaseAttribute(*req.BaseAttributes.Dexterity, "Dexterity")
+			if err != nil {
+				respondJSON(w, 400, map[string]string{"error": err.Error()})
+				return
+			}
+			character.BaseDexterity = value
+			hasChanges = true
+		}
+
+		if req.BaseAttributes.Constitution != nil {
+			value, err := validateBaseAttribute(*req.BaseAttributes.Constitution, "Constitution")
+			if err != nil {
+				respondJSON(w, 400, map[string]string{"error": err.Error()})
+				return
+			}
+			character.BaseConstitution = value
+			hasChanges = true
+		}
+
+		if req.BaseAttributes.Intelligence != nil {
+			value, err := validateBaseAttribute(*req.BaseAttributes.Intelligence, "Intelligence")
+			if err != nil {
+				respondJSON(w, 400, map[string]string{"error": err.Error()})
+				return
+			}
+			character.BaseIntelligence = value
+			hasChanges = true
+		}
+
+		if req.BaseAttributes.Wisdom != nil {
+			value, err := validateBaseAttribute(*req.BaseAttributes.Wisdom, "Wisdom")
+			if err != nil {
+				respondJSON(w, 400, map[string]string{"error": err.Error()})
+				return
+			}
+			character.BaseWisdom = value
+			hasChanges = true
+		}
+
+		if req.BaseAttributes.Charisma != nil {
+			value, err := validateBaseAttribute(*req.BaseAttributes.Charisma, "Charisma")
+			if err != nil {
+				respondJSON(w, 400, map[string]string{"error": err.Error()})
+				return
+			}
+			character.BaseCharisma = value
+			hasChanges = true
+		}
+	}
+
+	if req.CustomAttributes != nil {
+		attributes, err := normalizeCustomAttributes(*req.CustomAttributes)
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+
+		for index := range attributes {
+			attributes[index].CharacterID = character.ID
+		}
+
+		character.CustomAttributes = attributes
+		replaceCustomAttributes = true
+		hasChanges = true
+	}
+
+	if req.InventoryWidth != nil || req.InventoryHeight != nil {
+		if err := validateInventoryResize(character); err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+	}
+
 	if hasChanges {
-		if err := h.service.repo.UpdateCharacter(character); err != nil {
+		if err := h.service.repo.UpdateCharacter(character, replaceCustomAttributes); err != nil {
 			respondJSON(w, 500, map[string]string{"error": "Failed to update character"})
 			return
 		}
@@ -692,6 +825,97 @@ func randomIndex(length int) int {
 func validateBaseAttribute(value int, label string) (int, error) {
 	if value < 0 || value > 999 {
 		return 0, fmt.Errorf("%s must be between 0 and 999", label)
+	}
+
+	return value, nil
+}
+
+func validateInventoryDimension(value int, label string) (int, error) {
+	if value < 1 || value > 20 {
+		return 0, fmt.Errorf("%s must be between 1 and 20", label)
+	}
+
+	return value, nil
+}
+
+func validateInventoryResize(character *models.Character) error {
+	for _, entry := range character.Inventory {
+		itemWidth := entry.Item.GridWidth
+		itemHeight := entry.Item.GridHeight
+		if itemWidth < 1 {
+			itemWidth = 1
+		}
+		if itemHeight < 1 {
+			itemHeight = 1
+		}
+		if entry.IsRotated {
+			itemWidth, itemHeight = itemHeight, itemWidth
+		}
+
+		if entry.GridX < 0 || entry.GridY < 0 || entry.GridX+itemWidth > character.InventoryWidth || entry.GridY+itemHeight > character.InventoryHeight {
+			itemName := strings.TrimSpace(entry.Item.Name)
+			if itemName == "" {
+				itemName = "An item"
+			}
+			return fmt.Errorf("%s no longer fits inside a %dx%d inventory", itemName, character.InventoryWidth, character.InventoryHeight)
+		}
+	}
+
+	return nil
+}
+
+func normalizeCustomAttributes(input []updateCharacterCustomAttributeRequest) ([]models.CharacterCustomAttribute, error) {
+	if len(input) > 50 {
+		return nil, fmt.Errorf("Custom attributes must contain 50 entries or fewer")
+	}
+
+	attributes := make([]models.CharacterCustomAttribute, 0, len(input))
+	seenNames := make(map[string]struct{}, len(input))
+
+	for index, attribute := range input {
+		name := strings.TrimSpace(attribute.Name)
+		if name == "" {
+			return nil, fmt.Errorf("Custom attribute name cannot be empty")
+		}
+		if len(name) > 100 {
+			return nil, fmt.Errorf("Custom attribute name must be 100 characters or less")
+		}
+
+		normalizedKey := strings.ToLower(name)
+		if _, exists := seenNames[normalizedKey]; exists {
+			return nil, fmt.Errorf("Custom attribute names must be unique")
+		}
+		seenNames[normalizedKey] = struct{}{}
+
+		value, err := validateCustomAttributeValue(attribute.Value)
+		if err != nil {
+			return nil, err
+		}
+
+		sortOrder := index
+		if attribute.SortOrder != nil {
+			sortOrder = *attribute.SortOrder
+		}
+
+		attributeID := uuid.New().String()
+		if attribute.ID != nil && strings.TrimSpace(*attribute.ID) != "" {
+			attributeID = strings.TrimSpace(*attribute.ID)
+		}
+
+		attributes = append(attributes, models.CharacterCustomAttribute{
+			ID:        attributeID,
+			Name:      name,
+			Value:     value,
+			SortOrder: sortOrder,
+		})
+	}
+
+	return attributes, nil
+}
+
+func validateCustomAttributeValue(value int) (int, error) {
+	if value < -999999999 || value > 999999999 {
+		return 0, fmt.Errorf("Custom attribute values must be between -999999999 and 999999999")
 	}
 
 	return value, nil

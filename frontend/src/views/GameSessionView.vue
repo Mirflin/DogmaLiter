@@ -1,6 +1,7 @@
 <script setup>
 import { API_URL } from '@/api'
 import SessionCharacterPickerModal from '@/components/session/SessionCharacterPickerModal.vue'
+import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemManager from '@/components/session/SessionItemManager.vue'
 import { notify } from '@/notify'
@@ -29,6 +30,7 @@ const chatSending = ref(false)
 const pickerVisible = ref(false)
 const chatCollapsed = ref(true)
 const profileEditMode = ref(false)
+const gmCharacterEditorVisible = ref(false)
 const error = ref(null)
 const characterError = ref(null)
 const characterSaveError = ref('')
@@ -39,9 +41,12 @@ const chatMessagesRef = ref(null)
 const chatInputRef = ref(null)
 const portraitInputRef = ref(null)
 const characterSavePending = ref(false)
+const gmCharacterEditorSaving = ref(false)
 const portraitFile = ref(null)
 const portraitPreviewUrl = ref('')
 const characterForm = ref(createCharacterFormState())
+const gmCharacterEditorTarget = ref(null)
+const gmCharacterEditorError = ref('')
 
 let chatPollHandle = null
 let characterRequestId = 0
@@ -218,6 +223,12 @@ function charactersForUser(userId) {
   return characters.value.filter(character => character.user_id === userId)
 }
 
+function findCharacterById(characterId) {
+  if (!characterId) return null
+  if (activeCharacter.value?.id === characterId) return activeCharacter.value
+  return characters.value.find(character => character.id === characterId) ?? null
+}
+
 function openCharacterPicker() {
   if (!characters.value.length && !viewer.value?.can_create_character) return
   pickerVisible.value = true
@@ -228,6 +239,25 @@ function openProfileEditor() {
   characterSaveError.value = ''
   characterSaveNotice.value = ''
   profileEditMode.value = true
+}
+
+function openGMCharacterEditor(target = activeCharacterId.value) {
+  if (!isGM.value) return
+
+  const characterId = typeof target === 'string' ? target : target?.id
+  const snapshot = typeof target === 'object' && target ? findCharacterById(target.id) ?? target : findCharacterById(characterId)
+  if (!snapshot) return
+
+  gmCharacterEditorTarget.value = snapshot
+  gmCharacterEditorError.value = ''
+  gmCharacterEditorVisible.value = true
+}
+
+function closeGMCharacterEditor() {
+  if (gmCharacterEditorSaving.value) return
+  gmCharacterEditorVisible.value = false
+  gmCharacterEditorTarget.value = null
+  gmCharacterEditorError.value = ''
 }
 
 function cancelProfileEditor() {
@@ -453,6 +483,28 @@ async function createCharacter() {
   }
 }
 
+async function persistCharacterChanges(snapshot, payload, nextPortraitFile = null) {
+  let latestCharacter = snapshot
+
+  if (payload) {
+    const data = await auth.updateGameCharacter(gameId.value, snapshot.id, payload)
+    if (data?.character) {
+      latestCharacter = data.character
+      mergeUpdatedCharacterIntoSession(latestCharacter)
+    }
+  }
+
+  if (nextPortraitFile) {
+    const portraitResponse = await auth.uploadCharacterPortrait(gameId.value, snapshot.id, nextPortraitFile)
+    if (portraitResponse?.character) {
+      latestCharacter = portraitResponse.character
+      mergeUpdatedCharacterIntoSession(latestCharacter)
+    }
+  }
+
+  return latestCharacter
+}
+
 async function saveCharacterProfile() {
   if (!characterSnapshot.value || !canEditCharacter.value || characterSavePending.value) return
 
@@ -489,30 +541,48 @@ async function saveCharacterProfile() {
   characterSaveNotice.value = ''
 
   try {
-    let latestCharacter = snapshot
-
-    if (hasProfileChanges) {
-      const data = await auth.updateGameCharacter(gameId.value, snapshot.id, payload)
-      if (data?.character) {
-        latestCharacter = data.character
-        mergeUpdatedCharacterIntoSession(latestCharacter)
-      }
-    }
-
-    if (portraitFile.value) {
-      const portraitResponse = await auth.uploadCharacterPortrait(gameId.value, snapshot.id, portraitFile.value)
-      if (portraitResponse?.character) {
-        latestCharacter = portraitResponse.character
-        mergeUpdatedCharacterIntoSession(latestCharacter)
-      }
-    }
+    const latestCharacter = await persistCharacterChanges(snapshot, hasProfileChanges ? payload : null, portraitFile.value)
 
     syncCharacterForm(latestCharacter)
     characterSaveNotice.value = 'Profile saved'
+    notify.success({
+      title: 'Profile saved',
+      message: 'Character changes were updated.',
+    })
   } catch (err) {
     characterSaveError.value = err.response?.data?.error || 'Failed to save character profile'
   } finally {
     characterSavePending.value = false
+  }
+}
+
+async function saveGMCharacterEditor({ payload, portraitFile: nextPortraitFile }) {
+  if (!isGM.value || !gmCharacterEditorTarget.value || gmCharacterEditorSaving.value) return
+
+  gmCharacterEditorSaving.value = true
+  gmCharacterEditorError.value = ''
+  let shouldClose = false
+
+  try {
+    const latestCharacter = await persistCharacterChanges(gmCharacterEditorTarget.value, payload, nextPortraitFile)
+    gmCharacterEditorTarget.value = latestCharacter
+
+    if (activeCharacterId.value === latestCharacter?.id) {
+      syncCharacterForm(latestCharacter)
+    }
+
+    notify.success({
+      title: 'Character updated',
+      message: 'GM changes were saved.',
+    })
+    shouldClose = true
+  } catch (err) {
+    gmCharacterEditorError.value = err.response?.data?.error || 'Failed to save GM character settings'
+  } finally {
+    gmCharacterEditorSaving.value = false
+    if (shouldClose) {
+      closeGMCharacterEditor()
+    }
   }
 }
 
@@ -612,6 +682,15 @@ onBeforeUnmount(() => {
         :creating="creatingCharacter"
         @select="switchCharacter"
         @create="createCharacter"
+      />
+
+      <SessionGMCharacterEditorModal
+        :visible="gmCharacterEditorVisible"
+        :character="gmCharacterEditorTarget"
+        :saving="gmCharacterEditorSaving"
+        :error="gmCharacterEditorError"
+        @close="closeGMCharacterEditor"
+        @save="saveGMCharacterEditor"
       />
 
       <header class="session-header sticky top-0 z-30 border-b border-[rgba(126,200,227,0.08)] bg-[rgba(7,17,31,0.82)] backdrop-blur-xl">
@@ -780,10 +859,16 @@ onBeforeUnmount(() => {
                     <div class="flex flex-wrap items-start justify-between gap-4">
                       <div>
                         <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Profile</p>
-                        <p class="mt-2 max-w-[32rem] text-[14px] leading-relaxed text-[#d8dce7]/62">Basic profile info, portrait, and currency are editable only in profile mode. Base parameters stay read-only.</p>
                       </div>
 
                       <div class="flex flex-wrap gap-3">
+                        <button
+                          v-if="isGM"
+                          @click="openGMCharacterEditor(characterSnapshot)"
+                          class="cursor-pointer rounded-xl border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-4 py-2.5 text-[13px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
+                        >
+                          GM Configure
+                        </button>
                         <button
                           v-if="canEditCharacter && !profileEditMode"
                           @click="openProfileEditor"
@@ -798,21 +883,9 @@ onBeforeUnmount(() => {
                         >
                           Cancel
                         </button>
-                        <button
-                          @click="openCharacterPicker"
-                          class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.32)]"
-                        >
-                          Change Character
-                        </button>
                       </div>
                     </div>
 
-                    <p v-if="characterSaveError" class="mt-5 rounded-[1.3rem] border border-[rgba(248,113,113,0.24)] bg-[rgba(127,29,29,0.18)] px-4 py-3 text-[13px] text-[#fecaca]">
-                      {{ characterSaveError }}
-                    </p>
-                    <p v-else-if="characterSaveNotice" class="mt-5 rounded-[1.3rem] border border-[rgba(110,231,183,0.22)] bg-[rgba(21,128,61,0.16)] px-4 py-3 text-[13px] text-[#bbf7d0]">
-                      {{ characterSaveNotice }}
-                    </p>
                     <p v-if="!canEditCharacter" class="mt-5 rounded-[1.3rem] border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-4 py-3 text-[13px] text-[#d8dce7]/68">
                       This character is read-only for your current access.
                     </p>
@@ -886,15 +959,15 @@ onBeforeUnmount(() => {
                             <div class="mt-4 grid gap-3 sm:grid-cols-3">
                               <label class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
                                 <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Gold</span>
-                                <input v-model.number="characterForm.gold" type="number" min="0" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                                <input v-model.number="characterForm.gold" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
                               </label>
                               <label class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
                                 <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Silver</span>
-                                <input v-model.number="characterForm.silver" type="number" min="0" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                                <input v-model.number="characterForm.silver" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
                               </label>
                               <label class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
                                 <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Bronze</span>
-                                <input v-model.number="characterForm.copper" type="number" min="0" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                                <input v-model.number="characterForm.copper" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
                               </label>
                             </div>
                           </div>
@@ -1038,12 +1111,6 @@ onBeforeUnmount(() => {
 
                 <div class="flex flex-wrap gap-3">
                   <button
-                    @click="openCharacterPicker"
-                    class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]"
-                  >
-                    Open Picker Modal
-                  </button>
-                  <button
                     v-if="viewer.can_create_character"
                     @click="createCharacter"
                     :disabled="creatingCharacter"
@@ -1086,17 +1153,6 @@ onBeforeUnmount(() => {
                   {{ character.backstory || 'Blank dossier. Select this character to continue editing and session play.' }}
                 </p>
 
-                <div class="mt-5 flex flex-wrap gap-2 text-[11px] text-[#d8dce7]/60">
-                  <span
-                    v-for="attribute in character.custom_attributes"
-                    :key="attribute.id"
-                    class="rounded-full border border-[rgba(233,69,96,0.16)] bg-[rgba(233,69,96,0.08)] px-2.5 py-1"
-                  >
-                    {{ attribute.name }}: {{ attribute.value }}
-                  </span>
-                  <span v-if="!character.custom_attributes.length" class="rounded-full border border-[rgba(126,200,227,0.14)] px-2.5 py-1">No custom stats</span>
-                </div>
-
                 <div class="mt-6 flex flex-wrap gap-3">
                   <button
                     @click="switchCharacter(character.id, { nextTab: activeTab })"
@@ -1120,7 +1176,7 @@ onBeforeUnmount(() => {
             </div>
           </section>
 
-          <section v-else-if="activeTab === 'players' && isGM" class="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_340px]">
+          <section v-else-if="activeTab === 'players' && isGM" class="w-full space-y-5">
             <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <div class="flex items-center justify-between gap-4">
                 <div>
@@ -1153,35 +1209,61 @@ onBeforeUnmount(() => {
 
                     <div class="flex flex-wrap gap-2 text-[11px] text-[#d8dce7]/60">
                       <span class="rounded-full border border-[rgba(126,200,227,0.14)] px-2.5 py-1">{{ memberCharacterCount[member.user_id] ?? 0 }} characters</span>
-                      <span class="rounded-full border border-[rgba(233,69,96,0.16)] px-2.5 py-1">{{ charactersForUser(member.user_id).length ? 'Ready' : 'No characters' }}</span>
                     </div>
                   </div>
 
-                  <div class="mt-4 flex flex-wrap gap-2">
-                    <button
+                  <div v-if="charactersForUser(member.user_id).length" class="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                    <article
                       v-for="character in charactersForUser(member.user_id)"
                       :key="character.id"
-                      @click="switchCharacter(character.id, { nextTab: 'sheet' })"
-                      class="cursor-pointer rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(7,17,31,0.66)] px-3 py-1.5 text-[12px] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.35)]"
+                      class="rounded-[1.8rem] border p-5 transition-all duration-200"
+                      :class="character.id === activeCharacterId
+                        ? 'border-[rgba(233,69,96,0.36)] bg-[rgba(233,69,96,0.11)] shadow-[0_20px_50px_rgba(233,69,96,0.12)]'
+                        : 'border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]'"
                     >
-                      Inspect {{ character.name }}
-                    </button>
+                      <div class="flex items-start justify-between gap-4">
+                        <div class="flex min-w-0 items-center gap-4">
+                          <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                            <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" />
+                            <span v-else class="font-[Cinzel] text-[20px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
+                          </div>
+
+                          <div class="min-w-0">
+                            <h4 class="truncate font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ character.name }}</h4>
+                            <p class="mt-1 text-[13px] text-[#7ec8e3]/58">{{ character.owner?.username || member.username }}</p>
+                          </div>
+                        </div>
+
+                        <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fd7ef]">
+                          {{ character.inventory_width }}x{{ character.inventory_height }}
+                        </span>
+                      </div>
+
+                      <p class="mt-4 line-clamp-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
+                        {{ character.backstory || 'Blank dossier. Use the GM tools to configure this character before play.' }}
+                      </p>
+
+                      <div class="mt-6 flex flex-wrap gap-3">
+                        <button
+                          @click="switchCharacter(character.id, { nextTab: 'sheet' })"
+                          class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.32)]"
+                        >
+                          Inspect
+                        </button>
+                        <button
+                          @click="openGMCharacterEditor(character)"
+                          class="cursor-pointer rounded-xl border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-4 py-2.5 text-[13px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
+                        >
+                          Configure
+                        </button>
+                      </div>
+                    </article>
                   </div>
+
+                  <p v-else class="mt-4 text-[13px] text-[#d8dce7]/52">No characters assigned to this player yet.</p>
                 </div>
               </div>
             </article>
-
-            <aside class="space-y-5">
-              <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">GM Workflow</p>
-                <p class="mt-4 text-[14px] leading-relaxed text-[#d8dce7]/62">Jump into any accessible character, then move directly to items or the chat dock without changing route.</p>
-              </article>
-
-              <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Roster Scope</p>
-                <p class="mt-4 text-[14px] leading-relaxed text-[#d8dce7]/62">GM views include all session members and their currently accessible characters.</p>
-              </article>
-            </aside>
           </section>
 
           <SessionItemManager v-else-if="activeTab === 'items' && isGM" :items="items" :game-id="gameId" />
@@ -1760,8 +1842,6 @@ onBeforeUnmount(() => {
   }
 
   .session-dossier-panel {
-    position: sticky;
-    top: 7.35rem;
     align-self: start;
   }
 

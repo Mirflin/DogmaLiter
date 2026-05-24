@@ -143,17 +143,43 @@ func (r *Repository) CreateCharacter(character *models.Character) error {
 	return r.db.Create(character).Error
 }
 
-func (r *Repository) UpdateCharacter(character *models.Character) error {
-	return r.db.Model(&models.Character{}).
-		Where("game_id = ? AND id = ?", character.GameID, character.ID).
-		Updates(map[string]interface{}{
-			"name":            character.Name,
-			"backstory":       character.Backstory,
-			"currency_gold":   character.CurrencyGold,
-			"currency_silver": character.CurrencySilver,
-			"currency_copper": character.CurrencyCopper,
-			"updated_at":      time.Now(),
-		}).Error
+func (r *Repository) UpdateCharacter(character *models.Character, replaceCustomAttributes bool) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.Character{}).
+			Where("game_id = ? AND id = ?", character.GameID, character.ID).
+			Updates(map[string]interface{}{
+				"name":              character.Name,
+				"backstory":         character.Backstory,
+				"base_strength":     character.BaseStrength,
+				"base_dexterity":    character.BaseDexterity,
+				"base_constitution": character.BaseConstitution,
+				"base_intelligence": character.BaseIntelligence,
+				"base_wisdom":       character.BaseWisdom,
+				"base_charisma":     character.BaseCharisma,
+				"inventory_width":   character.InventoryWidth,
+				"inventory_height":  character.InventoryHeight,
+				"currency_gold":     character.CurrencyGold,
+				"currency_silver":   character.CurrencySilver,
+				"currency_copper":   character.CurrencyCopper,
+				"updated_at":        time.Now(),
+			}).Error; err != nil {
+			return err
+		}
+
+		if !replaceCustomAttributes {
+			return nil
+		}
+
+		if err := tx.Where("character_id = ?", character.ID).Delete(&models.CharacterCustomAttribute{}).Error; err != nil {
+			return err
+		}
+
+		if len(character.CustomAttributes) == 0 {
+			return nil
+		}
+
+		return tx.Create(&character.CustomAttributes).Error
+	})
 }
 
 func (r *Repository) UpdateCharacterPortrait(gameID, characterID string, portraitID *string) error {
