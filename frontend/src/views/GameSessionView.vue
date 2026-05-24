@@ -1,4 +1,16 @@
 <script setup>
+import {
+  ArrowLeft as ArrowLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  ContactRound as ContactRoundIcon,
+  FolderOpen as FolderOpenIcon,
+  MessageSquareText as MessageSquareTextIcon,
+  Package as PackageIcon,
+  RefreshCw as RefreshCwIcon,
+  TriangleAlert as TriangleAlertIcon,
+  UserRound as UserRoundIcon,
+  Users as UsersIcon,
+} from '@lucide/vue'
 import { API_URL } from '@/api'
 import SessionCharacterPickerModal from '@/components/session/SessionCharacterPickerModal.vue'
 import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
@@ -13,6 +25,13 @@ const CHAT_POLL_INTERVAL = 15000
 const CHAT_MESSAGE_LIMIT = 40
 const MAX_PORTRAIT_SIZE = 5 * 1024 * 1024
 const ALLOWED_PORTRAIT_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+const tabIcons = {
+  sheet: UserRoundIcon,
+  inventory: PackageIcon,
+  characters: ContactRoundIcon,
+  players: UsersIcon,
+  items: FolderOpenIcon,
+}
 
 const auth = useAuthStore()
 const route = useRoute()
@@ -654,9 +673,7 @@ onBeforeUnmount(() => {
     </div>
 
     <div v-else-if="error" class="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-      <svg class="mb-4 h-16 w-16 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-      </svg>
+      <TriangleAlertIcon class="mb-4 h-16 w-16 text-[#e94560]" :stroke-width="1.5" />
       <p class="mb-5 text-[16px] font-semibold text-[#e94560]">{{ error }}</p>
       <div class="flex flex-wrap justify-center gap-3">
         <button
@@ -701,9 +718,7 @@ onBeforeUnmount(() => {
               title="Exit session"
               class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] text-[#e8e8f0]/70 transition-all duration-200 hover:border-[#e94560] hover:text-[#e94560]"
             >
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-              </svg>
+              <ArrowLeftIcon class="h-5 w-5" :stroke-width="2" />
             </button>
 
             <div class="min-w-0">
@@ -730,9 +745,7 @@ onBeforeUnmount(() => {
               :disabled="refreshing"
               class="flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#e8e8f0] transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(126,200,227,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" :class="refreshing ? 'animate-spin' : ''">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992V4.356M2.977 14.652H7.97v4.992m12.056-4.992a8.25 8.25 0 00-13.435-5.728L2.977 14.652m18.046-5.304a8.25 8.25 0 01-13.435 5.728L7.97 19.644" />
-              </svg>
+              <RefreshCwIcon class="h-4 w-4" :stroke-width="2" :class="refreshing ? 'animate-spin' : ''" />
               {{ refreshing ? 'Refreshing' : 'Refresh Workspace' }}
             </button>
           </div>
@@ -750,21 +763,7 @@ onBeforeUnmount(() => {
             ? 'border-[rgba(197,138,56,0.42)] bg-[rgba(143,79,51,0.18)] text-[#fff4de] shadow-[0_14px_30px_rgba(61,37,20,0.32)]'
             : 'border-[rgba(98,120,128,0.12)] bg-[rgba(15,18,22,0.74)] text-[#d4c6ab]/72 hover:border-[rgba(197,138,56,0.24)] hover:bg-[rgba(197,138,56,0.08)] hover:text-[#fff4de]'"
         >
-          <svg v-if="tab.icon === 'sheet'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a7.5 7.5 0 0115 0" />
-          </svg>
-          <svg v-else-if="tab.icon === 'inventory'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-8.25-4.5L3.75 7.5m16.5 0v9l-8.25 4.5-8.25-4.5v-9m16.5 0L12 12m0 0L3.75 7.5m8.25 4.5v9" />
-          </svg>
-          <svg v-else-if="tab.icon === 'characters'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128A9.38 9.38 0 0012 18.75a9.38 9.38 0 00-3 .378M15 7.5a3 3 0 11-6 0 3 3 0 016 0zm6 10.5a6 6 0 00-7.743-5.743m7.743 5.743A6 6 0 0112.75 21m0-8.743A6 6 0 003 18m9.75-5.743A6 6 0 0011.25 21" />
-          </svg>
-          <svg v-else-if="tab.icon === 'players'" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zM9.75 8.25a3 3 0 11-6 0 3 3 0 016 0zm8.25 10.5v-.75A3.75 3.75 0 0014.25 14.25h-1.5A3.75 3.75 0 009 18v.75m9 0h3m-3 0H8.25m0 0H3m5.25 0v-.75A5.25 5.25 0 0113.5 12.75h.75" />
-          </svg>
-          <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 5.25h6.879a1.5 1.5 0 011.06.44l1.122 1.12a1.5 1.5 0 001.06.44h6.379m-16.5 0v10.5A2.25 2.25 0 006 20.25h12a2.25 2.25 0 002.25-2.25V9A1.5 1.5 0 0018.75 7.5h-3.879a1.5 1.5 0 01-1.06-.44l-1.122-1.12a1.5 1.5 0 00-1.06-.44H5.25A1.5 1.5 0 003.75 7.5v0" />
-          </svg>
+          <component :is="tabIcons[tab.icon] || UserRoundIcon" class="h-5 w-5" :stroke-width="1.8" />
 
           <span v-if="activeTab === tab.id" class="absolute -right-1 h-2.5 w-2.5 rounded-full bg-[#c58a38]"></span>
           <span class="session-tooltip">{{ tab.label }}</span>
@@ -954,7 +953,6 @@ onBeforeUnmount(() => {
                           <div>
                             <div class="flex items-center justify-between gap-3">
                               <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Currency</span>
-                              <span class="text-[12px] text-[#d8dce7]/45">Editable in profile mode</span>
                             </div>
                             <div class="mt-4 grid gap-3 sm:grid-cols-3">
                               <label class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
@@ -1278,9 +1276,7 @@ onBeforeUnmount(() => {
           ? 'border-[rgba(197,138,56,0.24)] bg-[rgba(16,19,23,0.96)] text-[#f3ead9]'
           : 'border-[rgba(143,79,51,0.34)] bg-[rgba(42,22,18,0.92)] text-[#f5d2c8]'"
       >
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 9.75h6.75m-6.75 3h4.5m-8.006 6.375h13.761A2.625 2.625 0 0021.5 16.5v-9A2.625 2.625 0 0018.875 4.875H5.125A2.625 2.625 0 002.5 7.5v9a2.625 2.625 0 002.625 2.625z" />
-        </svg>
+        <MessageSquareTextIcon class="h-5 w-5" :stroke-width="1.8" />
         <span class="text-[11px] font-semibold uppercase tracking-[0.18em]">Chat</span>
         <span class="rounded-full border border-[rgba(126,200,227,0.14)] px-2 py-0.5 text-[10px] font-semibold">{{ chatMessages.length }}</span>
       </button>
@@ -1307,9 +1303,7 @@ onBeforeUnmount(() => {
                 aria-label="Collapse chat dock"
                 class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.34)] hover:text-[#ffe0e7]"
               >
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 5.25L16.5 12l-6.75 6.75" />
-                </svg>
+                <ChevronRightIcon class="h-5 w-5" :stroke-width="2" />
               </button>
             </div>
           </div>

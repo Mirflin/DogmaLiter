@@ -1,4 +1,5 @@
 <script setup>
+import { X as XIcon } from '@lucide/vue'
 import { API_URL } from '@/api'
 import { computed, ref, watch } from 'vue'
 
@@ -274,7 +275,7 @@ function emitSave() {
           class="absolute right-5 top-5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="Close GM character editor"
         >
-          <span class="text-xl leading-none">&times;</span>
+          <XIcon class="h-5 w-5" :stroke-width="2" />
         </button>
 
         <div class="pr-12">
