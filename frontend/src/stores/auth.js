@@ -255,8 +255,8 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
-  async function createGameCharacter(gameID) {
-    const { data } = await api.post(`/games/${gameID}/characters`)
+  async function createGameCharacter(gameID, payload = undefined) {
+    const { data } = await api.post(`/games/${gameID}/characters`, payload)
     return data
   }
 

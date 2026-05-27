@@ -148,6 +148,7 @@ func (r *Repository) UpdateCharacter(character *models.Character, replaceCustomA
 		if err := tx.Model(&models.Character{}).
 			Where("game_id = ? AND id = ?", character.GameID, character.ID).
 			Updates(map[string]interface{}{
+				"user_id":            character.UserID,
 				"name":              character.Name,
 				"backstory":         character.Backstory,
 				"base_strength":     character.BaseStrength,

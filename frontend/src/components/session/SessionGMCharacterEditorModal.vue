@@ -38,6 +38,10 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  members: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['close', 'save'])
@@ -51,6 +55,7 @@ const form = ref(createFormState())
 
 const displayError = computed(() => localError.value || props.error || '')
 const portraitUrl = computed(() => portraitPreviewUrl.value || avatarUrl(props.character?.portrait_id))
+const selectedOwner = computed(() => props.members.find(member => member.user_id === form.value.owner_user_id) ?? null)
 
 watch(
   [() => props.visible, () => props.character],
@@ -82,6 +87,15 @@ function initials(value) {
     .join('')
 }
 
+function formatRole(role) {
+  if (!role) return 'Player'
+  return role
+    .split('_')
+    .filter(Boolean)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
 function nextAttributeKey() {
   attributeKeyCounter.value += 1
   return `gm-custom-${attributeKeyCounter.value}`
@@ -101,6 +115,7 @@ function createFormState(character = null) {
   return {
     name: character?.name ?? '',
     backstory: character?.backstory ?? '',
+    owner_user_id: character?.user_id ?? props.members[0]?.user_id ?? '',
     inventory_width: character?.inventory_width ?? 10,
     inventory_height: character?.inventory_height ?? 6,
     currency_gold: character?.currency_gold ?? 0,
@@ -213,6 +228,11 @@ function emitSave() {
     return
   }
 
+  if (!form.value.owner_user_id) {
+    localError.value = 'Select who should own this character'
+    return
+  }
+
   const customAttributes = []
   const seenNames = new Set()
 
@@ -243,6 +263,7 @@ function emitSave() {
     payload: {
       name,
       backstory,
+      owner_user_id: form.value.owner_user_id,
       inventory_width: normalizeInteger(form.value.inventory_width, 10),
       inventory_height: normalizeInteger(form.value.inventory_height, 6),
       currency_gold: normalizeInteger(form.value.currency_gold),
@@ -283,11 +304,11 @@ function emitSave() {
           <div class="mt-3 flex flex-wrap items-center gap-3">
             <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">{{ character?.name || 'Character Setup' }}</h2>
             <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
-              {{ character?.owner?.username || 'Unassigned' }}
+              {{ selectedOwner?.username || character?.owner?.username || 'Unassigned' }}
             </span>
           </div>
           <p class="mt-3 max-w-[48rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
-            Configure portrait, narrative profile, base attributes, inventory dimensions, and custom stats.
+            Configure portrait, narrative profile, base attributes, inventory dimensions, custom stats, and character ownership.
           </p>
         </div>
 
@@ -374,12 +395,24 @@ function emitSave() {
                     class="session-input mt-2 w-full resize-none rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none transition-all duration-200 placeholder:text-[#7ec8e3]/35 focus:border-[rgba(233,69,96,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
                   ></textarea>
                 </label>
+
+                <label class="block">
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Assigned To</span>
+                  <select
+                    v-model="form.owner_user_id"
+                    :disabled="saving"
+                    class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 focus:border-[rgba(233,69,96,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option v-for="member in members" :key="member.user_id" :value="member.user_id">
+                      {{ member.username }} · {{ formatRole(member.role) }}
+                    </option>
+                  </select>
+                </label>
               </div>
 
               <div class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
                 <div class="flex items-center justify-between gap-3">
                   <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Currency</span>
-                  <span class="text-[12px] text-[#d8dce7]/45">GM override</span>
                 </div>
                 <div class="mt-4 grid gap-3">
                   <label

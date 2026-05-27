@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net/http"
 	"strings"
@@ -103,9 +104,20 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	game, isGM, err := h.authorizeGameAccess(userID, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+
+	var req struct {
+		Name        *string `json:"name"`
+		Backstory   *string `json:"backstory"`
+		OwnerUserID *string `json:"owner_user_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
@@ -121,13 +133,46 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	ownerUserID, err := resolveCharacterOwnerUserID(game, req.OwnerUserID, userID, isGM)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	name := generateRandomCharacterName()
+	backstory := ""
+	if isGM {
+		name = "Untitled Character"
+		if req.Name != nil {
+			trimmedName := strings.TrimSpace(*req.Name)
+			if trimmedName == "" {
+				respondJSON(w, 400, map[string]string{"error": "Character name cannot be empty"})
+				return
+			}
+			if len(trimmedName) > 100 {
+				respondJSON(w, 400, map[string]string{"error": "Character name must be 100 characters or less"})
+				return
+			}
+			name = trimmedName
+		}
+
+		if req.Backstory != nil {
+			trimmedBackstory := strings.TrimSpace(*req.Backstory)
+			if len(trimmedBackstory) > 5000 {
+				respondJSON(w, 400, map[string]string{"error": "Backstory must be 5000 characters or less"})
+				return
+			}
+			backstory = trimmedBackstory
+		}
+	}
+
 	character := &models.Character{
 		ID:               uuid.New().String(),
 		GameID:           gameID,
-		UserID:           userID,
+		UserID:           ownerUserID,
 		CreatedByID:      userID,
-		Name:             generateRandomCharacterName(),
-		Backstory:        "",
+		Name:             name,
+		Backstory:        backstory,
 		PortraitID:       nil,
 		BaseStrength:     10,
 		BaseDexterity:    10,
@@ -190,7 +235,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	characterID := chi.URLParam(r, "characterID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	game, isGM, err := h.authorizeGameAccess(userID, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -213,6 +258,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		CurrencyGold     *int                                    `json:"currency_gold"`
 		CurrencySilver   *int                                    `json:"currency_silver"`
 		CurrencyCopper   *int                                    `json:"currency_copper"`
+		OwnerUserID      *string                                 `json:"owner_user_id"`
 		InventoryWidth   *int                                    `json:"inventory_width"`
 		InventoryHeight  *int                                    `json:"inventory_height"`
 		BaseAttributes   *updateCharacterBaseAttributesRequest   `json:"base_attributes"`
@@ -279,11 +325,21 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		hasChanges = true
 	}
 
-	if req.InventoryWidth != nil || req.InventoryHeight != nil || req.BaseAttributes != nil || req.CustomAttributes != nil {
+	if req.OwnerUserID != nil || req.InventoryWidth != nil || req.InventoryHeight != nil || req.BaseAttributes != nil || req.CustomAttributes != nil {
 		if !isGM {
 			respondJSON(w, 403, map[string]string{"error": "Only the GM can edit advanced character settings"})
 			return
 		}
+	}
+
+	if req.OwnerUserID != nil {
+		ownerUserID, err := resolveCharacterOwnerUserID(game, req.OwnerUserID, character.UserID, isGM)
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		character.UserID = ownerUserID
+		hasChanges = true
 	}
 
 	if req.InventoryWidth != nil {
@@ -787,6 +843,29 @@ func findGameMember(game *models.Game, userID string) *models.GameMember {
 		}
 	}
 	return nil
+}
+
+func resolveCharacterOwnerUserID(game *models.Game, requestedOwnerID *string, fallbackUserID string, isGM bool) (string, error) {
+	ownerUserID := fallbackUserID
+	if requestedOwnerID == nil {
+		return ownerUserID, nil
+	}
+
+	if !isGM {
+		return "", fmt.Errorf("Only the GM can reassign characters")
+	}
+
+	trimmedUserID := strings.TrimSpace(*requestedOwnerID)
+	if trimmedUserID == "" {
+		return "", fmt.Errorf("Character owner is required")
+	}
+
+	member := findGameMember(game, trimmedUserID)
+	if member == nil {
+		return "", fmt.Errorf("Selected character owner is not a member of this game")
+	}
+
+	return member.UserID, nil
 }
 
 func viewerCharacterLimit(isGM bool) int {

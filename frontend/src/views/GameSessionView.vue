@@ -13,6 +13,7 @@ import {
 } from '@lucide/vue'
 import { API_URL } from '@/api'
 import SessionCharacterPickerModal from '@/components/session/SessionCharacterPickerModal.vue'
+import SessionGMCharacterCreateModal from '@/components/session/SessionGMCharacterCreateModal.vue'
 import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemManager from '@/components/session/SessionItemManager.vue'
@@ -49,6 +50,7 @@ const chatSending = ref(false)
 const pickerVisible = ref(false)
 const chatCollapsed = ref(true)
 const profileEditMode = ref(false)
+const gmCharacterCreateVisible = ref(false)
 const gmCharacterEditorVisible = ref(false)
 const error = ref(null)
 const characterError = ref(null)
@@ -60,12 +62,16 @@ const chatMessagesRef = ref(null)
 const chatInputRef = ref(null)
 const portraitInputRef = ref(null)
 const characterSavePending = ref(false)
+const gmCharacterCreateSaving = ref(false)
 const gmCharacterEditorSaving = ref(false)
 const portraitFile = ref(null)
 const portraitPreviewUrl = ref('')
+const backstoryExpanded = ref(false)
 const characterForm = ref(createCharacterFormState())
 const gmCharacterEditorTarget = ref(null)
+const gmCharacterCreateError = ref('')
 const gmCharacterEditorError = ref('')
+const gmCharacterCreateRestorePicker = ref(false)
 
 let chatPollHandle = null
 let characterRequestId = 0
@@ -80,7 +86,12 @@ const viewer = computed(() => session.value?.viewer ?? {
   character_limit: 0,
 })
 const isGM = computed(() => Boolean(viewer.value?.is_gm))
+const playerNeedsCharacterSelection = computed(() => !isGM.value && !activeCharacterId.value)
 const characters = computed(() => session.value?.characters ?? [])
+const rosterCharacters = computed(() => {
+  if (!isGM.value) return characters.value
+  return characters.value.filter(character => character.user_id === viewer.value?.user_id)
+})
 const items = computed(() => session.value?.items ?? [])
 const chatMessages = computed(() => session.value?.messages ?? [])
 const selectedCharacterSummary = computed(() => characters.value.find(character => character.id === activeCharacterId.value) ?? null)
@@ -127,11 +138,38 @@ const currencyCards = computed(() => {
   ]
 })
 const currentPortraitUrl = computed(() => portraitPreviewUrl.value || avatarUrl(characterSnapshot.value?.portrait_id))
+const rosterTitle = computed(() => (isGM.value ? 'GM Character Vault' : 'Available Characters'))
+const rosterDescription = computed(() => {
+  if (playerNeedsCharacterSelection.value) {
+    return 'Choose an existing character or create one to unlock the rest of the session.'
+  }
+
+  if (isGM.value) {
+    return 'Only your GM-owned characters live here. Use Configure to transfer them to players or other GMs.'
+  }
+
+  return 'Use this roster for fast switching. The entry modal uses the same list and creation flow.'
+})
 const tabs = computed(() => {
+  const rosterTab = {
+    id: 'characters',
+    label: playerNeedsCharacterSelection.value ? 'Choose Character' : 'Roster',
+    icon: 'characters',
+    description: playerNeedsCharacterSelection.value
+      ? 'Select or create a character before the rest of the session opens.'
+      : (isGM.value
+          ? 'Your GM-only character vault for staging, editing, and taking control of characters.'
+          : 'Quick switching between characters available to this viewer.'),
+  }
+
+  if (playerNeedsCharacterSelection.value) {
+    return [rosterTab]
+  }
+
   const baseTabs = [
     { id: 'sheet', label: 'Character', icon: 'sheet', description: 'Portrait, identity, profile editing, and read-only character stats.' },
     { id: 'inventory', label: 'Inventory', icon: 'inventory', description: 'Reserved inventory workspace with currency and storage stats.' },
-    { id: 'characters', label: 'Roster', icon: 'characters', description: 'Quick switching between characters available to this viewer.' },
+    rosterTab,
   ]
 
   if (isGM.value) {
@@ -242,6 +280,12 @@ function charactersForUser(userId) {
   return characters.value.filter(character => character.user_id === userId)
 }
 
+function memberEmptyStateMessage(member) {
+  return member?.role === 'player'
+    ? 'No characters assigned to this player yet.'
+    : 'No GM characters assigned to this member yet.'
+}
+
 function findCharacterById(characterId) {
   if (!characterId) return null
   if (activeCharacter.value?.id === characterId) return activeCharacter.value
@@ -251,6 +295,42 @@ function findCharacterById(characterId) {
 function openCharacterPicker() {
   if (!characters.value.length && !viewer.value?.can_create_character) return
   pickerVisible.value = true
+}
+
+function openGMCharacterCreateModal() {
+  if (!isGM.value || !viewer.value?.can_create_character) return
+
+  gmCharacterCreateRestorePicker.value = pickerVisible.value
+  pickerVisible.value = false
+  gmCharacterCreateError.value = ''
+  gmCharacterCreateVisible.value = true
+}
+
+function closeGMCharacterCreateModal() {
+  if (gmCharacterCreateSaving.value) return
+
+  const shouldRestorePicker = Boolean(
+    gmCharacterCreateRestorePicker.value
+      && !activeCharacterId.value
+      && (characters.value.length || viewer.value?.can_create_character),
+  )
+
+  gmCharacterCreateVisible.value = false
+  gmCharacterCreateError.value = ''
+  gmCharacterCreateRestorePicker.value = false
+
+  if (shouldRestorePicker) {
+    pickerVisible.value = true
+  }
+}
+
+function requestCharacterCreation() {
+  if (isGM.value) {
+    openGMCharacterCreateModal()
+    return
+  }
+
+  createCharacter()
 }
 
 function openProfileEditor() {
@@ -398,7 +478,8 @@ function mergeCreatedCharacterIntoSession(character) {
   const existingCharacters = session.value.characters ?? []
   const hasCharacter = existingCharacters.some(entry => entry.id === character.id)
   const currentOwnedCount = viewer.value?.owned_character_count ?? 0
-  const nextOwnedCount = currentOwnedCount + 1
+  const ownedCountDelta = !hasCharacter && character.user_id === viewer.value?.user_id ? 1 : 0
+  const nextOwnedCount = currentOwnedCount + ownedCountDelta
   const characterLimit = viewer.value?.character_limit ?? 0
 
   session.value = {
@@ -445,7 +526,7 @@ async function loadSession({ preserveCharacter = true, promptSelection = false }
     session.value = data
 
     if (!tabs.value.some(tab => tab.id === activeTab.value)) {
-      activeTab.value = 'sheet'
+      activeTab.value = tabs.value[0]?.id ?? 'characters'
     }
 
     const availableCharacters = data.characters ?? []
@@ -479,13 +560,13 @@ async function loadSession({ preserveCharacter = true, promptSelection = false }
   }
 }
 
-async function createCharacter() {
+async function createCharacter(payload = null, { silent = false } = {}) {
   if (creatingCharacter.value || !viewer.value?.can_create_character) return
 
   creatingCharacter.value = true
 
   try {
-    const data = await auth.createGameCharacter(gameId.value)
+    const data = await auth.createGameCharacter(gameId.value, payload ?? undefined)
     if (data?.character) {
       mergeCreatedCharacterIntoSession(data.character)
       await switchCharacter(data.character.id, {
@@ -495,10 +576,42 @@ async function createCharacter() {
     }
 
     await loadSession({ preserveCharacter: true, promptSelection: false })
+    return data?.character ?? null
   } catch (err) {
-    notify.error(err, 'Failed to create a new character')
+    if (!silent) {
+      notify.error(err, 'Failed to create a new character')
+      return null
+    }
+
+    throw err
   } finally {
     creatingCharacter.value = false
+  }
+}
+
+async function saveGMCharacterCreate(payload) {
+  if (!isGM.value || gmCharacterCreateSaving.value) return
+
+  gmCharacterCreateSaving.value = true
+  gmCharacterCreateError.value = ''
+  let shouldClose = false
+
+  try {
+    const character = await createCharacter(payload, { silent: true })
+    if (character) {
+      notify.success({
+        title: 'Character created',
+        message: 'The new character was added to the session roster.',
+      })
+      shouldClose = true
+    }
+  } catch (err) {
+    gmCharacterCreateError.value = err.response?.data?.error || 'Failed to create GM character'
+  } finally {
+    gmCharacterCreateSaving.value = false
+    if (shouldClose) {
+      closeGMCharacterCreateModal()
+    }
   }
 }
 
@@ -586,8 +699,10 @@ async function saveGMCharacterEditor({ payload, portraitFile: nextPortraitFile }
     const latestCharacter = await persistCharacterChanges(gmCharacterEditorTarget.value, payload, nextPortraitFile)
     gmCharacterEditorTarget.value = latestCharacter
 
+    await loadSession({ preserveCharacter: true, promptSelection: false })
+
     if (activeCharacterId.value === latestCharacter?.id) {
-      syncCharacterForm(latestCharacter)
+      syncCharacterForm(activeCharacter.value ?? latestCharacter)
     }
 
     notify.success({
@@ -650,10 +765,22 @@ async function sendChatMessage() {
 }
 
 watch(activeCharacterId, () => {
+  backstoryExpanded.value = false
+
   if (!activeCharacterId.value) {
     syncCharacterForm(null)
   }
 })
+
+watch(
+  tabs,
+  nextTabs => {
+    if (!nextTabs.some(tab => tab.id === activeTab.value)) {
+      activeTab.value = nextTabs[0]?.id ?? 'characters'
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   loadSession({ preserveCharacter: false, promptSelection: true })
@@ -698,7 +825,17 @@ onBeforeUnmount(() => {
         :viewer="viewer"
         :creating="creatingCharacter"
         @select="switchCharacter"
-        @create="createCharacter"
+        @create="requestCharacterCreation"
+      />
+
+      <SessionGMCharacterCreateModal
+        :visible="gmCharacterCreateVisible"
+        :saving="gmCharacterCreateSaving"
+        :error="gmCharacterCreateError"
+        :members="game.members ?? []"
+        :viewer-user-id="viewer.user_id"
+        @close="closeGMCharacterCreateModal"
+        @save="saveGMCharacterCreate"
       />
 
       <SessionGMCharacterEditorModal
@@ -706,6 +843,7 @@ onBeforeUnmount(() => {
         :character="gmCharacterEditorTarget"
         :saving="gmCharacterEditorSaving"
         :error="gmCharacterEditorError"
+        :members="game.members ?? []"
         @close="closeGMCharacterEditor"
         @save="saveGMCharacterEditor"
       />
@@ -985,8 +1123,23 @@ onBeforeUnmount(() => {
 
                     <div v-else class="mt-6 space-y-5">
                       <div class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
-                        <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Backstory</p>
-                        <p class="mt-4 whitespace-pre-wrap text-[15px] leading-relaxed text-[#e8e8f0]/78">
+                        <div class="flex items-center justify-between gap-3">
+                          <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Backstory</p>
+                          <button
+                            v-if="characterSnapshot.backstory"
+                            type="button"
+                            @click="backstoryExpanded = !backstoryExpanded"
+                            class="cursor-pointer rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#d8f4ff] transition-all duration-200 hover:border-[rgba(126,200,227,0.32)]"
+                          >
+                            {{ backstoryExpanded ? 'Collapse' : 'Expand' }}
+                          </button>
+                        </div>
+                        <p
+                          class="mt-4 whitespace-pre-wrap break-words pr-1 text-[15px] leading-relaxed text-[#e8e8f0]/78 [overflow-wrap:anywhere] transition-all duration-200"
+                          :class="backstoryExpanded
+                            ? 'max-h-[18rem] overflow-y-auto pr-2 sm:max-h-[24rem]'
+                            : 'max-h-[8.5rem] overflow-hidden'"
+                        >
                           {{ characterSnapshot.backstory || 'This character starts as a blank record. Enter edit mode to shape the profile.' }}
                         </p>
                       </div>
@@ -1101,20 +1254,20 @@ onBeforeUnmount(() => {
               <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Character Switcher</p>
-                  <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">Available Characters</h3>
+                  <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">{{ rosterTitle }}</h3>
                   <p class="mt-2 max-w-[40rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
-                    Use this roster for fast switching. The entry modal uses the same list and creation flow.
+                    {{ rosterDescription }}
                   </p>
                 </div>
 
                 <div class="flex flex-wrap gap-3">
                   <button
                     v-if="viewer.can_create_character"
-                    @click="createCharacter"
+                    @click="requestCharacterCreation"
                     :disabled="creatingCharacter"
                     class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.45)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {{ creatingCharacter ? 'Creating...' : 'Create New Character' }}
+                    {{ creatingCharacter ? 'Creating...' : (isGM ? 'Create GM Character' : 'Create New Character') }}
                   </button>
                 </div>
               </div>
@@ -1122,11 +1275,11 @@ onBeforeUnmount(() => {
 
             <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
               <article
-                v-for="character in characters"
+                v-for="character in rosterCharacters"
                 :key="character.id"
                 class="rounded-[1.8rem] border p-5 transition-all duration-200"
                 :class="character.id === activeCharacterId
-                  ? 'border-[rgba(233,69,96,0.36)] bg-[rgba(233,69,96,0.11)] shadow-[0_20px_50px_rgba(233,69,96,0.12)]'
+                  ? 'border-[rgba(233,69,96,0.5)] bg-[rgba(233,69,96,0.14)] shadow-[0_20px_50px_rgba(233,69,96,0.18)] ring-1 ring-[rgba(255,173,189,0.35)]'
                   : 'border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]'"
               >
                 <div class="flex items-start justify-between gap-4">
@@ -1142,9 +1295,17 @@ onBeforeUnmount(() => {
                     </div>
                   </div>
 
-                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fd7ef]">
-                    {{ character.inventory_width }}x{{ character.inventory_height }}
-                  </span>
+                  <div class="flex shrink-0 flex-col items-end gap-2">
+                    <span
+                      v-if="character.id === activeCharacterId"
+                      class="rounded-full border border-[rgba(255,173,189,0.34)] bg-[rgba(233,69,96,0.2)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ffe0e7]"
+                    >
+                      Active
+                    </span>
+                    <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fd7ef]">
+                      {{ character.inventory_width }}x{{ character.inventory_height }}
+                    </span>
+                  </div>
                 </div>
 
                 <p class="mt-4 line-clamp-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
@@ -1154,9 +1315,13 @@ onBeforeUnmount(() => {
                 <div class="mt-6 flex flex-wrap gap-3">
                   <button
                     @click="switchCharacter(character.id, { nextTab: activeTab })"
-                    class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.45)]"
+                    :disabled="character.id === activeCharacterId"
+                    class="rounded-xl border px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 disabled:cursor-not-allowed"
+                    :class="character.id === activeCharacterId
+                      ? 'border-[rgba(255,173,189,0.34)] bg-[rgba(233,69,96,0.2)] text-[#fff2f5]'
+                      : 'cursor-pointer border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] text-[#ffe0e7] hover:border-[rgba(233,69,96,0.45)]'"
                   >
-                    Make Active
+                    {{ character.id === activeCharacterId ? 'Active Character' : 'Make Active' }}
                   </button>
                   <button
                     @click="switchCharacter(character.id, { nextTab: 'sheet' })"
@@ -1164,12 +1329,23 @@ onBeforeUnmount(() => {
                   >
                     Open Character Tab
                   </button>
+                  <button
+                    v-if="isGM"
+                    @click="openGMCharacterEditor(character)"
+                    class="cursor-pointer rounded-xl border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-4 py-2.5 text-[13px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
+                  >
+                    Configure
+                  </button>
                 </div>
               </article>
 
-              <article v-if="!characters.length" class="md:col-span-2 2xl:col-span-3 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-8 text-center">
-                <h3 class="font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">No characters available</h3>
-                <p class="mt-3 text-[14px] text-[#d8dce7]/58">Create a new empty character with a random name to enter the session.</p>
+              <article v-if="!rosterCharacters.length" class="md:col-span-2 2xl:col-span-3 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-8 text-center">
+                <h3 class="font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ isGM ? 'No GM characters yet' : 'No characters available' }}</h3>
+                <p class="mt-3 text-[14px] text-[#d8dce7]/58">
+                  {{ isGM
+                    ? 'Create a named character for your GM vault, then transfer it whenever the campaign needs it.'
+                    : 'Create a character or choose one from the roster to enter the session.' }}
+                </p>
               </article>
             </div>
           </section>
@@ -1178,7 +1354,7 @@ onBeforeUnmount(() => {
             <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <div class="flex items-center justify-between gap-4">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Player Manager</p>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Member Manager</p>
                   <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">Campaign Roster</h3>
                 </div>
                 <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
@@ -1216,7 +1392,7 @@ onBeforeUnmount(() => {
                       :key="character.id"
                       class="rounded-[1.8rem] border p-5 transition-all duration-200"
                       :class="character.id === activeCharacterId
-                        ? 'border-[rgba(233,69,96,0.36)] bg-[rgba(233,69,96,0.11)] shadow-[0_20px_50px_rgba(233,69,96,0.12)]'
+                        ? 'border-[rgba(233,69,96,0.5)] bg-[rgba(233,69,96,0.14)] shadow-[0_20px_50px_rgba(233,69,96,0.18)] ring-1 ring-[rgba(255,173,189,0.35)]'
                         : 'border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]'"
                     >
                       <div class="flex items-start justify-between gap-4">
@@ -1232,9 +1408,17 @@ onBeforeUnmount(() => {
                           </div>
                         </div>
 
-                        <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fd7ef]">
-                          {{ character.inventory_width }}x{{ character.inventory_height }}
-                        </span>
+                        <div class="flex shrink-0 flex-col items-end gap-2">
+                          <span
+                            v-if="character.id === activeCharacterId"
+                            class="rounded-full border border-[rgba(255,173,189,0.34)] bg-[rgba(233,69,96,0.2)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ffe0e7]"
+                          >
+                            Active
+                          </span>
+                          <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fd7ef]">
+                            {{ character.inventory_width }}x{{ character.inventory_height }}
+                          </span>
+                        </div>
                       </div>
 
                       <p class="mt-4 line-clamp-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
@@ -1258,7 +1442,7 @@ onBeforeUnmount(() => {
                     </article>
                   </div>
 
-                  <p v-else class="mt-4 text-[13px] text-[#d8dce7]/52">No characters assigned to this player yet.</p>
+                  <p v-else class="mt-4 text-[13px] text-[#d8dce7]/52">{{ memberEmptyStateMessage(member) }}</p>
                 </div>
               </div>
             </article>
