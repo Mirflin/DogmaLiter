@@ -67,6 +67,9 @@ const gmCharacterEditorSaving = ref(false)
 const portraitFile = ref(null)
 const portraitPreviewUrl = ref('')
 const backstoryExpanded = ref(false)
+const gmRosterSearch = ref('')
+const gmRosterMemberFilter = ref('all')
+const gmRosterRoleFilter = ref('all')
 const characterForm = ref(createCharacterFormState())
 const gmCharacterEditorTarget = ref(null)
 const gmCharacterCreateError = ref('')
@@ -124,10 +127,61 @@ const occupiedInventoryCells = computed(() => inventoryItems.value.reduce((total
   const height = entry.item?.grid_height ?? 1
   return total + (width * height)
 }, 0))
-const memberCharacterCount = computed(() => characters.value.reduce((counts, character) => {
-  counts[character.user_id] = (counts[character.user_id] ?? 0) + 1
-  return counts
-}, {}))
+const gmRosterMembers = computed(() => {
+  const members = game.value?.members ?? []
+  const searchQuery = gmRosterSearch.value.trim().toLowerCase()
+
+  return members
+    .filter(member => {
+      if (gmRosterMemberFilter.value !== 'all' && member.user_id !== gmRosterMemberFilter.value) {
+        return false
+      }
+
+      if (gmRosterRoleFilter.value === 'all') {
+        return true
+      }
+
+      if (gmRosterRoleFilter.value === 'gm_team') {
+        return member.role === 'gm' || member.role === 'assistant_gm'
+      }
+
+      return member.role === gmRosterRoleFilter.value
+    })
+    .map(member => {
+      const allCharacters = characters.value.filter(character => character.user_id === member.user_id)
+      const matchesMember = !searchQuery || [member.username, formatRole(member.role)]
+        .filter(Boolean)
+        .some(value => value.toLowerCase().includes(searchQuery))
+
+      const filteredCharacters = searchQuery
+        ? allCharacters.filter(character => [
+          character.name,
+          character.backstory,
+          character.owner?.username,
+          member.username,
+        ]
+          .filter(Boolean)
+          .some(value => value.toLowerCase().includes(searchQuery)))
+        : allCharacters
+
+      if (searchQuery && !matchesMember && !filteredCharacters.length) {
+        return null
+      }
+
+      return {
+        ...member,
+        filteredCharacters,
+        totalCharacterCount: allCharacters.length,
+      }
+    })
+    .filter(Boolean)
+})
+const gmRosterVisibleCharacterCount = computed(() => gmRosterMembers.value.reduce((total, member) => total + member.filteredCharacters.length, 0))
+const gmRosterHasFilters = computed(() => Boolean(
+  gmRosterSearch.value.trim()
+  || gmRosterMemberFilter.value !== 'all'
+  || gmRosterRoleFilter.value !== 'all',
+))
 const currencyCards = computed(() => {
   const snapshot = characterSnapshot.value
 
@@ -276,14 +330,24 @@ function goBack() {
   router.push(`/games/${gameId.value}`)
 }
 
-function charactersForUser(userId) {
-  return characters.value.filter(character => character.user_id === userId)
-}
-
 function memberEmptyStateMessage(member) {
   return member?.role === 'player'
     ? 'No characters assigned to this player yet.'
     : 'No GM characters assigned to this member yet.'
+}
+
+function gmRosterEmptyStateMessage(member) {
+  if (member?.totalCharacterCount && gmRosterHasFilters.value) {
+    return 'No characters match the current search or filters for this member.'
+  }
+
+  return memberEmptyStateMessage(member)
+}
+
+function resetGMRosterFilters() {
+  gmRosterSearch.value = ''
+  gmRosterMemberFilter.value = 'all'
+  gmRosterRoleFilter.value = 'all'
 }
 
 function findCharacterById(characterId) {
@@ -1362,9 +1426,63 @@ onBeforeUnmount(() => {
                 </span>
               </div>
 
-              <div class="mt-6 space-y-3">
+              <div class="mt-6 rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
+                <div class="flex flex-wrap items-end gap-3">
+                  <label class="block min-w-[18rem] flex-1">
+                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Search</span>
+                    <input
+                      v-model="gmRosterSearch"
+                      type="text"
+                      placeholder="Character, player, role, or backstory"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 placeholder:text-[#7ec8e3]/35 focus:border-[rgba(233,69,96,0.34)]"
+                    />
+                  </label>
+
+                  <label class="block min-w-[14rem]">
+                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Member</span>
+                    <select
+                      v-model="gmRosterMemberFilter"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 focus:border-[rgba(233,69,96,0.34)]"
+                    >
+                      <option value="all">All members</option>
+                      <option v-for="member in game.members" :key="member.user_id" :value="member.user_id">
+                        {{ member.username }}
+                      </option>
+                    </select>
+                  </label>
+
+                  <label class="block min-w-[13rem]">
+                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Role</span>
+                    <select
+                      v-model="gmRosterRoleFilter"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 focus:border-[rgba(233,69,96,0.34)]"
+                    >
+                      <option value="all">All roles</option>
+                      <option value="player">Players</option>
+                      <option value="gm_team">GM Team</option>
+                      <option value="assistant_gm">Assistant GMs</option>
+                    </select>
+                  </label>
+
+                  <button
+                    v-if="gmRosterHasFilters"
+                    @click="resetGMRosterFilters"
+                    class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.35)]"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div class="mt-4 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-[#7ec8e3]/52">
+                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">
+                    {{ gmRosterMembers.length }} members visible
+                  </span>
+                </div>
+              </div>
+
+              <div class="mt-5 space-y-3">
                 <div
-                  v-for="member in game.members"
+                  v-for="member in gmRosterMembers"
                   :key="member.user_id"
                   class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4"
                 >
@@ -1382,13 +1500,13 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div class="flex flex-wrap gap-2 text-[11px] text-[#d8dce7]/60">
-                      <span class="rounded-full border border-[rgba(126,200,227,0.14)] px-2.5 py-1">{{ memberCharacterCount[member.user_id] ?? 0 }} characters</span>
+                      <span class="rounded-full border border-[rgba(126,200,227,0.14)] px-2.5 py-1">{{ member.totalCharacterCount }} characters</span>
                     </div>
                   </div>
 
-                  <div v-if="charactersForUser(member.user_id).length" class="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  <div v-if="member.filteredCharacters.length" class="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
                     <article
-                      v-for="character in charactersForUser(member.user_id)"
+                      v-for="character in member.filteredCharacters"
                       :key="character.id"
                       class="rounded-[1.8rem] border p-5 transition-all duration-200"
                       :class="character.id === activeCharacterId
@@ -1442,8 +1560,19 @@ onBeforeUnmount(() => {
                     </article>
                   </div>
 
-                  <p v-else class="mt-4 text-[13px] text-[#d8dce7]/52">{{ memberEmptyStateMessage(member) }}</p>
+                  <p v-else class="mt-4 text-[13px] text-[#d8dce7]/52">{{ gmRosterEmptyStateMessage(member) }}</p>
                 </div>
+
+                <article v-if="!gmRosterMembers.length" class="rounded-[1.75rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-8 text-center">
+                  <h3 class="font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">
+                    {{ gmRosterHasFilters ? 'Nothing matched the current filters' : 'No members available yet' }}
+                  </h3>
+                  <p class="mt-3 text-[14px] text-[#d8dce7]/58">
+                    {{ gmRosterHasFilters
+                      ? 'Adjust the search or filters to broaden the roster view.'
+                      : 'Members will appear here once players or assistant GMs join the campaign.' }}
+                  </p>
+                </article>
               </div>
             </article>
           </section>
