@@ -33,6 +33,8 @@ func AutoMigrate(db *gorm.DB) {
 		log.Fatalf("Error with migration (stage 1): %v", err)
 	}
 
+	migrateItemSchema(db)
+
 	if !db.Migrator().HasConstraint(&models.Upload{}, "fk_uploads_user") {
 		err = db.Exec(`ALTER TABLE uploads ADD CONSTRAINT fk_uploads_user FOREIGN KEY (user_id) REFERENCES users(id)`).Error
 		if err != nil {
@@ -98,5 +100,47 @@ func seedPlans(db *gorm.DB) {
 			db.Create(&plan)
 			log.Printf("Seeded plan: %s", plan.Name)
 		}
+	}
+}
+
+func migrateItemSchema(db *gorm.DB) {
+	if !db.Migrator().HasTable(&models.Item{}) {
+		return
+	}
+
+	if err := db.Exec(`ALTER TABLE items MODIFY COLUMN rarity VARCHAR(30) NOT NULL DEFAULT 'common'`).Error; err != nil {
+		log.Printf("items.rarity migration: %v", err)
+	}
+
+	if !db.Migrator().HasColumn(&models.Item{}, "category") {
+		if err := db.Exec(`ALTER TABLE items ADD COLUMN category VARCHAR(30) NOT NULL DEFAULT 'other' AFTER rarity`).Error; err != nil {
+			log.Printf("items.category migration: %v", err)
+		}
+	}
+
+	if err := db.Exec(`UPDATE items SET rarity = 'unique' WHERE rarity = 'artifact'`).Error; err != nil {
+		log.Printf("items.rarity backfill: %v", err)
+	}
+
+	if err := db.Exec(`UPDATE items SET equip_slot = 'ring' WHERE equip_slot IN ('ring_1', 'ring_2')`).Error; err != nil {
+		log.Printf("items.ring slot backfill: %v", err)
+	}
+
+	if err := db.Exec(`
+		UPDATE items
+		SET category = 'consumable'
+		WHERE category = 'other'
+			AND EXISTS (
+				SELECT 1
+				FROM item_types
+				WHERE item_types.item_id = items.id
+					AND LOWER(item_types.type_name) = 'consumable'
+			)
+	`).Error; err != nil {
+		log.Printf("items.category consumable backfill: %v", err)
+	}
+
+	if err := db.Exec(`UPDATE items SET category = 'loot' WHERE category = 'other' AND COALESCE(equip_slot, '') <> ''`).Error; err != nil {
+		log.Printf("items.category loot backfill: %v", err)
 	}
 }

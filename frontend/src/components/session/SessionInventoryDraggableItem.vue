@@ -26,8 +26,9 @@ const rarityClass = computed(() => {
     uncommon: 'session-inventory-item--uncommon',
     rare: 'session-inventory-item--rare',
     epic: 'session-inventory-item--epic',
+    masterwork: 'session-inventory-item--masterwork',
     legendary: 'session-inventory-item--legendary',
-    artifact: 'session-inventory-item--artifact',
+    unique: 'session-inventory-item--unique',
   }
 
   return variants[item.value?.rarity] || variants.common
@@ -170,11 +171,11 @@ const { isDragging } = makeDraggable(itemRef, {
 }
 
 .session-inventory-item--common .session-inventory-item__frame {
-  border-color: rgba(126, 165, 211, 0.68);
+  border-color: rgba(255, 255, 255, 0.72);
 }
 
 .session-inventory-item--uncommon .session-inventory-item__frame {
-  border-color: rgba(99, 211, 155, 0.72);
+  border-color: rgba(250, 204, 21, 0.78);
 }
 
 .session-inventory-item--rare .session-inventory-item__frame {
@@ -182,14 +183,18 @@ const { isDragging } = makeDraggable(itemRef, {
 }
 
 .session-inventory-item--epic .session-inventory-item__frame {
-  border-color: rgba(216, 120, 255, 0.78);
+  border-color: rgba(192, 132, 252, 0.8);
+}
+
+.session-inventory-item--masterwork .session-inventory-item__frame {
+  border-color: rgba(251, 146, 60, 0.82);
 }
 
 .session-inventory-item--legendary .session-inventory-item__frame {
-  border-color: rgba(245, 186, 73, 0.84);
+  border-color: rgba(74, 222, 128, 0.8);
 }
 
-.session-inventory-item--artifact .session-inventory-item__frame {
+.session-inventory-item--unique .session-inventory-item__frame {
   border-color: rgba(247, 118, 118, 0.82);
 }
 </style>

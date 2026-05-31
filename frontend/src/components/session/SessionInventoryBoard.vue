@@ -174,10 +174,10 @@ function placeIntoInventory(entryId, x, y) {
 
 function placeIntoEquipment(entryId, slot) {
   const entry = allEntriesById.value[entryId]
-  if (!entry?.item?.is_equippable) return
+  if (!entry?.item?.equip_slot) return
 
   const isRingSlot = slot === 'ring_1' || slot === 'ring_2'
-  const isRingItem = entry.item.equip_slot === 'ring_1' || entry.item.equip_slot === 'ring_2'
+  const isRingItem = entry.item.equip_slot === 'ring'
   if (!((isRingSlot && isRingItem) || entry.item.equip_slot === slot)) return
 
   const slotOwner = Object.values(placements.value).find((placement) => placement.kind === 'equipment' && placement.slot === slot)

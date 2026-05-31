@@ -207,6 +207,52 @@ func (r *Repository) ListGameItems(gameID string) ([]models.Item, error) {
 	return items, err
 }
 
+func (r *Repository) CountGameItems(gameID string) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.Item{}).
+		Where("game_id = ?", gameID).
+		Count(&count).Error
+	return count, err
+}
+
+func (r *Repository) GetItemByID(gameID, itemID string) (*models.Item, error) {
+	var item models.Item
+	err := r.db.
+		Where("game_id = ? AND id = ?", gameID, itemID).
+		Preload("Image").
+		Preload("Types").
+		Preload("RequiredAttributes").
+		Preload("AttributeModifiers").
+		First(&item).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &item, nil
+}
+
+func (r *Repository) CreateItem(item *models.Item) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Omit("Game", "CreatedBy", "Image", "Types", "RequiredAttributes", "AttributeModifiers").Create(item).Error; err != nil {
+			return err
+		}
+
+		if len(item.RequiredAttributes) > 0 {
+			if err := tx.Create(&item.RequiredAttributes).Error; err != nil {
+				return err
+			}
+		}
+
+		if len(item.AttributeModifiers) > 0 {
+			if err := tx.Create(&item.AttributeModifiers).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
 func (r *Repository) ListGameChatMessages(gameID string, limit int) ([]models.ChatMessage, error) {
 	if limit <= 0 || limit > 40 {
 		limit = 40

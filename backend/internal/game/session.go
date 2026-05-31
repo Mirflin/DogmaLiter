@@ -39,6 +39,29 @@ type updateCharacterCustomAttributeRequest struct {
 	SortOrder *int    `json:"sort_order"`
 }
 
+type createItemRequirementRequest struct {
+	AttributeName string `json:"attribute_name"`
+	MinValue      int    `json:"min_value"`
+}
+
+type createItemModifierRequest struct {
+	AttributeName string `json:"attribute_name"`
+	ModifierValue int    `json:"modifier_value"`
+	IsPercentage  bool   `json:"is_percentage"`
+}
+
+type createItemRequest struct {
+	Name               string                       `json:"name"`
+	Description        string                       `json:"description"`
+	Rarity             string                       `json:"rarity"`
+	Category           string                       `json:"category"`
+	GridWidth          *int                         `json:"grid_width"`
+	GridHeight         *int                         `json:"grid_height"`
+	EquipSlot          *string                      `json:"equip_slot"`
+	RequiredAttributes []createItemRequirementRequest `json:"required_attributes"`
+	AttributeModifiers []createItemModifierRequest    `json:"attribute_modifiers"`
+}
+
 func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
@@ -200,6 +223,64 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, 201, map[string]interface{}{
 		"character": serializeCharacterDetail(createdCharacter),
+	})
+}
+
+func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+
+	game, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can create items"})
+		return
+	}
+
+	var req createItemRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	plan, err := h.service.repo.GetUserPlan(game.OwnerID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to load item limit"})
+		return
+	}
+
+	itemCount, err := h.service.repo.CountGameItems(gameID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to check item limit"})
+		return
+	}
+	if plan.MaxItemsPerGame != -1 && itemCount >= int64(plan.MaxItemsPerGame) {
+		respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("Item limit reached (%d)", plan.MaxItemsPerGame)})
+		return
+	}
+
+	item, err := normalizeCreateItemRequest(gameID, userID, req)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.repo.CreateItem(item); err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to create item"})
+		return
+	}
+
+	createdItem, err := h.service.repo.GetItemByID(gameID, item.ID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Item was created but could not be loaded"})
+		return
+	}
+
+	respondJSON(w, 201, map[string]interface{}{
+		"item": serializeItem(*createdItem),
 	})
 }
 
@@ -759,10 +840,24 @@ func serializeItems(items []models.Item) []map[string]interface{} {
 }
 
 func serializeItem(item models.Item) map[string]interface{} {
-	types := make([]string, 0, len(item.Types))
-	for _, itemType := range item.Types {
-		types = append(types, itemType.TypeName)
+	types := make([]string, 0, len(item.Types)+1)
+	if item.Category != "" {
+		types = append(types, item.Category)
 	}
+	for _, itemType := range item.Types {
+		typeName := strings.TrimSpace(itemType.TypeName)
+		if typeName == "" {
+			continue
+		}
+
+		if strings.EqualFold(typeName, item.Category) {
+			continue
+		}
+
+		types = append(types, typeName)
+	}
+
+	normalizedEquipSlot := normalizeItemEquipSlotValue(item.EquipSlot)
 
 	requirements := make([]map[string]interface{}, 0, len(item.RequiredAttributes))
 	for _, requirement := range item.RequiredAttributes {
@@ -789,10 +884,11 @@ func serializeItem(item models.Item) map[string]interface{} {
 		"description":         item.Description,
 		"image_id":            item.ImageID,
 		"rarity":              item.Rarity,
+		"category":            item.Category,
 		"grid_width":          item.GridWidth,
 		"grid_height":         item.GridHeight,
-		"is_equippable":       item.IsEquippable,
-		"equip_slot":          item.EquipSlot,
+		"is_equippable":       normalizedEquipSlot != nil,
+		"equip_slot":          normalizedEquipSlot,
 		"types":               types,
 		"required_attributes": requirements,
 		"attribute_modifiers": modifiers,
@@ -1006,4 +1102,222 @@ func validateCurrencyAmount(value int, label string) (int, error) {
 	}
 
 	return value, nil
+}
+
+func normalizeCreateItemRequest(gameID, userID string, req createItemRequest) (*models.Item, error) {
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return nil, fmt.Errorf("Item name cannot be empty")
+	}
+	if len(name) > 200 {
+		return nil, fmt.Errorf("Item name must be 200 characters or less")
+	}
+
+	description := strings.TrimSpace(req.Description)
+	if len(description) > 5000 {
+		return nil, fmt.Errorf("Item description must be 5000 characters or less")
+	}
+
+	rarity, err := normalizeItemRarity(req.Rarity)
+	if err != nil {
+		return nil, err
+	}
+
+	category, err := normalizeItemCategory(req.Category)
+	if err != nil {
+		return nil, err
+	}
+
+	equipSlot, err := normalizeItemEquipSlotValueForCreate(req.EquipSlot)
+	if err != nil {
+		return nil, err
+	}
+
+	gridWidth := 1
+	if req.GridWidth != nil {
+		gridWidth = *req.GridWidth
+	}
+	if gridWidth < 1 || gridWidth > 20 {
+		return nil, fmt.Errorf("Item width must be between 1 and 20")
+	}
+
+	gridHeight := 1
+	if req.GridHeight != nil {
+		gridHeight = *req.GridHeight
+	}
+	if gridHeight < 1 || gridHeight > 20 {
+		return nil, fmt.Errorf("Item height must be between 1 and 20")
+	}
+
+	requirements, err := normalizeItemRequirements(req.RequiredAttributes)
+	if err != nil {
+		return nil, err
+	}
+
+	modifiers, err := normalizeItemModifiers(req.AttributeModifiers)
+	if err != nil {
+		return nil, err
+	}
+
+	itemID := uuid.New().String()
+	for index := range requirements {
+		requirements[index].ID = uuid.New().String()
+		requirements[index].ItemID = itemID
+	}
+	for index := range modifiers {
+		modifiers[index].ID = uuid.New().String()
+		modifiers[index].ItemID = itemID
+	}
+
+	return &models.Item{
+		ID:                 itemID,
+		GameID:             gameID,
+		CreatedByID:        userID,
+		Name:               name,
+		Description:        description,
+		Rarity:             rarity,
+		Category:           category,
+		GridWidth:          gridWidth,
+		GridHeight:         gridHeight,
+		EquipSlot:          equipSlot,
+		RequiredAttributes: requirements,
+		AttributeModifiers: modifiers,
+	}, nil
+}
+
+func normalizeItemRarity(value string) (string, error) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if normalized == "" {
+		return models.ItemRarityCommon, nil
+	}
+	if normalized == "artifact" {
+		return models.ItemRarityUnique, nil
+	}
+
+	for _, allowed := range models.ValidItemRarities {
+		if normalized == allowed {
+			return normalized, nil
+		}
+	}
+
+	return "", fmt.Errorf("Unsupported item rarity")
+}
+
+func normalizeItemCategory(value string) (string, error) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	if normalized == "" {
+		return models.ItemCategoryOther, nil
+	}
+
+	for _, allowed := range models.ValidItemCategories {
+		if normalized == allowed {
+			return normalized, nil
+		}
+	}
+
+	return "", fmt.Errorf("Unsupported item category")
+}
+
+func normalizeItemEquipSlotValue(slot *string) *string {
+	if slot == nil {
+		return nil
+	}
+
+	normalized, err := normalizeItemEquipSlotValueForCreate(slot)
+	if err != nil {
+		return nil
+	}
+
+	return normalized
+}
+
+func normalizeItemEquipSlotValueForCreate(slot *string) (*string, error) {
+	if slot == nil {
+		return nil, nil
+	}
+
+	normalized := strings.ToLower(strings.TrimSpace(*slot))
+	if normalized == "" {
+		return nil, nil
+	}
+	if normalized == "ring_1" || normalized == "ring_2" {
+		normalized = models.ItemEquipSlotRing
+	}
+
+	for _, allowed := range models.ValidItemEquipSlots {
+		if normalized == allowed {
+			return &normalized, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Unsupported item equip slot")
+}
+
+func normalizeItemRequirements(input []createItemRequirementRequest) ([]models.ItemRequiredAttribute, error) {
+	if len(input) > 50 {
+		return nil, fmt.Errorf("Item requirements must contain 50 entries or fewer")
+	}
+
+	requirements := make([]models.ItemRequiredAttribute, 0, len(input))
+	seenNames := make(map[string]struct{}, len(input))
+
+	for _, entry := range input {
+		attributeName := strings.ToLower(strings.TrimSpace(entry.AttributeName))
+		if attributeName == "" {
+			return nil, fmt.Errorf("Requirement attribute name cannot be empty")
+		}
+		if len(attributeName) > 50 {
+			return nil, fmt.Errorf("Requirement attribute name must be 50 characters or less")
+		}
+		if _, exists := seenNames[attributeName]; exists {
+			return nil, fmt.Errorf("Requirement attributes must be unique")
+		}
+		seenNames[attributeName] = struct{}{}
+
+		if entry.MinValue < 0 || entry.MinValue > 999999999 {
+			return nil, fmt.Errorf("Requirement values must be between 0 and 999999999")
+		}
+
+		requirements = append(requirements, models.ItemRequiredAttribute{
+			AttributeName: attributeName,
+			MinValue:      entry.MinValue,
+		})
+	}
+
+	return requirements, nil
+}
+
+func normalizeItemModifiers(input []createItemModifierRequest) ([]models.ItemAttributeModifier, error) {
+	if len(input) > 50 {
+		return nil, fmt.Errorf("Item modifiers must contain 50 entries or fewer")
+	}
+
+	modifiers := make([]models.ItemAttributeModifier, 0, len(input))
+	seenNames := make(map[string]struct{}, len(input))
+
+	for _, entry := range input {
+		attributeName := strings.ToLower(strings.TrimSpace(entry.AttributeName))
+		if attributeName == "" {
+			return nil, fmt.Errorf("Modifier attribute name cannot be empty")
+		}
+		if len(attributeName) > 50 {
+			return nil, fmt.Errorf("Modifier attribute name must be 50 characters or less")
+		}
+		if _, exists := seenNames[attributeName]; exists {
+			return nil, fmt.Errorf("Modifier attributes must be unique")
+		}
+		seenNames[attributeName] = struct{}{}
+
+		if entry.ModifierValue < -999999999 || entry.ModifierValue > 999999999 {
+			return nil, fmt.Errorf("Modifier values must be between -999999999 and 999999999")
+		}
+
+		modifiers = append(modifiers, models.ItemAttributeModifier{
+			AttributeName: attributeName,
+			ModifierValue: entry.ModifierValue,
+			IsPercentage:  entry.IsPercentage,
+		})
+	}
+
+	return modifiers, nil
 }

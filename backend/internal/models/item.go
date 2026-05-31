@@ -2,6 +2,58 @@ package models
 
 import "time"
 
+const (
+	ItemRarityCommon     = "common"
+	ItemRarityUncommon   = "uncommon"
+	ItemRarityRare       = "rare"
+	ItemRarityEpic       = "epic"
+	ItemRarityMasterwork = "masterwork"
+	ItemRarityLegendary  = "legendary"
+	ItemRarityUnique     = "unique"
+
+	ItemCategoryLoot       = "loot"
+	ItemCategoryConsumable = "consumable"
+	ItemCategoryOther      = "other"
+
+	ItemEquipSlotHead     = "head"
+	ItemEquipSlotChest    = "chest"
+	ItemEquipSlotGloves   = "gloves"
+	ItemEquipSlotBelt     = "belt"
+	ItemEquipSlotBoots    = "boots"
+	ItemEquipSlotMainHand = "main_hand"
+	ItemEquipSlotOffHand  = "off_hand"
+	ItemEquipSlotRing     = "ring"
+	ItemEquipSlotAmulet   = "amulet"
+)
+
+var ValidItemRarities = []string{
+	ItemRarityCommon,
+	ItemRarityUncommon,
+	ItemRarityRare,
+	ItemRarityEpic,
+	ItemRarityMasterwork,
+	ItemRarityLegendary,
+	ItemRarityUnique,
+}
+
+var ValidItemCategories = []string{
+	ItemCategoryLoot,
+	ItemCategoryConsumable,
+	ItemCategoryOther,
+}
+
+var ValidItemEquipSlots = []string{
+	ItemEquipSlotHead,
+	ItemEquipSlotChest,
+	ItemEquipSlotGloves,
+	ItemEquipSlotBelt,
+	ItemEquipSlotBoots,
+	ItemEquipSlotMainHand,
+	ItemEquipSlotOffHand,
+	ItemEquipSlotRing,
+	ItemEquipSlotAmulet,
+}
+
 type Item struct {
 	ID          string    `gorm:"type:varchar(36);primaryKey" json:"id"`
 	GameID      string    `gorm:"type:varchar(36);not null;index" json:"game_id"`
@@ -11,11 +63,11 @@ type Item struct {
 	Description string  `gorm:"type:text" json:"description"`
 	ImageID     *string `gorm:"type:varchar(36)" json:"image_id"`
 
-	Rarity      string  `gorm:"type:enum('common','uncommon','rare','epic','legendary','artifact');default:'common'" json:"rarity"`
-	GridWidth   int     `gorm:"default:1" json:"grid_width"`
-	GridHeight  int     `gorm:"default:1" json:"grid_height"`
-	IsEquippable bool   `gorm:"default:false" json:"is_equippable"`
-	EquipSlot   *string `gorm:"type:varchar(30)" json:"equip_slot"`
+	Rarity     string  `gorm:"type:varchar(30);not null;default:'common'" json:"rarity"`
+	Category   string  `gorm:"type:varchar(30);not null;default:'other'" json:"category"`
+	GridWidth  int     `gorm:"default:1" json:"grid_width"`
+	GridHeight int     `gorm:"default:1" json:"grid_height"`
+	EquipSlot  *string `gorm:"type:varchar(30)" json:"equip_slot"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

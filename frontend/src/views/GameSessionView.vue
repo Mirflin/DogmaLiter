@@ -271,12 +271,13 @@ function formatRole(role) {
 
 function rarityClasses(rarity) {
   const variants = {
-    common: 'border-[rgba(148,163,184,0.35)] bg-[rgba(148,163,184,0.12)] text-[#e2e8f0]',
-    uncommon: 'border-[rgba(110,231,183,0.35)] bg-[rgba(22,163,74,0.14)] text-[#86efac]',
+    common: 'border-[rgba(255,255,255,0.32)] bg-[rgba(255,255,255,0.08)] text-[#f8fafc]',
+    uncommon: 'border-[rgba(250,204,21,0.35)] bg-[rgba(202,138,4,0.16)] text-[#fde68a]',
     rare: 'border-[rgba(96,165,250,0.35)] bg-[rgba(37,99,235,0.16)] text-[#93c5fd]',
-    epic: 'border-[rgba(244,114,182,0.35)] bg-[rgba(190,24,93,0.16)] text-[#f9a8d4]',
-    legendary: 'border-[rgba(251,191,36,0.35)] bg-[rgba(217,119,6,0.18)] text-[#fde68a]',
-    artifact: 'border-[rgba(248,113,113,0.4)] bg-[rgba(153,27,27,0.18)] text-[#fca5a5]',
+    epic: 'border-[rgba(192,132,252,0.35)] bg-[rgba(126,34,206,0.18)] text-[#e9d5ff]',
+    masterwork: 'border-[rgba(251,146,60,0.35)] bg-[rgba(194,65,12,0.18)] text-[#fdba74]',
+    legendary: 'border-[rgba(74,222,128,0.35)] bg-[rgba(21,128,61,0.18)] text-[#86efac]',
+    unique: 'border-[rgba(248,113,113,0.4)] bg-[rgba(153,27,27,0.18)] text-[#fca5a5]',
   }
 
   return variants[rarity] ?? variants.common
@@ -1577,7 +1578,7 @@ onBeforeUnmount(() => {
             </article>
           </section>
 
-          <SessionItemManager v-else-if="activeTab === 'items' && isGM" :items="items" :game-id="gameId" />
+          <SessionItemManager v-else-if="activeTab === 'items' && isGM" :items="items" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
         </main>
       </div>
 

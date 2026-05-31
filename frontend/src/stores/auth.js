@@ -260,6 +260,11 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function createGameItem(gameID, payload) {
+    const { data } = await api.post(`/games/${gameID}/items`, payload)
+    return data
+  }
+
   async function updateGameCharacter(gameID, characterID, updates) {
     const { data } = await api.patch(`/games/${gameID}/characters/${characterID}`, updates)
     return data
@@ -331,6 +336,7 @@ export const useAuthStore = defineStore('auth', () => {
     getGameSession,
     getGameCharacter,
     createGameCharacter,
+    createGameItem,
     updateGameCharacter,
     uploadCharacterPortrait,
     getGameChatMessages,

@@ -27,6 +27,7 @@ func (h *Handler) Routes() chi.Router {
 	r.Get("/{gameID}/invite-code", h.GetInviteCode)
 	r.Get("/{gameID}/session", h.GetSession)
 	r.Post("/{gameID}/characters", h.CreateCharacter)
+	r.Post("/{gameID}/items", h.CreateItem)
 	r.Get("/{gameID}/characters/{characterID}", h.GetCharacter)
 	r.Patch("/{gameID}/characters/{characterID}", h.UpdateCharacter)
 	r.Post("/{gameID}/characters/{characterID}/portrait", h.UploadCharacterPortrait)
