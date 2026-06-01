@@ -95,7 +95,6 @@ const rosterCharacters = computed(() => {
   if (!isGM.value) return characters.value
   return characters.value.filter(character => character.user_id === viewer.value?.user_id)
 })
-const items = computed(() => session.value?.items ?? [])
 const itemTags = computed(() => session.value?.item_tags ?? [])
 const chatMessages = computed(() => session.value?.messages ?? [])
 const selectedCharacterSummary = computed(() => characters.value.find(character => character.id === activeCharacterId.value) ?? null)
@@ -1579,7 +1578,7 @@ onBeforeUnmount(() => {
             </article>
           </section>
 
-          <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :items="items" :characters="characters" :available-tags="itemTags" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
+          <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
         </main>
       </div>
 

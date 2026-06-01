@@ -3,6 +3,7 @@ import { Notification, Notivue, slateTheme } from 'notivue'
 
 const notificationTheme = {
   ...slateTheme,
+  '--nv-z': '14000',
   '--nv-width': '360px',
   '--nv-radius': '18px',
   '--nv-shadow': '0 18px 48px rgba(0, 0, 0, 0.35)',
@@ -28,12 +29,18 @@ const notificationTheme = {
   '--nv-warning-accent': '#f59e0b',
   '--nv-warning-fg': '#fff3d6',
 }
+
+const notivueStyles = {
+  list: {
+    zIndex: '20000',
+  },
+}
 </script>
 
 <template>
   <RouterView />
 
-  <Notivue v-slot="item">
+  <Notivue v-slot="item" :styles="notivueStyles">
     <Notification :item="item" :theme="notificationTheme" />
   </Notivue>
 </template>

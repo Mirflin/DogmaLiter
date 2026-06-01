@@ -212,6 +212,94 @@ func (r *Repository) ListGameItems(gameID string) ([]models.Item, error) {
 	return items, err
 }
 
+func (r *Repository) ListGameItemsPage(gameID string, params listGameItemsParams) ([]models.Item, int64, error) {
+	baseQuery := r.db.Model(&models.Item{}).
+		Where("items.game_id = ?", gameID)
+
+	if params.Tag != "" || params.Search != "" {
+		baseQuery = baseQuery.
+			Joins("LEFT JOIN item_tag_assignments ON item_tag_assignments.item_id = items.id").
+			Joins("LEFT JOIN game_item_tags ON game_item_tags.id = item_tag_assignments.game_item_tag_id")
+	}
+
+	if params.Search != "" {
+		searchTerm := "%" + strings.ToLower(params.Search) + "%"
+		baseQuery = baseQuery.Where(`
+			LOWER(items.name) LIKE ?
+			OR LOWER(COALESCE(items.description, '')) LIKE ?
+			OR LOWER(items.category) LIKE ?
+			OR LOWER(COALESCE(items.equip_slot, '')) LIKE ?
+			OR LOWER(COALESCE(game_item_tags.name, '')) LIKE ?
+		`, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm)
+	}
+
+	if params.Rarity != "" {
+		baseQuery = baseQuery.Where("items.rarity = ?", params.Rarity)
+	}
+	if params.Category != "" {
+		baseQuery = baseQuery.Where("items.category = ?", params.Category)
+	}
+	if params.Slot != "" {
+		baseQuery = baseQuery.Where("items.equip_slot = ?", params.Slot)
+	}
+	if params.Tag != "" {
+		baseQuery = baseQuery.Where("LOWER(game_item_tags.name) = LOWER(?)", params.Tag)
+	}
+
+	var totalItems int64
+	if err := baseQuery.Distinct("items.id").Count(&totalItems).Error; err != nil {
+		return nil, 0, err
+	}
+	if totalItems == 0 {
+		return []models.Item{}, 0, nil
+	}
+
+	// Group by the item primary key so joined tag rows collapse without forcing
+	// a DISTINCT select that MySQL refuses to sort by non-selected item columns.
+	itemIDsQuery := applyItemListSort(baseQuery.Select("items.id").Group("items.id"), params.Sort).
+		Limit(params.PerPage).
+		Offset((params.Page - 1) * params.PerPage)
+
+	var itemIDs []string
+	if err := itemIDsQuery.Pluck("items.id", &itemIDs).Error; err != nil {
+		return nil, 0, err
+	}
+	if len(itemIDs) == 0 {
+		return []models.Item{}, totalItems, nil
+	}
+
+	var items []models.Item
+	err := r.db.
+		Where("game_id = ? AND id IN ?", gameID, itemIDs).
+		Preload("Image").
+		Preload("Types").
+		Preload("Tags", func(db *gorm.DB) *gorm.DB {
+			return db.Order("name ASC")
+		}).
+		Preload("RequiredAttributes").
+		Preload("AttributeModifiers").
+		Find(&items).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	itemsByID := make(map[string]models.Item, len(items))
+	for _, item := range items {
+		itemsByID[item.ID] = item
+	}
+
+	orderedItems := make([]models.Item, 0, len(itemIDs))
+	for _, itemID := range itemIDs {
+		item, ok := itemsByID[itemID]
+		if !ok {
+			continue
+		}
+		orderedItems = append(orderedItems, item)
+	}
+
+	return orderedItems, totalItems, nil
+}
+
 func (r *Repository) CountGameItems(gameID string) (int64, error) {
 	var count int64
 	err := r.db.Model(&models.Item{}).
@@ -408,6 +496,15 @@ func (r *Repository) UpdateCoverImage(gameID string, coverImageID *string) error
 	return r.db.Model(&models.Game{}).Where("id = ?", gameID).Update("cover_image_id", coverImageID).Error
 }
 
+func (r *Repository) UpdateItemImage(gameID, itemID string, imageID *string) error {
+	return r.db.Model(&models.Item{}).
+		Where("game_id = ? AND id = ?", gameID, itemID).
+		Updates(map[string]interface{}{
+			"image_id":   imageID,
+			"updated_at": time.Now(),
+		}).Error
+}
+
 func (r *Repository) UpdateGame(game *models.Game) error {
 	return r.db.Save(game).Error
 }
@@ -446,4 +543,29 @@ func (r *Repository) SubtractStorageUsage(userID string, bytes int64) error {
 			"used_bytes":  gorm.Expr("GREATEST(used_bytes - ?, 0)", bytes),
 			"files_count": gorm.Expr("GREATEST(files_count - 1, 0)"),
 		}).Error
+}
+
+func applyItemListSort(query *gorm.DB, sort string) *gorm.DB {
+	switch sort {
+	case "name-asc":
+		return query.Order("items.name ASC").Order("items.updated_at DESC").Order("items.id ASC")
+	case "name-desc":
+		return query.Order("items.name DESC").Order("items.updated_at DESC").Order("items.id DESC")
+	case "rarity":
+		return query.Order(`CASE items.rarity
+			WHEN 'common' THEN 1
+			WHEN 'uncommon' THEN 2
+			WHEN 'rare' THEN 3
+			WHEN 'epic' THEN 4
+			WHEN 'masterwork' THEN 5
+			WHEN 'legendary' THEN 6
+			WHEN 'unique' THEN 7
+			ELSE 0 END DESC`).
+			Order("items.name ASC").
+			Order("items.id ASC")
+	case "size":
+		return query.Order("(items.grid_width * items.grid_height) DESC").Order("items.name ASC").Order("items.id ASC")
+	default:
+		return query.Order("items.updated_at DESC").Order("items.created_at DESC").Order("items.id DESC")
+	}
 }

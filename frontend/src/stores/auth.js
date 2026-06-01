@@ -265,6 +265,20 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function getGameItems(gameID, params = {}) {
+    const { data } = await api.get(`/games/${gameID}/items`, { params })
+    return data
+  }
+
+  async function uploadGameItemImage(gameID, itemID, file) {
+    const formData = new FormData()
+    formData.append('image', file)
+    const { data } = await api.post(`/games/${gameID}/items/${itemID}/image`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return data
+  }
+
   async function updateGameCharacter(gameID, characterID, updates) {
     const { data } = await api.patch(`/games/${gameID}/characters/${characterID}`, updates)
     return data
@@ -337,6 +351,8 @@ export const useAuthStore = defineStore('auth', () => {
     getGameCharacter,
     createGameCharacter,
     createGameItem,
+    getGameItems,
+    uploadGameItemImage,
     updateGameCharacter,
     uploadCharacterPortrait,
     getGameChatMessages,

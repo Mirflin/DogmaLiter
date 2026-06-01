@@ -8,6 +8,7 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +23,9 @@ var errGameAccessDenied = errors.New("game access denied")
 
 const nonGMCharacterLimit = 5
 const gameChatMessageLimit = 40
+const defaultGameItemPage = 1
+const defaultGameItemPerPage = 18
+const maxGameItemPerPage = 60
 
 type updateCharacterBaseAttributesRequest struct {
 	Strength     *int `json:"strength"`
@@ -63,6 +67,17 @@ type createItemRequest struct {
 	AttributeModifiers []createItemModifierRequest    `json:"attribute_modifiers"`
 }
 
+type listGameItemsParams struct {
+	Page     int
+	PerPage  int
+	Search   string
+	Rarity   string
+	Category string
+	Slot     string
+	Tag      string
+	Sort     string
+}
+
 func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
@@ -94,12 +109,6 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 		ownedCharacterCount = int(count)
 	}
 
-	items, err := h.service.repo.ListGameItems(gameID)
-	if err != nil {
-		respondJSON(w, 500, map[string]string{"error": "Failed to load items"})
-		return
-	}
-
 	itemTags, err := h.service.repo.ListGameItemTags(gameID)
 	if err != nil {
 		respondJSON(w, 500, map[string]string{"error": "Failed to load item tags"})
@@ -125,9 +134,52 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 		},
 		"game":       serializeGame(game, userID, isGM),
 		"characters": serializeCharacterSummaries(characters),
-		"items":      serializeItems(items),
 		"item_tags":  serializeGameItemTags(itemTags),
 		"messages":   serializeChatMessages(messages),
+	})
+}
+
+func (h *Handler) ListItems(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can browse the compendium"})
+		return
+	}
+
+	params, err := normalizeListGameItemsParams(r)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	items, totalItems, err := h.service.repo.ListGameItemsPage(gameID, params)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to load items"})
+		return
+	}
+
+	totalPages := 0
+	if totalItems > 0 {
+		totalPages = int((totalItems + int64(params.PerPage) - 1) / int64(params.PerPage))
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"items": serializeItems(items),
+		"pagination": map[string]interface{}{
+			"page":        params.Page,
+			"per_page":    params.PerPage,
+			"total_items": totalItems,
+			"total_pages": totalPages,
+			"has_prev":    params.Page > 1,
+			"has_next":    totalPages > 0 && params.Page < totalPages,
+		},
 	})
 }
 
@@ -940,6 +992,109 @@ func serializeChatMessages(messages []models.ChatMessage) []map[string]interface
 		result = append(result, serializeChatMessage(&message, member))
 	}
 	return result
+}
+
+func normalizeListGameItemsParams(r *http.Request) (listGameItemsParams, error) {
+	page, err := normalizePositiveQueryInt(r.URL.Query().Get("page"), defaultGameItemPage)
+	if err != nil {
+		return listGameItemsParams{}, fmt.Errorf("Page must be a positive integer")
+	}
+
+	perPage, err := normalizePositiveQueryInt(r.URL.Query().Get("per_page"), defaultGameItemPerPage)
+	if err != nil {
+		return listGameItemsParams{}, fmt.Errorf("Per-page value must be a positive integer")
+	}
+	if perPage > maxGameItemPerPage {
+		perPage = maxGameItemPerPage
+	}
+
+	search := strings.Join(strings.Fields(strings.TrimSpace(r.URL.Query().Get("search"))), " ")
+	if len(search) > 200 {
+		return listGameItemsParams{}, fmt.Errorf("Search query must be 200 characters or less")
+	}
+
+	rarity := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("rarity")))
+	if rarity == "all" {
+		rarity = ""
+	}
+	if rarity != "" {
+		normalizedRarity, err := normalizeItemRarity(rarity)
+		if err != nil {
+			return listGameItemsParams{}, err
+		}
+		rarity = normalizedRarity
+	}
+
+	category := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("category")))
+	if category == "all" {
+		category = ""
+	}
+	if category != "" {
+		normalizedCategory, err := normalizeItemCategory(category)
+		if err != nil {
+			return listGameItemsParams{}, err
+		}
+		category = normalizedCategory
+	}
+
+	slot := strings.TrimSpace(strings.ToLower(r.URL.Query().Get("slot")))
+	if slot == "all" {
+		slot = ""
+	}
+	if slot != "" {
+		normalizedSlot, err := normalizeItemEquipSlotValueForCreate(&slot)
+		if err != nil {
+			return listGameItemsParams{}, err
+		}
+		if normalizedSlot == nil {
+			slot = ""
+		} else {
+			slot = *normalizedSlot
+		}
+	}
+
+	tagValues, err := normalizeItemTagNames([]string{r.URL.Query().Get("tag")})
+	if err != nil {
+		return listGameItemsParams{}, err
+	}
+	tag := ""
+	if len(tagValues) > 0 {
+		tag = tagValues[0]
+	}
+
+	return listGameItemsParams{
+		Page:     page,
+		PerPage:  perPage,
+		Search:   search,
+		Rarity:   rarity,
+		Category: category,
+		Slot:     slot,
+		Tag:      tag,
+		Sort:     normalizeItemListSort(r.URL.Query().Get("sort")),
+	}, nil
+}
+
+func normalizePositiveQueryInt(rawValue string, fallback int) (int, error) {
+	trimmedValue := strings.TrimSpace(rawValue)
+	if trimmedValue == "" {
+		return fallback, nil
+	}
+
+	parsedValue, err := strconv.Atoi(trimmedValue)
+	if err != nil || parsedValue < 1 {
+		return 0, fmt.Errorf("invalid positive integer")
+	}
+
+	return parsedValue, nil
+}
+
+func normalizeItemListSort(value string) string {
+	switch strings.TrimSpace(strings.ToLower(value)) {
+	case "name-asc", "name-desc", "rarity", "size":
+		return strings.TrimSpace(strings.ToLower(value))
+	default:
+		return "recent"
+	}
 }
 
 func serializeChatMessage(message *models.ChatMessage, member *models.GameMember) map[string]interface{} {

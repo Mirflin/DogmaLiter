@@ -9,15 +9,11 @@ import {
 import { API_URL } from '@/api'
 import { getErrorMessage, notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 const emit = defineEmits(['created'])
 
 const props = defineProps({
-  items: {
-    type: Array,
-    default: () => [],
-  },
   characters: {
     type: Array,
     default: () => [],
@@ -34,6 +30,13 @@ const props = defineProps({
 
 const auth = useAuthStore()
 
+const ITEM_PAGE_SIZE = 18
+const ITEM_NAME_LIMIT = 20
+const ITEM_DESCRIPTION_LIMIT = 100
+const ITEM_CARD_DESCRIPTION_PREVIEW_LIMIT = 100
+const ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT = 100
+const MAX_ITEM_IMAGE_SIZE = 5 * 1024 * 1024
+const ALLOWED_ITEM_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const RARITY_OPTIONS = ['common', 'uncommon', 'rare', 'epic', 'masterwork', 'legendary', 'unique']
 const CATEGORY_OPTIONS = ['loot', 'consumable', 'equipment', 'other']
 const EQUIP_SLOT_OPTIONS = ['head', 'chest', 'gloves', 'belt', 'boots', 'main_hand', 'off_hand', 'ring', 'amulet']
@@ -52,28 +55,44 @@ const SORT_OPTIONS = [
   { value: 'rarity', label: 'Quality' },
   { value: 'size', label: 'Grid Size' },
 ]
-const RARITY_RANK = Object.fromEntries(RARITY_OPTIONS.map((value, index) => [value, index]))
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium',
   timeStyle: 'short',
 })
 
 const searchQuery = ref('')
+const debouncedSearchQuery = ref('')
 const rarityFilter = ref('all')
 const categoryFilter = ref('all')
 const slotFilter = ref('all')
 const tagFilter = ref('all')
 const sortMode = ref('recent')
+const currentPage = ref(1)
+const itemsLoading = ref(false)
+const itemsError = ref('')
+const rawItems = ref([])
+const pagination = ref({
+  page: 1,
+  perPage: ITEM_PAGE_SIZE,
+  totalItems: 0,
+  totalPages: 0,
+  hasPrev: false,
+  hasNext: false,
+})
 const selectedItemId = ref('')
 const hoveredItemId = ref('')
 const showCreateItemModal = ref(false)
 const createItemSubmitting = ref(false)
-const itemCreateError = ref('')
 const newTagDraft = ref('')
 const itemDraft = ref(createEmptyItemDraft())
+const itemImageInputRef = ref(null)
+const itemImageFile = ref(null)
+const itemImagePreviewUrl = ref('')
 
-const searchNeedle = computed(() => searchQuery.value.trim().toLowerCase())
-const allItems = computed(() => (props.items ?? []).map(item => normalizeItem(item)))
+let searchDebounceHandle = null
+let itemListRequestId = 0
+
+const allItems = computed(() => (rawItems.value ?? []).map(item => normalizeItem(item)))
 const itemById = computed(() => Object.fromEntries(allItems.value.map(item => [item.id, item])))
 const attributeOptions = computed(() => {
   const seen = new Set(BASE_ATTRIBUTE_OPTIONS.map(option => option.value))
@@ -123,14 +142,10 @@ const availableTagNames = computed(() => {
 
   return [...result.values()].sort((left, right) => left.localeCompare(right))
 })
-const filteredItems = computed(() => allItems.value
-  .filter(item => itemMatchesFilters(item))
-  .sort(compareItems))
 const activeFilterBadges = computed(() => {
   const badges = []
-
-  if (searchNeedle.value) {
-    badges.push(`Query: ${searchQuery.value.trim()}`)
+  if (debouncedSearchQuery.value) {
+    badges.push(`Query: ${debouncedSearchQuery.value}`)
   }
   if (rarityFilter.value !== 'all') {
     badges.push(`Quality: ${formatLabel(rarityFilter.value)}`)
@@ -144,23 +159,39 @@ const activeFilterBadges = computed(() => {
   if (tagFilter.value !== 'all') {
     badges.push(`Tag: ${tagFilter.value}`)
   }
-
   return badges
 })
 const hasActiveFilters = computed(() => activeFilterBadges.value.length > 0)
 const compendiumStats = computed(() => ({
-  totalItems: allItems.value.length,
-  visibleItems: filteredItems.value.length,
-  equipmentItems: allItems.value.filter(item => item.category === 'equipment').length,
+  totalItems: pagination.value.totalItems,
+  visibleItems: allItems.value.length,
+  currentPage: pagination.value.page,
+  totalPages: pagination.value.totalPages,
   totalTags: availableTagNames.value.length,
 }))
+const itemResultsLabel = computed(() => {
+  if (!pagination.value.totalItems || !allItems.value.length) {
+    return 'No items loaded yet.'
+  }
+
+  const start = ((pagination.value.page - 1) * pagination.value.perPage) + 1
+  const end = Math.min(pagination.value.totalItems, start + allItems.value.length - 1)
+  return `Showing ${start}-${end} of ${pagination.value.totalItems}`
+})
 const inspectorItem = computed(() => itemById.value[hoveredItemId.value]
   ?? itemById.value[selectedItemId.value]
-  ?? filteredItems.value[0]
   ?? allItems.value[0]
   ?? null)
 const selectedTagSuggestions = computed(() => availableTagNames.value.filter(tag => !itemDraft.value.tags
   .some(selectedTag => selectedTag.toLowerCase() === tag.toLowerCase())))
+const itemImageMetaLabel = computed(() => {
+  if (!itemImageFile.value) {
+    return 'No image selected yet.'
+  }
+  return `${itemImageFile.value.name} · ${formatFileSize(itemImageFile.value.size)}`
+})
+const itemNameLength = computed(() => itemDraft.value.name.length)
+const itemDescriptionLength = computed(() => itemDraft.value.description.length)
 const draftPreviewItem = computed(() => normalizeItem({
   id: 'draft-preview',
   name: itemDraft.value.name || 'Untitled Item',
@@ -176,22 +207,118 @@ const draftPreviewItem = computed(() => normalizeItem({
   updated_at: new Date().toISOString(),
 }))
 
+watch(searchQuery, (value) => {
+  if (searchDebounceHandle) {
+    clearTimeout(searchDebounceHandle)
+  }
+
+  searchDebounceHandle = setTimeout(() => {
+    debouncedSearchQuery.value = value.trim()
+  }, 220)
+})
+
 watch(
-  () => filteredItems.value.map(item => item.id),
+  () => [props.gameId, debouncedSearchQuery.value, rarityFilter.value, categoryFilter.value, slotFilter.value, tagFilter.value, sortMode.value],
+  () => {
+    if (currentPage.value !== 1) {
+      currentPage.value = 1
+      return
+    }
+
+    fetchItems()
+  },
+  { immediate: true },
+)
+
+watch(currentPage, () => {
+  fetchItems()
+})
+
+watch(
+  () => allItems.value.map(item => item.id),
   (visibleIds) => {
     if (visibleIds.includes(selectedItemId.value)) {
       return
     }
 
-    if (visibleIds.length > 0) {
-      selectedItemId.value = visibleIds[0]
-      return
-    }
-
-    selectedItemId.value = allItems.value[0]?.id ?? ''
+    selectedItemId.value = visibleIds[0] ?? ''
   },
   { immediate: true },
 )
+
+onBeforeUnmount(() => {
+  if (searchDebounceHandle) {
+    clearTimeout(searchDebounceHandle)
+  }
+  clearItemImageSelection()
+})
+
+async function fetchItems() {
+  if (!props.gameId) {
+    rawItems.value = []
+    pagination.value = createEmptyPaginationState()
+    itemsError.value = ''
+    return
+  }
+
+  const requestId = ++itemListRequestId
+  itemsLoading.value = true
+  itemsError.value = ''
+
+  try {
+    const data = await auth.getGameItems(props.gameId, {
+      page: currentPage.value,
+      per_page: ITEM_PAGE_SIZE,
+      search: debouncedSearchQuery.value || undefined,
+      rarity: rarityFilter.value !== 'all' ? rarityFilter.value : undefined,
+      category: categoryFilter.value !== 'all' ? categoryFilter.value : undefined,
+      slot: slotFilter.value !== 'all' ? slotFilter.value : undefined,
+      tag: tagFilter.value !== 'all' ? tagFilter.value : undefined,
+      sort: sortMode.value,
+    })
+
+    if (requestId !== itemListRequestId) {
+      return
+    }
+
+    rawItems.value = Array.isArray(data?.items) ? data.items : []
+    pagination.value = normalizePagination(data?.pagination)
+  } catch (error) {
+    if (requestId !== itemListRequestId) {
+      return
+    }
+
+    rawItems.value = []
+    pagination.value = createEmptyPaginationState()
+    itemsError.value = getErrorMessage(error, 'Failed to load compendium items')
+  } finally {
+    if (requestId === itemListRequestId) {
+      itemsLoading.value = false
+    }
+  }
+}
+
+function createEmptyPaginationState() {
+  return {
+    page: 1,
+    perPage: ITEM_PAGE_SIZE,
+    totalItems: 0,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }
+}
+
+function normalizePagination(value) {
+  return {
+    page: normalizePositiveInteger(value?.page, currentPage.value),
+    perPage: normalizePositiveInteger(value?.per_page, ITEM_PAGE_SIZE),
+    totalItems: Math.max(0, Number.parseInt(value?.total_items, 10) || 0),
+    totalPages: Math.max(0, Number.parseInt(value?.total_pages, 10) || 0),
+    hasPrev: Boolean(value?.has_prev),
+    hasNext: Boolean(value?.has_next),
+  }
+}
 
 function normalizeItem(item) {
   const rarity = RARITY_OPTIONS.includes(String(item?.rarity || '').toLowerCase())
@@ -202,9 +329,6 @@ function normalizeItem(item) {
     : 'other'
   const equipSlot = normalizeEquipSlot(item?.equip_slot)
   const tags = uniqueLabels(Array.isArray(item?.tags) ? item.tags : [])
-  const types = Array.isArray(item?.types)
-    ? uniqueLabels(item.types)
-    : []
   const requiredAttributes = Array.isArray(item?.required_attributes)
     ? item.required_attributes
       .map(entry => ({
@@ -224,7 +348,7 @@ function normalizeItem(item) {
     : []
 
   return {
-    id: String(item?.id || `item-${Math.random().toString(36).slice(2)}`),
+    id: String(item?.id || 'item-preview'),
     name: String(item?.name || 'Untitled Item').trim() || 'Untitled Item',
     description: String(item?.description || '').trim(),
     image_id: item?.image_id ? String(item.image_id) : '',
@@ -234,97 +358,34 @@ function normalizeItem(item) {
     grid_width: normalizePositiveInteger(item?.grid_width, 1),
     grid_height: normalizePositiveInteger(item?.grid_height, 1),
     tags,
-    types,
     required_attributes: requiredAttributes,
     attribute_modifiers: attributeModifiers,
     created_at: item?.created_at || '',
     updated_at: item?.updated_at || item?.created_at || '',
-    search_text: [
-      item?.name,
-      item?.description,
-      rarity,
-      category,
-      equipSlot,
-      ...tags,
-      ...types,
-      ...requiredAttributes.map(entry => `${entry.attribute_name} ${entry.min_value}`),
-      ...attributeModifiers.map(entry => `${entry.attribute_name} ${entry.modifier_value}${entry.is_percentage ? '%' : ''}`),
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .toLowerCase(),
   }
-}
-
-function itemMatchesFilters(item) {
-  if (searchNeedle.value && !item.search_text.includes(searchNeedle.value)) {
-    return false
-  }
-  if (rarityFilter.value !== 'all' && item.rarity !== rarityFilter.value) {
-    return false
-  }
-  if (categoryFilter.value !== 'all' && item.category !== categoryFilter.value) {
-    return false
-  }
-  if (slotFilter.value !== 'all' && item.equip_slot !== slotFilter.value) {
-    return false
-  }
-  if (tagFilter.value !== 'all' && !item.tags.some(tag => tag.toLowerCase() === tagFilter.value.toLowerCase())) {
-    return false
-  }
-
-  return true
-}
-
-function compareItems(left, right) {
-  if (sortMode.value === 'name-asc') {
-    return left.name.localeCompare(right.name)
-  }
-  if (sortMode.value === 'name-desc') {
-    return right.name.localeCompare(left.name)
-  }
-  if (sortMode.value === 'rarity') {
-    const rarityDelta = (RARITY_RANK[right.rarity] ?? 0) - (RARITY_RANK[left.rarity] ?? 0)
-    if (rarityDelta !== 0) {
-      return rarityDelta
-    }
-    return left.name.localeCompare(right.name)
-  }
-  if (sortMode.value === 'size') {
-    const sizeDelta = (right.grid_width * right.grid_height) - (left.grid_width * left.grid_height)
-    if (sizeDelta !== 0) {
-      return sizeDelta
-    }
-    return left.name.localeCompare(right.name)
-  }
-
-  return compareDates(right.updated_at, left.updated_at) || left.name.localeCompare(right.name)
-}
-
-function compareDates(left, right) {
-  const leftTime = Date.parse(left || '')
-  const rightTime = Date.parse(right || '')
-
-  if (!Number.isFinite(leftTime) && !Number.isFinite(rightTime)) {
-    return 0
-  }
-  if (!Number.isFinite(leftTime)) {
-    return -1
-  }
-  if (!Number.isFinite(rightTime)) {
-    return 1
-  }
-
-  return leftTime - rightTime
 }
 
 function clearFilters() {
   searchQuery.value = ''
+  debouncedSearchQuery.value = ''
   rarityFilter.value = 'all'
   categoryFilter.value = 'all'
   slotFilter.value = 'all'
   tagFilter.value = 'all'
   sortMode.value = 'recent'
+}
+
+function changePage(nextPage) {
+  if (itemsLoading.value) {
+    return
+  }
+  if (nextPage < 1 || nextPage > Math.max(1, pagination.value.totalPages)) {
+    return
+  }
+  if (nextPage === currentPage.value) {
+    return
+  }
+  currentPage.value = nextPage
 }
 
 function selectItem(itemId) {
@@ -334,7 +395,7 @@ function selectItem(itemId) {
 function openCreateItemModal() {
   itemDraft.value = createEmptyItemDraft()
   newTagDraft.value = ''
-  itemCreateError.value = ''
+  clearItemImageSelection()
   showCreateItemModal.value = true
 }
 
@@ -344,8 +405,8 @@ function closeCreateItemModal(force = false) {
   }
 
   showCreateItemModal.value = false
-  itemCreateError.value = ''
   newTagDraft.value = ''
+  clearItemImageSelection()
 }
 
 function addRequirementRow() {
@@ -372,7 +433,7 @@ function toggleDraftTag(tag) {
   }
 
   if (itemDraft.value.tags.length >= 20) {
-    itemCreateError.value = 'Each item can have up to 20 tags.'
+    notifyCreateItemValidation('Each item can have up to 20 tags.')
     return
   }
 
@@ -390,19 +451,64 @@ function addDraftTagFromInput() {
     return
   }
   if (normalized.length > 60) {
-    itemCreateError.value = 'Tag names must be 60 characters or fewer.'
+    notifyCreateItemValidation('Tag names must be 60 characters or fewer.')
     return
   }
   if (itemDraft.value.tags.length >= 20) {
-    itemCreateError.value = 'Each item can have up to 20 tags.'
+    notifyCreateItemValidation('Each item can have up to 20 tags.')
     return
   }
 
-  itemCreateError.value = ''
   if (!itemDraft.value.tags.some(entry => entry.toLowerCase() === normalized.toLowerCase())) {
     itemDraft.value.tags = [...itemDraft.value.tags, normalized].sort((left, right) => left.localeCompare(right))
   }
   newTagDraft.value = ''
+}
+
+function openItemImagePicker() {
+  itemImageInputRef.value?.click()
+}
+
+function handleItemImageSelected(event) {
+  const file = event.target?.files?.[0]
+  if (!file) {
+    return
+  }
+  if (!ALLOWED_ITEM_IMAGE_TYPES.includes(file.type)) {
+    notify.error({
+      title: 'Unsupported image format',
+      message: 'Only JPEG, PNG, and WebP images are allowed.',
+    })
+    clearItemImageSelection()
+    return
+  }
+  if (file.size > MAX_ITEM_IMAGE_SIZE) {
+    notify.error({
+      title: 'Image is too large',
+      message: 'Item image must be under 5MB.',
+    })
+    clearItemImageSelection()
+    return
+  }
+
+  if (itemImagePreviewUrl.value) {
+    URL.revokeObjectURL(itemImagePreviewUrl.value)
+  }
+
+  itemImageFile.value = file
+  itemImagePreviewUrl.value = URL.createObjectURL(file)
+}
+
+function clearItemImageSelection() {
+  if (itemImagePreviewUrl.value) {
+    URL.revokeObjectURL(itemImagePreviewUrl.value)
+  }
+  itemImagePreviewUrl.value = ''
+  itemImageFile.value = null
+
+  if (itemImageInputRef.value) {
+    itemImageInputRef.value.value = ''
+  }
 }
 
 async function createItem() {
@@ -435,31 +541,64 @@ async function createItem() {
   }
 
   if (!props.gameId) {
-    itemCreateError.value = 'Game context is missing.'
+    notifyCreateItemValidation('Game context is missing.')
     return
   }
   if (!payload.name) {
-    itemCreateError.value = 'Item name cannot be empty.'
+    notifyCreateItemValidation('Item name cannot be empty.')
+    return
+  }
+  if (payload.name.length > ITEM_NAME_LIMIT) {
+    notifyCreateItemValidation(`Item names can be up to ${ITEM_NAME_LIMIT} characters.`)
+    return
+  }
+  if (payload.description.length > ITEM_DESCRIPTION_LIMIT) {
+    notifyCreateItemValidation(`Descriptions can be up to ${ITEM_DESCRIPTION_LIMIT} characters.`)
     return
   }
   if (payload.category === 'equipment' && !payload.equip_slot) {
-    itemCreateError.value = 'Equipment items need an equip slot.'
+    notifyCreateItemValidation('Equipment items need an equip slot.')
     return
   }
 
   createItemSubmitting.value = true
-  itemCreateError.value = ''
 
   try {
-    await auth.createGameItem(props.gameId, payload)
-    notify.success({
-      title: 'Item created',
-      message: `${payload.name} was added to the campaign compendium.`,
-    })
+    const response = await auth.createGameItem(props.gameId, payload)
+    const createdItem = response?.item ?? null
+    let imageUploadWarning = ''
+
+    if (itemImageFile.value && createdItem?.id) {
+      try {
+        await auth.uploadGameItemImage(props.gameId, createdItem.id, itemImageFile.value)
+      } catch (error) {
+        imageUploadWarning = getErrorMessage(error, 'Item image upload failed')
+        notify.warning({
+          title: 'Item created without image',
+          message: imageUploadWarning,
+        })
+      }
+    }
+
+    if (currentPage.value !== 1) {
+      currentPage.value = 1
+    } else {
+      await fetchItems()
+    }
+
     closeCreateItemModal(true)
     emit('created')
+    notify.success({
+      title: 'Item created',
+      message: imageUploadWarning
+        ? `${payload.name} was added to the compendium. Upload the image again if needed.`
+        : `${payload.name} was added to the compendium.`,
+    })
   } catch (error) {
-    itemCreateError.value = getErrorMessage(error, 'Failed to create item')
+    notify.error({
+      title: 'Failed to create item',
+      message: getErrorMessage(error, 'Failed to create item'),
+    })
   } finally {
     createItemSubmitting.value = false
   }
@@ -509,7 +648,6 @@ function normalizeTagName(value) {
 
 function uniqueLabels(values) {
   const uniqueValues = new Map()
-
   for (const value of values ?? []) {
     const normalized = normalizeTagName(value)
     if (!normalized) {
@@ -521,7 +659,6 @@ function uniqueLabels(values) {
       uniqueValues.set(lookupKey, normalized)
     }
   }
-
   return [...uniqueValues.values()].sort((left, right) => left.localeCompare(right))
 }
 
@@ -576,6 +713,37 @@ function formatDateTime(value) {
   return dateFormatter.format(new Date(parsed))
 }
 
+function formatFileSize(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return '0 B'
+  }
+  if (value >= 1024 * 1024) {
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`
+  }
+  if (value >= 1024) {
+    return `${Math.round(value / 1024)} KB`
+  }
+  return `${value} B`
+}
+
+function notifyCreateItemValidation(message) {
+  notify.warning({
+    title: 'Check item details',
+    message,
+  })
+}
+
+function truncateText(value, limit, fallback = '') {
+  const normalized = String(value || '').trim()
+  if (!normalized) {
+    return fallback
+  }
+  if (normalized.length <= limit) {
+    return normalized
+  }
+  return `${normalized.slice(0, Math.max(0, limit - 3)).trimEnd()}...`
+}
+
 function itemFrameClass(rarity) {
   const variants = {
     common: 'border-[rgba(255,255,255,0.24)] bg-[linear-gradient(180deg,rgba(16,32,52,0.92),rgba(8,16,30,0.92))] text-[#f6f7fb]',
@@ -586,7 +754,6 @@ function itemFrameClass(rarity) {
     legendary: 'border-[rgba(74,222,128,0.34)] bg-[linear-gradient(180deg,rgba(10,78,39,0.94),rgba(8,40,22,0.92))] text-[#bbf7d0]',
     unique: 'border-[rgba(248,113,113,0.38)] bg-[linear-gradient(180deg,rgba(111,24,24,0.94),rgba(55,14,18,0.92))] text-[#fecaca]',
   }
-
   return variants[rarity] ?? variants.common
 }
 
@@ -600,7 +767,6 @@ function rarityBadgeClass(rarity) {
     legendary: 'border-[rgba(74,222,128,0.35)] bg-[rgba(21,128,61,0.18)] text-[#86efac]',
     unique: 'border-[rgba(248,113,113,0.38)] bg-[rgba(153,27,27,0.18)] text-[#fecaca]',
   }
-
   return variants[rarity] ?? variants.common
 }
 
@@ -608,8 +774,14 @@ function itemImageUrl(item) {
   if (!item?.image_id) {
     return ''
   }
-
   return `${API_URL}/api/uploads/${item.image_id}`
+}
+
+function resolvedItemImageUrl(item) {
+  if (item?.id === 'draft-preview') {
+    return itemImagePreviewUrl.value
+  }
+  return itemImageUrl(item)
 }
 
 function itemGlyph(item) {
@@ -627,14 +799,20 @@ function itemSizeLabel(item) {
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="flex min-h-[48rem] flex-col gap-6 xl:min-h-[calc(100vh-10rem)]">
     <article class="overflow-hidden rounded-[1.9rem] border border-[rgba(126,200,227,0.14)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-5 shadow-[0_32px_90px_rgba(0,0,0,0.35)] sm:p-6">
       <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">GM Compendium</p>
           <div class="mt-3 flex flex-wrap items-center gap-3">
             <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">Item Compendium</h2>
+            <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
+              {{ compendiumStats.totalItems }} total
+            </span>
           </div>
+          <p class="mt-3 max-w-[50rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
+            The compendium now reads server pages instead of loading every item through the session payload. Filters, sorting, and paging all happen against the backend.
+          </p>
         </div>
 
         <div class="flex flex-wrap gap-3">
@@ -654,7 +832,7 @@ function itemSizeLabel(item) {
       <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Filters</p>
-          <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Search across item names, descriptions, requirements, modifiers, and custom tags.</p>
+          <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">The search box, tag selector, and sorting all request a fresh server page.</p>
         </div>
         <button
           v-if="hasActiveFilters"
@@ -731,17 +909,41 @@ function itemSizeLabel(item) {
       </div>
     </article>
 
-    <div class="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_380px]">
-      <article class="overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]">
+    <div class="grid flex-1 content-stretch gap-6 xl:grid-cols-[minmax(0,1.45fr)_390px]">
+      <article class="flex min-h-[42rem] flex-col overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] xl:min-h-full">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
           <div>
             <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Compendium Entries</p>
+            <p class="mt-2 text-[14px] text-[#d8dce7]/58">{{ itemResultsLabel }}</p>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button
+              type="button"
+              @click="changePage(currentPage - 1)"
+              :disabled="itemsLoading || !pagination.hasPrev"
+              class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-2 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              @click="changePage(currentPage + 1)"
+              :disabled="itemsLoading || !pagination.hasNext"
+              class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-2 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
           </div>
         </div>
 
-        <div v-if="filteredItems.length" class="grid gap-4 p-5 sm:grid-cols-2 2xl:grid-cols-3 sm:p-6">
+        <p v-if="itemsError" class="mx-5 mt-5 rounded-[1.2rem] border border-[rgba(248,113,113,0.2)] bg-[rgba(127,29,29,0.18)] px-4 py-3 text-[13px] text-[#fecaca] sm:mx-6">
+          {{ itemsError }}
+        </p>
+
+        <div v-if="allItems.length" class="grid flex-1 gap-4 p-5 sm:grid-cols-2 2xl:grid-cols-3 sm:p-6">
           <button
-            v-for="item in filteredItems"
+            v-for="item in allItems"
             :key="item.id"
             type="button"
             @click="selectItem(item.id)"
@@ -752,8 +954,7 @@ function itemSizeLabel(item) {
             :class="selectedItemId === item.id ? 'border-[rgba(233,69,96,0.32)] shadow-[0_12px_36px_rgba(233,69,96,0.12)]' : 'border-[rgba(126,200,227,0.12)]'"
           >
             <div class="flex items-start gap-4">
-              <div class="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.3rem] border text-[24px] font-bold uppercase"
-                :class="itemFrameClass(item.rarity)">
+              <div class="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.3rem] border text-[24px] font-bold uppercase" :class="itemFrameClass(item.rarity)">
                 <img v-if="itemImageUrl(item)" :src="itemImageUrl(item)" :alt="item.name" class="h-full w-full object-cover" />
                 <span v-else>{{ itemGlyph(item) }}</span>
                 <span class="absolute right-2 top-2 rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(7,17,31,0.82)] px-2 py-0.5 text-[10px] font-semibold text-[#f6f7fb]">
@@ -763,14 +964,14 @@ function itemSizeLabel(item) {
 
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-start gap-2">
-                  <h3 class="min-w-0 flex-1 break-words text-[16px] font-semibold text-[#f6f7fb]">{{ item.name }}</h3>
-                  <span class="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(item.rarity)">
+                  <h3 class="min-w-0 flex-1 break-words whitespace-normal text-[16px] font-semibold leading-snug text-[#f6f7fb] line-clamp-2 [overflow-wrap:anywhere]">{{ item.name }}</h3>
+                  <span class="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(item.rarity)">
                     {{ formatLabel(item.rarity) }}
                   </span>
                 </div>
 
-                <p class="mt-2 line-clamp-3 text-[13px] leading-relaxed text-[#d8dce7]/58">
-                  {{ item.description || 'No description yet.' }}
+                <p class="mt-2 line-clamp-3 break-words whitespace-pre-line text-[13px] leading-relaxed text-[#d8dce7]/58">
+                  {{ truncateText(item.description, ITEM_CARD_DESCRIPTION_PREVIEW_LIMIT, 'No description yet.') }}
                 </p>
 
                 <div class="mt-3 flex flex-wrap gap-2">
@@ -782,9 +983,6 @@ function itemSizeLabel(item) {
                   </span>
                   <span v-for="tag in item.tags.slice(0, 3)" :key="`${item.id}-${tag}`" class="rounded-full border border-[rgba(233,69,96,0.16)] bg-[rgba(233,69,96,0.08)] px-2.5 py-1 text-[11px] text-[#ffe0e7]">
                     {{ tag }}
-                  </span>
-                  <span v-if="item.tags.length > 3" class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.05)] px-2.5 py-1 text-[11px] text-[#d8dce7]/65">
-                    +{{ item.tags.length - 3 }} more
                   </span>
                 </div>
               </div>
@@ -798,46 +996,47 @@ function itemSizeLabel(item) {
           </button>
         </div>
 
-        <div v-else class="flex min-h-[320px] flex-col items-center justify-center gap-4 px-6 py-12 text-center">
+        <div v-else class="flex min-h-[320px] flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
           <div class="flex h-16 w-16 items-center justify-center rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#8fd7ef]">
             <Package class="h-7 w-7" :stroke-width="2" />
           </div>
           <div>
-            <h3 class="font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ allItems.length ? 'No matches found' : 'No items yet' }}</h3>
+            <h3 class="font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ itemsLoading ? 'Loading items' : 'No items found' }}</h3>
             <p class="mt-3 max-w-[34rem] text-[14px] leading-relaxed text-[#d8dce7]/58">
-              {{ allItems.length
-                ? 'Adjust the active filters or search query to widen the compendium results.'
-                : 'Create the first compendium entry and start tagging equipment, loot, and consumables for this game.' }}
+              {{ itemsLoading
+                ? 'The server is preparing the current page.'
+                : (hasActiveFilters
+                    ? 'Try broadening the current filters or search query.'
+                    : 'Create the first compendium entry for this campaign.') }}
             </p>
           </div>
         </div>
       </article>
 
       <aside class="space-y-6">
-        <article class="rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 sm:p-6">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Inspector</p>
-              <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Pinned preview for the currently selected compendium entry.</p>
-            </div>
+
+        <article class="flex min-h-[42rem] flex-col rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 sm:p-6 xl:min-h-full">
+          <div>
+            <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Inspector</p>
+            <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Pinned preview for the currently selected compendium entry.</p>
           </div>
 
-          <div v-if="inspectorItem" class="mt-5 space-y-5">
+          <div v-if="inspectorItem" class="mt-5 flex flex-1 flex-col gap-5">
             <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
               <div class="flex h-64 items-center justify-center" :class="itemFrameClass(inspectorItem.rarity)">
-                <img v-if="itemImageUrl(inspectorItem)" :src="itemImageUrl(inspectorItem)" :alt="inspectorItem.name" class="h-full w-full object-cover" />
+                <img v-if="resolvedItemImageUrl(inspectorItem)" :src="resolvedItemImageUrl(inspectorItem)" :alt="inspectorItem.name" class="h-full w-full object-cover" />
                 <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(inspectorItem) }}</span>
               </div>
             </div>
 
             <div>
               <div class="flex flex-wrap items-center gap-2">
-                <h3 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb]">{{ inspectorItem.name }}</h3>
-                <span class="rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(inspectorItem.rarity)">
+                <h3 class="min-w-0 flex-1 break-words whitespace-normal font-[Cinzel] text-[28px] font-bold leading-tight text-[#f6f7fb] line-clamp-2 [overflow-wrap:anywhere]">{{ inspectorItem.name }}</h3>
+                <span class="shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(inspectorItem.rarity)">
                   {{ formatLabel(inspectorItem.rarity) }}
                 </span>
               </div>
-              <p class="mt-3 text-[14px] leading-relaxed text-[#d8dce7]/62">{{ inspectorItem.description || 'No description yet.' }}</p>
+              <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-[#d8dce7]/62">{{ truncateText(inspectorItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'No description yet.') }}</p>
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
@@ -859,46 +1058,20 @@ function itemSizeLabel(item) {
               </div>
             </div>
 
-            <div>
+            <div class="min-h-[5.75rem]">
               <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Custom Tags</p>
-              <div v-if="inspectorItem.tags.length" class="mt-3 flex flex-wrap gap-2">
+              <div v-if="inspectorItem.tags.length" class="mt-3 flex min-h-[2.5rem] flex-wrap content-start gap-2">
                 <span v-for="tag in inspectorItem.tags" :key="`${inspectorItem.id}-${tag}`" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-3 py-1.5 text-[12px] text-[#ffe0e7]">
                   {{ tag }}
                 </span>
               </div>
-              <p v-else class="mt-3 text-[14px] text-[#d8dce7]/58">No custom tags assigned to this item.</p>
-            </div>
-
-            <div class="grid gap-4">
-              <div class="rounded-[1.4rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Requirements</span>
-                  <span class="text-[12px] text-[#d8dce7]/45">{{ inspectorItem.required_attributes.length }}</span>
-                </div>
-                <div v-if="inspectorItem.required_attributes.length" class="mt-4 space-y-2">
-                  <div v-for="requirement in inspectorItem.required_attributes" :key="`${inspectorItem.id}-${requirement.attribute_name}-${requirement.min_value}`" class="rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-3 py-2.5 text-[13px] text-[#f6f7fb]">
-                    {{ formatAttributeLabel(requirement.attribute_name) }} {{ requirement.min_value }}+
-                  </div>
-                </div>
-                <p v-else class="mt-4 text-[14px] text-[#d8dce7]/58">No requirements.</p>
-              </div>
-
-              <div class="rounded-[1.4rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
-                <div class="flex items-center justify-between gap-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Modifiers</span>
-                  <span class="text-[12px] text-[#d8dce7]/45">{{ inspectorItem.attribute_modifiers.length }}</span>
-                </div>
-                <div v-if="inspectorItem.attribute_modifiers.length" class="mt-4 space-y-2">
-                  <div v-for="modifier in inspectorItem.attribute_modifiers" :key="`${inspectorItem.id}-${modifier.attribute_name}-${modifier.modifier_value}-${modifier.is_percentage}`" class="rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-3 py-2.5 text-[13px] text-[#f6f7fb]">
-                    {{ formatAttributeLabel(modifier.attribute_name) }} {{ modifier.modifier_value > 0 ? '+' : '' }}{{ modifier.modifier_value }}{{ modifier.is_percentage ? '%' : '' }}
-                  </div>
-                </div>
-                <p v-else class="mt-4 text-[14px] text-[#d8dce7]/58">No modifiers.</p>
+              <div v-else class="mt-3 flex min-h-[2.5rem] items-center">
+                <p class="text-[14px] text-[#d8dce7]/58">No custom tags assigned to this item.</p>
               </div>
             </div>
           </div>
 
-          <div v-else class="mt-6 text-[14px] leading-relaxed text-[#d8dce7]/58">Select an item from the compendium to inspect it here.</div>
+          <div v-else class="mt-6 flex flex-1 items-center text-[14px] leading-relaxed text-[#d8dce7]/58">Select an item from the current page to inspect it here.</div>
         </article>
       </aside>
     </div>
@@ -923,13 +1096,12 @@ function itemSizeLabel(item) {
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">Create Compendium Entry</h2>
             </div>
+            <p class="mt-3 max-w-[52rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
+              Upload an image, define the stats, and preview the final item card before it is created.
+            </p>
           </div>
 
-          <p v-if="itemCreateError" class="mx-5 mt-5 rounded-[1.3rem] border border-[rgba(248,113,113,0.24)] bg-[rgba(127,29,29,0.18)] px-4 py-3 text-[13px] text-[#fecaca] sm:mx-6">
-            {{ itemCreateError }}
-          </p>
-
-          <div class="grid min-h-0 flex-1 gap-6 overflow-hidden px-5 pb-5 pt-5 sm:px-6 lg:grid-cols-[minmax(0,1.45fr)_380px]">
+          <div class="grid min-h-0 flex-1 gap-6 overflow-hidden px-5 pb-5 pt-5 sm:px-6 lg:grid-cols-[minmax(0,1.5fr)_390px]">
             <section class="min-h-0 space-y-5 overflow-y-auto pr-1">
               <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
                 <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
@@ -938,10 +1110,11 @@ function itemSizeLabel(item) {
                     <input
                       v-model="itemDraft.name"
                       type="text"
-                      maxlength="120"
+                      :maxlength="ITEM_NAME_LIMIT"
                       :disabled="createItemSubmitting"
                       class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30"
                     />
+                    <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ itemNameLength }}/{{ ITEM_NAME_LIMIT }}</p>
                   </label>
 
                   <div class="grid gap-4 sm:grid-cols-3">
@@ -973,18 +1146,44 @@ function itemSizeLabel(item) {
                   <textarea
                     v-model="itemDraft.description"
                     rows="6"
+                    :maxlength="ITEM_DESCRIPTION_LIMIT"
                     :disabled="createItemSubmitting"
                     class="session-input mt-2 w-full resize-y rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30"
                   ></textarea>
+                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ itemDescriptionLength }}/{{ ITEM_DESCRIPTION_LIMIT }}</p>
                 </label>
               </article>
 
               <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Footprint</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Give the item enough breathing room inside inventory grids and equipment layouts.</p>
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Image Upload</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">The item is created first, then the selected image is uploaded and linked automatically.</p>
                   </div>
+                </div>
+
+                <input ref="itemImageInputRef" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleItemImageSelected" />
+
+                <div class="mt-5 flex flex-wrap gap-3">
+                  <button type="button" @click="openItemImagePicker" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                    {{ itemImageFile ? 'Replace Image' : 'Select Image' }}
+                  </button>
+                  <button v-if="itemImageFile" type="button" @click="clearItemImageSelection" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">
+                    Remove Image
+                  </button>
+                </div>
+
+                <div class="mt-4 rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Selected File</p>
+                  <p class="mt-2 text-[14px] text-[#f6f7fb]">{{ itemImageMetaLabel }}</p>
+                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">JPEG, PNG, or WebP up to 5MB.</p>
+                </div>
+              </article>
+
+              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                <div>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Footprint</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">These values still control the inventory footprint, while the preview keeps the classic item card layout.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -999,16 +1198,15 @@ function itemSizeLabel(item) {
                   <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3 sm:col-span-2">
                     <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Preview Summary</span>
                     <p class="mt-3 text-[18px] font-semibold text-[#f6f7fb]">{{ itemSizeLabel(draftPreviewItem) }}</p>
+                    <p class="mt-2 text-[13px] leading-relaxed text-[#d8dce7]/56">Adjust width and height to match the intended inventory footprint.</p>
                   </div>
                 </div>
               </article>
 
               <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Tags</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Reuse existing game tags or mint a new one here. The backend keeps tags unique per game.</p>
-                  </div>
+                <div>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Tags</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Create a new game tag or attach existing ones before the item is saved.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
@@ -1025,12 +1223,7 @@ function itemSizeLabel(item) {
                     />
                   </label>
 
-                  <button
-                    type="button"
-                    @click="addDraftTagFromInput"
-                    :disabled="createItemSubmitting"
-                    class="inline-flex cursor-pointer items-center justify-center gap-2 self-end rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-3 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
+                  <button type="button" @click="addDraftTagFromInput" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center justify-center gap-2 self-end rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-3 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Create Tag
                   </button>
@@ -1073,25 +1266,16 @@ function itemSizeLabel(item) {
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Requirements</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Add explicit stat gates row by row so nothing is hidden behind dense text parsing.</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Add explicit stat gates row by row.</p>
                   </div>
-                  <button
-                    type="button"
-                    @click="addRequirementRow"
-                    :disabled="createItemSubmitting"
-                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
+                  <button type="button" @click="addRequirementRow" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Add Requirement
                   </button>
                 </div>
 
                 <div v-if="itemDraft.requiredAttributes.length" class="mt-5 space-y-3">
-                  <article
-                    v-for="(requirement, index) in itemDraft.requiredAttributes"
-                    :key="`requirement-${index}`"
-                    class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4"
-                  >
+                  <article v-for="(requirement, index) in itemDraft.requiredAttributes" :key="`requirement-${index}`" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4">
                     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
@@ -1110,32 +1294,23 @@ function itemSizeLabel(item) {
                   </article>
                 </div>
 
-                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No requirements yet. Add rows as needed.</p>
+                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No requirements yet.</p>
               </article>
 
               <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Modifiers</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Build bonuses and penalties row by row, with a clear toggle for flat versus percent values.</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Configure bonuses and penalties row by row.</p>
                   </div>
-                  <button
-                    type="button"
-                    @click="addModifierRow"
-                    :disabled="createItemSubmitting"
-                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
+                  <button type="button" @click="addModifierRow" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Add Modifier
                   </button>
                 </div>
 
                 <div v-if="itemDraft.attributeModifiers.length" class="mt-5 space-y-3">
-                  <article
-                    v-for="(modifier, index) in itemDraft.attributeModifiers"
-                    :key="`modifier-${index}`"
-                    class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4"
-                  >
+                  <article v-for="(modifier, index) in itemDraft.attributeModifiers" :key="`modifier-${index}`" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4">
                     <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
@@ -1161,7 +1336,7 @@ function itemSizeLabel(item) {
                   </article>
                 </div>
 
-                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No modifiers yet. Add rows here for bonuses and penalties.</p>
+                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No modifiers yet.</p>
               </article>
             </section>
 
@@ -1170,18 +1345,19 @@ function itemSizeLabel(item) {
                 <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Live Preview</p>
                 <div class="mt-5 overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
                   <div class="flex h-64 items-center justify-center" :class="itemFrameClass(draftPreviewItem.rarity)">
-                    <span class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(draftPreviewItem) }}</span>
+                    <img v-if="resolvedItemImageUrl(draftPreviewItem)" :src="resolvedItemImageUrl(draftPreviewItem)" :alt="draftPreviewItem.name" class="h-full w-full object-cover" />
+                    <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(draftPreviewItem) }}</span>
                   </div>
                 </div>
 
                 <div class="mt-5">
                   <div class="flex flex-wrap items-center gap-2">
-                    <h3 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb]">{{ draftPreviewItem.name }}</h3>
-                    <span class="rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(draftPreviewItem.rarity)">
+                    <h3 class="min-w-0 flex-1 break-words whitespace-normal font-[Cinzel] text-[28px] font-bold leading-tight text-[#f6f7fb] line-clamp-2 [overflow-wrap:anywhere]">{{ draftPreviewItem.name }}</h3>
+                    <span class="shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(draftPreviewItem.rarity)">
                       {{ formatLabel(draftPreviewItem.rarity) }}
                     </span>
                   </div>
-                  <p class="mt-3 text-[14px] leading-relaxed text-[#d8dce7]/62">{{ draftPreviewItem.description || 'The description preview appears here as you type.' }}</p>
+                  <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-[#d8dce7]/62">{{ truncateText(draftPreviewItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'The description preview appears here as you type.') }}</p>
                 </div>
 
                 <div class="mt-5 grid gap-3 sm:grid-cols-2">
@@ -1208,54 +1384,18 @@ function itemSizeLabel(item) {
                   </div>
                   <p v-else class="mt-3 text-[14px] text-[#d8dce7]/58">No tags selected yet.</p>
                 </div>
-
-                <div class="mt-5 grid gap-4">
-                  <div class="rounded-[1.4rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
-                    <div class="flex items-center justify-between gap-3">
-                      <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Requirements</span>
-                      <span class="text-[12px] text-[#d8dce7]/45">{{ draftPreviewItem.required_attributes.length }}</span>
-                    </div>
-                    <div v-if="draftPreviewItem.required_attributes.length" class="mt-4 space-y-2">
-                      <div v-for="requirement in draftPreviewItem.required_attributes" :key="`preview-requirement-${requirement.attribute_name}-${requirement.min_value}`" class="rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-3 py-2.5 text-[13px] text-[#f6f7fb]">
-                        {{ formatAttributeLabel(requirement.attribute_name) }} {{ requirement.min_value }}+
-                      </div>
-                    </div>
-                    <p v-else class="mt-4 text-[14px] text-[#d8dce7]/58">No requirements.</p>
-                  </div>
-
-                  <div class="rounded-[1.4rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
-                    <div class="flex items-center justify-between gap-3">
-                      <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Modifiers</span>
-                      <span class="text-[12px] text-[#d8dce7]/45">{{ draftPreviewItem.attribute_modifiers.length }}</span>
-                    </div>
-                    <div v-if="draftPreviewItem.attribute_modifiers.length" class="mt-4 space-y-2">
-                      <div v-for="modifier in draftPreviewItem.attribute_modifiers" :key="`preview-modifier-${modifier.attribute_name}-${modifier.modifier_value}-${modifier.is_percentage}`" class="rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-3 py-2.5 text-[13px] text-[#f6f7fb]">
-                        {{ formatAttributeLabel(modifier.attribute_name) }} {{ modifier.modifier_value > 0 ? '+' : '' }}{{ modifier.modifier_value }}{{ modifier.is_percentage ? '%' : '' }}
-                      </div>
-                    </div>
-                    <p v-else class="mt-4 text-[14px] text-[#d8dce7]/58">No modifiers.</p>
-                  </div>
-                </div>
               </article>
             </aside>
           </div>
 
           <div class="flex flex-col gap-4 border-t border-[rgba(126,200,227,0.1)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p class="max-w-[42rem] text-[13px] leading-relaxed text-[#d8dce7]/56">The selected image uploads immediately after the item record is created. If the upload fails, the item still exists and can be retried later.</p>
+
             <div class="flex flex-wrap gap-3">
-              <button
-                type="button"
-                @click="closeCreateItemModal"
-                :disabled="createItemSubmitting"
-                class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              <button type="button" @click="closeCreateItemModal" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
                 Cancel
               </button>
-              <button
-                type="button"
-                @click="createItem"
-                :disabled="createItemSubmitting"
-                class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.9),rgba(194,49,82,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
-              >
+              <button type="button" @click="createItem" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.9),rgba(194,49,82,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)] disabled:cursor-not-allowed disabled:opacity-60">
                 {{ createItemSubmitting ? 'Creating...' : 'Create Item' }}
               </button>
             </div>

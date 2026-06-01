@@ -27,7 +27,9 @@ func (h *Handler) Routes() chi.Router {
 	r.Get("/{gameID}/invite-code", h.GetInviteCode)
 	r.Get("/{gameID}/session", h.GetSession)
 	r.Post("/{gameID}/characters", h.CreateCharacter)
+	r.Get("/{gameID}/items", h.ListItems)
 	r.Post("/{gameID}/items", h.CreateItem)
+	r.Post("/{gameID}/items/{itemID}/image", h.UploadItemImage)
 	r.Get("/{gameID}/characters/{characterID}", h.GetCharacter)
 	r.Patch("/{gameID}/characters/{characterID}", h.UpdateCharacter)
 	r.Post("/{gameID}/characters/{characterID}/portrait", h.UploadCharacterPortrait)
@@ -421,6 +423,58 @@ func (h *Handler) UploadCharacterPortrait(w http.ResponseWriter, r *http.Request
 	respondJSON(w, 200, map[string]interface{}{
 		"portrait_id": upload.ID,
 		"character":   serializeCharacterDetail(character),
+	})
+}
+
+func (h *Handler) UploadItemImage(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	itemID := chi.URLParam(r, "itemID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can upload item images"})
+		return
+	}
+
+	item, err := h.service.repo.GetItemByID(gameID, itemID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": "Item not found"})
+		return
+	}
+
+	r.Body = http.MaxBytesReader(w, r.Body, 5*1024*1024+512)
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "File too large (max 5MB)"})
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": "Image file is required"})
+		return
+	}
+	defer file.Close()
+
+	upload, err := h.service.UploadItemImage(userID, item, file, header)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	item, err = h.service.repo.GetItemByID(gameID, itemID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Image uploaded but item could not be reloaded"})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"image_id": upload.ID,
+		"item":     serializeItem(*item),
 	})
 }
 
