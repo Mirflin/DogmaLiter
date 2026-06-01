@@ -21,6 +21,8 @@ func AutoMigrate(db *gorm.DB) {
 		&models.Character{},
 		&models.CharacterCustomAttribute{},
 		&models.Item{},
+		&models.GameItemTag{},
+		&models.ItemTagAssignment{},
 		&models.ItemType{},
 		&models.ItemRequiredAttribute{},
 		&models.ItemAttributeModifier{},
@@ -140,7 +142,7 @@ func migrateItemSchema(db *gorm.DB) {
 		log.Printf("items.category consumable backfill: %v", err)
 	}
 
-	if err := db.Exec(`UPDATE items SET category = 'loot' WHERE category = 'other' AND COALESCE(equip_slot, '') <> ''`).Error; err != nil {
-		log.Printf("items.category loot backfill: %v", err)
+	if err := db.Exec(`UPDATE items SET category = 'equipment' WHERE category IN ('other', 'loot') AND COALESCE(equip_slot, '') <> ''`).Error; err != nil {
+		log.Printf("items.category equipment backfill: %v", err)
 	}
 }

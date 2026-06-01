@@ -13,6 +13,7 @@ const (
 
 	ItemCategoryLoot       = "loot"
 	ItemCategoryConsumable = "consumable"
+	ItemCategoryEquipment  = "equipment"
 	ItemCategoryOther      = "other"
 
 	ItemEquipSlotHead     = "head"
@@ -39,6 +40,7 @@ var ValidItemRarities = []string{
 var ValidItemCategories = []string{
 	ItemCategoryLoot,
 	ItemCategoryConsumable,
+	ItemCategoryEquipment,
 	ItemCategoryOther,
 }
 
@@ -55,9 +57,9 @@ var ValidItemEquipSlots = []string{
 }
 
 type Item struct {
-	ID          string    `gorm:"type:varchar(36);primaryKey" json:"id"`
-	GameID      string    `gorm:"type:varchar(36);not null;index" json:"game_id"`
-	CreatedByID string    `gorm:"type:varchar(36);not null" json:"created_by_id"`
+	ID          string `gorm:"type:varchar(36);primaryKey" json:"id"`
+	GameID      string `gorm:"type:varchar(36);not null;index" json:"game_id"`
+	CreatedByID string `gorm:"type:varchar(36);not null" json:"created_by_id"`
 
 	Name        string  `gorm:"type:varchar(200);not null" json:"name"`
 	Description string  `gorm:"type:text" json:"description"`
@@ -76,6 +78,7 @@ type Item struct {
 	CreatedBy          User                    `gorm:"foreignKey:CreatedByID" json:"created_by,omitempty"`
 	Image              *Upload                 `gorm:"foreignKey:ImageID" json:"image,omitempty"`
 	Types              []ItemType              `gorm:"foreignKey:ItemID" json:"types,omitempty"`
+	Tags               []GameItemTag           `gorm:"many2many:item_tag_assignments;" json:"tags,omitempty"`
 	RequiredAttributes []ItemRequiredAttribute `gorm:"foreignKey:ItemID" json:"required_attributes,omitempty"`
 	AttributeModifiers []ItemAttributeModifier `gorm:"foreignKey:ItemID" json:"attribute_modifiers,omitempty"`
 }

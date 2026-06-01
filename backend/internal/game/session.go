@@ -51,13 +51,14 @@ type createItemModifierRequest struct {
 }
 
 type createItemRequest struct {
-	Name               string                       `json:"name"`
-	Description        string                       `json:"description"`
-	Rarity             string                       `json:"rarity"`
-	Category           string                       `json:"category"`
-	GridWidth          *int                         `json:"grid_width"`
-	GridHeight         *int                         `json:"grid_height"`
-	EquipSlot          *string                      `json:"equip_slot"`
+	Name               string                         `json:"name"`
+	Description        string                         `json:"description"`
+	Rarity             string                         `json:"rarity"`
+	Category           string                         `json:"category"`
+	Tags               []string                       `json:"tags"`
+	GridWidth          *int                           `json:"grid_width"`
+	GridHeight         *int                           `json:"grid_height"`
+	EquipSlot          *string                        `json:"equip_slot"`
 	RequiredAttributes []createItemRequirementRequest `json:"required_attributes"`
 	AttributeModifiers []createItemModifierRequest    `json:"attribute_modifiers"`
 }
@@ -99,6 +100,12 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	itemTags, err := h.service.repo.ListGameItemTags(gameID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to load item tags"})
+		return
+	}
+
 	messages := make([]models.ChatMessage, 0)
 	if game.EnableChat {
 		messages, err = h.service.repo.ListGameChatMessages(gameID, gameChatMessageLimit)
@@ -119,6 +126,7 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 		"game":       serializeGame(game, userID, isGM),
 		"characters": serializeCharacterSummaries(characters),
 		"items":      serializeItems(items),
+		"item_tags":  serializeGameItemTags(itemTags),
 		"messages":   serializeChatMessages(messages),
 	})
 }
@@ -268,7 +276,13 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.repo.CreateItem(item); err != nil {
+	tagNames, err := normalizeItemTagNames(req.Tags)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.repo.CreateItem(item, tagNames); err != nil {
 		respondJSON(w, 500, map[string]string{"error": "Failed to create item"})
 		return
 	}
@@ -334,15 +348,15 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Name             *string                                 `json:"name"`
-		Backstory        *string                                 `json:"backstory"`
-		CurrencyGold     *int                                    `json:"currency_gold"`
-		CurrencySilver   *int                                    `json:"currency_silver"`
-		CurrencyCopper   *int                                    `json:"currency_copper"`
-		OwnerUserID      *string                                 `json:"owner_user_id"`
-		InventoryWidth   *int                                    `json:"inventory_width"`
-		InventoryHeight  *int                                    `json:"inventory_height"`
-		BaseAttributes   *updateCharacterBaseAttributesRequest   `json:"base_attributes"`
+		Name             *string                                  `json:"name"`
+		Backstory        *string                                  `json:"backstory"`
+		CurrencyGold     *int                                     `json:"currency_gold"`
+		CurrencySilver   *int                                     `json:"currency_silver"`
+		CurrencyCopper   *int                                     `json:"currency_copper"`
+		OwnerUserID      *string                                  `json:"owner_user_id"`
+		InventoryWidth   *int                                     `json:"inventory_width"`
+		InventoryHeight  *int                                     `json:"inventory_height"`
+		BaseAttributes   *updateCharacterBaseAttributesRequest    `json:"base_attributes"`
 		CustomAttributes *[]updateCharacterCustomAttributeRequest `json:"custom_attributes"`
 	}
 
@@ -876,6 +890,15 @@ func serializeItem(item models.Item) map[string]interface{} {
 		})
 	}
 
+	tags := make([]string, 0, len(item.Tags))
+	for _, tag := range item.Tags {
+		name := strings.TrimSpace(tag.Name)
+		if name == "" {
+			continue
+		}
+		tags = append(tags, name)
+	}
+
 	return map[string]interface{}{
 		"id":                  item.ID,
 		"game_id":             item.GameID,
@@ -889,12 +912,25 @@ func serializeItem(item models.Item) map[string]interface{} {
 		"grid_height":         item.GridHeight,
 		"is_equippable":       normalizedEquipSlot != nil,
 		"equip_slot":          normalizedEquipSlot,
+		"tags":                tags,
 		"types":               types,
 		"required_attributes": requirements,
 		"attribute_modifiers": modifiers,
 		"created_at":          item.CreatedAt,
 		"updated_at":          item.UpdatedAt,
 	}
+}
+
+func serializeGameItemTags(tags []models.GameItemTag) []string {
+	result := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		name := strings.TrimSpace(tag.Name)
+		if name == "" {
+			continue
+		}
+		result = append(result, name)
+	}
+	return result
 }
 
 func serializeChatMessages(messages []models.ChatMessage) []map[string]interface{} {
@@ -1183,6 +1219,34 @@ func normalizeCreateItemRequest(gameID, userID string, req createItemRequest) (*
 		RequiredAttributes: requirements,
 		AttributeModifiers: modifiers,
 	}, nil
+}
+
+func normalizeItemTagNames(input []string) ([]string, error) {
+	if len(input) > 20 {
+		return nil, fmt.Errorf("Item tags must contain 20 entries or fewer")
+	}
+
+	result := make([]string, 0, len(input))
+	seen := make(map[string]struct{}, len(input))
+
+	for _, rawValue := range input {
+		name := strings.Join(strings.Fields(strings.TrimSpace(rawValue)), " ")
+		if name == "" {
+			continue
+		}
+		if len(name) > 60 {
+			return nil, fmt.Errorf("Item tag names must be 60 characters or less")
+		}
+
+		lookupKey := strings.ToLower(name)
+		if _, exists := seen[lookupKey]; exists {
+			continue
+		}
+		seen[lookupKey] = struct{}{}
+		result = append(result, name)
+	}
+
+	return result, nil
 }
 
 func normalizeItemRarity(value string) (string, error) {

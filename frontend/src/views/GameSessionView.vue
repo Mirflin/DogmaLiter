@@ -16,7 +16,7 @@ import SessionCharacterPickerModal from '@/components/session/SessionCharacterPi
 import SessionGMCharacterCreateModal from '@/components/session/SessionGMCharacterCreateModal.vue'
 import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
-import SessionItemManager from '@/components/session/SessionItemManager.vue'
+import SessionItemCompendium from '@/components/session/SessionItemCompendium.vue'
 import { notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -96,6 +96,7 @@ const rosterCharacters = computed(() => {
   return characters.value.filter(character => character.user_id === viewer.value?.user_id)
 })
 const items = computed(() => session.value?.items ?? [])
+const itemTags = computed(() => session.value?.item_tags ?? [])
 const chatMessages = computed(() => session.value?.messages ?? [])
 const selectedCharacterSummary = computed(() => characters.value.find(character => character.id === activeCharacterId.value) ?? null)
 const characterSnapshot = computed(() => activeCharacter.value ?? selectedCharacterSummary.value ?? null)
@@ -229,7 +230,7 @@ const tabs = computed(() => {
   if (isGM.value) {
     baseTabs.push(
       { id: 'players', label: 'Players', icon: 'players', description: 'GM roster view for members and their accessible characters.' },
-      { id: 'items', label: 'Items', icon: 'items', description: 'File-manager style item workspace for GM operations.' },
+      { id: 'items', label: 'Items', icon: 'items', description: 'Campaign compendium for item browsing, tagging, and creation.' },
     )
   }
 
@@ -1578,7 +1579,7 @@ onBeforeUnmount(() => {
             </article>
           </section>
 
-          <SessionItemManager v-else-if="activeTab === 'items' && isGM" :items="items" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
+          <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :items="items" :characters="characters" :available-tags="itemTags" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
         </main>
       </div>
 

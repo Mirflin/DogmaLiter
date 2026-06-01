@@ -1,10 +1,12 @@
 package game
 
 import (
+	"strings"
 	"time"
 
 	"backend/internal/models"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -148,7 +150,7 @@ func (r *Repository) UpdateCharacter(character *models.Character, replaceCustomA
 		if err := tx.Model(&models.Character{}).
 			Where("game_id = ? AND id = ?", character.GameID, character.ID).
 			Updates(map[string]interface{}{
-				"user_id":            character.UserID,
+				"user_id":           character.UserID,
 				"name":              character.Name,
 				"backstory":         character.Backstory,
 				"base_strength":     character.BaseStrength,
@@ -199,6 +201,9 @@ func (r *Repository) ListGameItems(gameID string) ([]models.Item, error) {
 		Where("game_id = ?", gameID).
 		Preload("Image").
 		Preload("Types").
+		Preload("Tags", func(db *gorm.DB) *gorm.DB {
+			return db.Order("name ASC")
+		}).
 		Preload("RequiredAttributes").
 		Preload("AttributeModifiers").
 		Order("updated_at DESC, created_at DESC").
@@ -221,6 +226,9 @@ func (r *Repository) GetItemByID(gameID, itemID string) (*models.Item, error) {
 		Where("game_id = ? AND id = ?", gameID, itemID).
 		Preload("Image").
 		Preload("Types").
+		Preload("Tags", func(db *gorm.DB) *gorm.DB {
+			return db.Order("name ASC")
+		}).
 		Preload("RequiredAttributes").
 		Preload("AttributeModifiers").
 		First(&item).Error
@@ -231,9 +239,9 @@ func (r *Repository) GetItemByID(gameID, itemID string) (*models.Item, error) {
 	return &item, nil
 }
 
-func (r *Repository) CreateItem(item *models.Item) error {
+func (r *Repository) CreateItem(item *models.Item, tagNames []string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Omit("Game", "CreatedBy", "Image", "Types", "RequiredAttributes", "AttributeModifiers").Create(item).Error; err != nil {
+		if err := tx.Omit("Game", "CreatedBy", "Image", "Types", "Tags", "RequiredAttributes", "AttributeModifiers").Create(item).Error; err != nil {
 			return err
 		}
 
@@ -249,8 +257,70 @@ func (r *Repository) CreateItem(item *models.Item) error {
 			}
 		}
 
+		if len(tagNames) > 0 {
+			tags, err := r.ensureGameItemTagsTx(tx, item.GameID, item.CreatedByID, tagNames)
+			if err != nil {
+				return err
+			}
+
+			if err := tx.Model(item).Association("Tags").Replace(tags); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
+}
+
+func (r *Repository) ListGameItemTags(gameID string) ([]models.GameItemTag, error) {
+	var tags []models.GameItemTag
+	err := r.db.
+		Where("game_id = ?", gameID).
+		Order("name ASC").
+		Find(&tags).Error
+
+	return tags, err
+}
+
+func (r *Repository) ensureGameItemTagsTx(tx *gorm.DB, gameID, userID string, tagNames []string) ([]models.GameItemTag, error) {
+	tags := make([]models.GameItemTag, 0, len(tagNames))
+	seen := make(map[string]struct{}, len(tagNames))
+
+	for _, rawName := range tagNames {
+		name := strings.TrimSpace(rawName)
+		if name == "" {
+			continue
+		}
+
+		lookupKey := strings.ToLower(name)
+		if _, exists := seen[lookupKey]; exists {
+			continue
+		}
+		seen[lookupKey] = struct{}{}
+
+		var tag models.GameItemTag
+		err := tx.Where("game_id = ? AND LOWER(name) = LOWER(?)", gameID, name).First(&tag).Error
+		if err != nil {
+			if err != gorm.ErrRecordNotFound {
+				return nil, err
+			}
+
+			tag = models.GameItemTag{
+				ID:          uuid.New().String(),
+				GameID:      gameID,
+				CreatedByID: userID,
+				Name:        name,
+			}
+
+			if err := tx.Create(&tag).Error; err != nil {
+				return nil, err
+			}
+		}
+
+		tags = append(tags, tag)
+	}
+
+	return tags, nil
 }
 
 func (r *Repository) ListGameChatMessages(gameID string, limit int) ([]models.ChatMessage, error) {
