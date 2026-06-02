@@ -46,10 +46,11 @@ const dragEntryId = ref('')
 const grabOffset = ref({ dx: 0, dy: 0 })
 const hoverCell = ref(null)
 const hoverSlot = ref(null)
+const mounted = ref(false)
 
 let interactable = null
-let dragTx = 0
-let dragTy = 0
+let grabPxX = 0
+let grabPxY = 0
 
 const safeInventoryWidth = computed(() => Math.max(1, Number(props.inventoryWidth) || 10))
 const safeInventoryHeight = computed(() => Math.max(1, Number(props.inventoryHeight) || 6))
@@ -127,6 +128,10 @@ watch(
 )
 
 onMounted(() => {
+  requestAnimationFrame(() => {
+    mounted.value = true
+  })
+
   if (!boardRef.value) return
 
   interactable = interact('.session-inventory-item', { context: boardRef.value })
@@ -148,15 +153,25 @@ onBeforeUnmount(() => {
   }
 })
 
-function setDragVisual(element, active) {
-  element.style.transform = active ? element.style.transform : ''
-  element.style.zIndex = active ? '1000' : ''
-  element.style.pointerEvents = active ? 'none' : ''
-  element.style.opacity = active ? '0.95' : ''
-  element.style.cursor = active ? 'grabbing' : ''
-  element.style.filter = active ? 'drop-shadow(0 12px 20px rgba(0, 0, 0, 0.55))' : ''
-  if (element.parentElement) {
-    element.parentElement.style.zIndex = active ? '1000' : ''
+function setDragVisual(element, active, geometry) {
+  if (active) {
+    element.style.position = 'fixed'
+    element.style.width = `${geometry.width}px`
+    element.style.height = `${geometry.height}px`
+    element.style.left = `${geometry.left}px`
+    element.style.top = `${geometry.top}px`
+    element.style.margin = '0'
+    element.style.zIndex = '9999'
+    element.style.pointerEvents = 'none'
+    element.style.transition = 'transform 130ms ease, filter 130ms ease'
+    element.style.transform = 'scale(1.06) rotate(1.4deg)'
+    element.style.filter = 'drop-shadow(0 18px 28px rgba(0, 0, 0, 0.6))'
+    element.style.cursor = 'grabbing'
+    return
+  }
+
+  for (const prop of ['position', 'width', 'height', 'left', 'top', 'margin', 'zIndex', 'pointerEvents', 'transition', 'transform', 'filter', 'cursor']) {
+    element.style[prop] = ''
   }
 }
 
@@ -186,17 +201,25 @@ function onDragStart(event) {
   }
   dragEntryId.value = entryId
   dragging.value = true
-  dragTx = 0
-  dragTy = 0
 
-  setDragVisual(element, true)
+  // Pixel offset from the cursor to the dragged item's top-left, so the grabbed
+  // cell sits centered under the pointer once the item snaps to its real grid size.
+  grabPxX = grabOffset.value.dx * cellWidth + cellWidth / 2
+  grabPxY = grabOffset.value.dy * cellHeight + cellHeight / 2
+
+  setDragVisual(element, true, {
+    width: width * cellWidth,
+    height: height * cellHeight,
+    left: event.clientX - grabPxX,
+    top: event.clientY - grabPxY,
+  })
   updateHoverFromPointer(event.clientX, event.clientY)
 }
 
 function onDragMove(event) {
-  dragTx += event.dx
-  dragTy += event.dy
-  event.target.style.transform = `translate(${dragTx}px, ${dragTy}px)`
+  const element = event.target
+  element.style.left = `${event.clientX - grabPxX}px`
+  element.style.top = `${event.clientY - grabPxY}px`
   updateHoverFromPointer(event.clientX, event.clientY)
 }
 
@@ -430,7 +453,8 @@ function equipmentEntry(slot) {
 <template>
   <article
     ref="boardRef"
-    class="relative mx-auto w-full max-w-full rounded-[clamp(0.22rem,0.5vw,0.34rem)] border border-[rgba(126,200,227,0.28)] bg-[radial-gradient(circle_at_top,rgba(233,69,96,0.12),transparent_26%),linear-gradient(180deg,rgba(16,24,44,0.98),rgba(9,15,29,1)),linear-gradient(135deg,rgba(126,200,227,0.05),transparent_42%)] p-[0.48rem] shadow-[inset_0_0_0_1px_rgba(126,200,227,0.06),0_18px_34px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:inset-[clamp(0.3rem,0.8vw,0.55rem)] before:rounded-[clamp(0.16rem,0.4vw,0.28rem)] before:border before:border-[rgba(126,200,227,0.14)] before:content-[''] md:p-[0.7rem] lg:w-fit lg:p-[clamp(0.55rem,1.4vw,0.95rem)] [--inv-cell:clamp(1.58rem,8.8vw,2.15rem)] min-[480px]:[--inv-cell:clamp(1.72rem,8vw,2.6rem)] md:[--inv-cell:clamp(1.9rem,6.2vw,3.85rem)] lg:[--inv-cell:clamp(1.9rem,5.9vw,4.95rem)] [--inv-gap:calc(var(--inv-cell)*0.28)] [--inv-weapon-col:calc(var(--inv-cell)*2.6)] [--inv-trinket-col:calc(var(--inv-cell)*0.98)] [--inv-center-col:calc(var(--inv-cell)*2.08)] [--inv-weapon-h:calc(var(--inv-cell)*3.76)] [--inv-glove-h:calc(var(--inv-cell)*1.88)] [--inv-head:calc(var(--inv-cell)*1.07)] [--inv-chest-h:calc(var(--inv-cell)*2.42)] [--inv-belt-h:calc(var(--inv-cell)*1.03)] [--inv-ring:calc(var(--inv-cell)*0.91)] [--inv-amulet:var(--inv-cell)]"
+    :class="mounted ? 'opacity-100' : 'opacity-0'"
+    class="relative mx-auto w-full max-w-full transition-opacity duration-500 ease-out rounded-[clamp(0.22rem,0.5vw,0.34rem)] border border-[rgba(126,200,227,0.28)] bg-[radial-gradient(circle_at_top,rgba(233,69,96,0.12),transparent_26%),linear-gradient(180deg,rgba(16,24,44,0.98),rgba(9,15,29,1)),linear-gradient(135deg,rgba(126,200,227,0.05),transparent_42%)] p-[0.48rem] shadow-[inset_0_0_0_1px_rgba(126,200,227,0.06),0_18px_34px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:inset-[clamp(0.3rem,0.8vw,0.55rem)] before:rounded-[clamp(0.16rem,0.4vw,0.28rem)] before:border before:border-[rgba(126,200,227,0.14)] before:content-[''] md:p-[0.7rem] lg:w-fit lg:p-[clamp(0.55rem,1.4vw,0.95rem)] [--inv-cell:clamp(1.58rem,8.8vw,2.15rem)] min-[480px]:[--inv-cell:clamp(1.72rem,8vw,2.6rem)] md:[--inv-cell:clamp(1.9rem,6.2vw,3.85rem)] lg:[--inv-cell:clamp(1.9rem,5.9vw,4.95rem)] [--inv-gap:calc(var(--inv-cell)*0.28)] [--inv-weapon-col:calc(var(--inv-cell)*2.6)] [--inv-trinket-col:calc(var(--inv-cell)*0.98)] [--inv-center-col:calc(var(--inv-cell)*2.08)] [--inv-weapon-h:calc(var(--inv-cell)*3.76)] [--inv-glove-h:calc(var(--inv-cell)*1.88)] [--inv-head:calc(var(--inv-cell)*1.07)] [--inv-chest-h:calc(var(--inv-cell)*2.42)] [--inv-belt-h:calc(var(--inv-cell)*1.03)] [--inv-ring:calc(var(--inv-cell)*0.91)] [--inv-amulet:var(--inv-cell)]"
   >
     <div class="relative z-[1] flex flex-col gap-[0.4rem] p-[0.42rem] min-[480px]:p-[0.55rem] md:gap-[0.6rem] md:p-[0.78rem] lg:gap-[clamp(0.45rem,1vw,0.8rem)] lg:p-[clamp(0.6rem,1.5vw,1rem)]">
       <section class="shrink-0">
@@ -438,7 +462,7 @@ function equipmentEntry(slot) {
           <div class="flex h-auto w-[var(--inv-weapon-col)] flex-col gap-[var(--inv-gap)]">
             <div
               data-slot="main_hand"
-              class="h-[var(--inv-weapon-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border"
+              class="h-[var(--inv-weapon-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('main_hand')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('main_hand')" :entry="equipmentEntry('main_hand')" variant="equipment" />
@@ -449,7 +473,7 @@ function equipmentEntry(slot) {
 
             <div
               data-slot="gloves"
-              class="h-[var(--inv-glove-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border"
+              class="h-[var(--inv-glove-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('gloves')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('gloves')" :entry="equipmentEntry('gloves')" variant="equipment" />
@@ -462,7 +486,7 @@ function equipmentEntry(slot) {
           <div class="flex h-auto w-[var(--inv-trinket-col)] flex-col items-center justify-end gap-[var(--inv-gap)]">
             <div
               data-slot="ring_1"
-              class="aspect-square min-h-[var(--inv-ring)] max-w-[var(--inv-ring)] rounded-full border"
+              class="aspect-square min-h-[var(--inv-ring)] max-w-[var(--inv-ring)] rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('ring_1')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('ring_1')" :entry="equipmentEntry('ring_1')" variant="equipment" />
@@ -475,7 +499,7 @@ function equipmentEntry(slot) {
           <div class="flex h-auto w-[var(--inv-center-col)] flex-col gap-[var(--inv-gap)]">
             <div
               data-slot="head"
-              class="h-[var(--inv-head)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border"
+              class="h-[var(--inv-head)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('head')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('head')" :entry="equipmentEntry('head')" variant="equipment" />
@@ -486,7 +510,7 @@ function equipmentEntry(slot) {
 
             <div
               data-slot="chest"
-              class="h-[var(--inv-chest-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border"
+              class="h-[var(--inv-chest-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('chest')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('chest')" :entry="equipmentEntry('chest')" variant="equipment" />
@@ -497,7 +521,7 @@ function equipmentEntry(slot) {
 
             <div
               data-slot="belt"
-              class="h-[var(--inv-belt-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border"
+              class="h-[var(--inv-belt-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('belt')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('belt')" :entry="equipmentEntry('belt')" variant="equipment" />
@@ -510,7 +534,7 @@ function equipmentEntry(slot) {
           <div class="flex h-auto w-[var(--inv-trinket-col)] flex-col items-center justify-end gap-[calc(var(--inv-gap)*1.4)]">
             <div
               data-slot="amulet"
-              class="aspect-square min-h-[var(--inv-amulet)] max-w-[var(--inv-amulet)] rounded-full border"
+              class="aspect-square min-h-[var(--inv-amulet)] max-w-[var(--inv-amulet)] rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('amulet')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('amulet')" :entry="equipmentEntry('amulet')" variant="equipment" />
@@ -521,7 +545,7 @@ function equipmentEntry(slot) {
 
             <div
               data-slot="ring_2"
-              class="aspect-square min-h-[var(--inv-ring)] max-w-[var(--inv-ring)] rounded-full border"
+              class="aspect-square min-h-[var(--inv-ring)] max-w-[var(--inv-ring)] rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('ring_2')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('ring_2')" :entry="equipmentEntry('ring_2')" variant="equipment" />
@@ -534,7 +558,7 @@ function equipmentEntry(slot) {
           <div class="flex h-auto w-[var(--inv-weapon-col)] flex-col items-stretch gap-[var(--inv-gap)]">
             <div
               data-slot="off_hand"
-              class="h-[var(--inv-weapon-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border"
+              class="h-[var(--inv-weapon-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('off_hand')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('off_hand')" :entry="equipmentEntry('off_hand')" variant="equipment" />
@@ -545,7 +569,7 @@ function equipmentEntry(slot) {
 
             <div
               data-slot="boots"
-              class="h-[var(--inv-glove-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border"
+              class="h-[var(--inv-glove-h)] w-full rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('boots')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('boots')" :entry="equipmentEntry('boots')" variant="equipment" />
@@ -569,7 +593,7 @@ function equipmentEntry(slot) {
           <div
             v-for="cell in gridCells"
             :key="cell.id"
-            class="session-inventory-grid__cell h-full min-w-0 min-h-0 border"
+            class="session-inventory-grid__cell h-full min-w-0 min-h-0 border transition-[border-color,box-shadow,background-color] duration-150"
             :class="cellStateClasses(cell)"
             :style="{ gridColumn: `${cell.x + 1}`, gridRow: `${cell.y + 1}` }"
           ></div>

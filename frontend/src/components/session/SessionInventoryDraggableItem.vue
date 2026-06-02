@@ -19,13 +19,13 @@ const itemInitial = computed(() => (item.value?.name || '?').charAt(0).toUpperCa
 const sizeLabel = computed(() => `${item.value?.grid_width || 1}x${item.value?.grid_height || 1}`)
 const rarityBorderClass = computed(() => {
   const variants = {
-    common: 'border-[rgba(255,255,255,0.72)]',
-    uncommon: 'border-[rgba(250,204,21,0.78)]',
-    rare: 'border-[rgba(96,165,250,0.8)]',
-    epic: 'border-[rgba(192,132,252,0.8)]',
-    masterwork: 'border-[rgba(251,146,60,0.82)]',
-    legendary: 'border-[rgba(74,222,128,0.8)]',
-    unique: 'border-[rgba(247,118,118,0.82)]',
+    common: 'border-[rgba(226,232,240,0.95)] shadow-[inset_0_0_10px_rgba(226,232,240,0.25),0_6px_14px_rgba(0,0,0,0.3)]',
+    uncommon: 'border-[rgba(250,204,21,1)] shadow-[inset_0_0_10px_rgba(250,204,21,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    rare: 'border-[rgba(96,165,250,1)] shadow-[inset_0_0_10px_rgba(96,165,250,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    epic: 'border-[rgba(192,132,252,1)] shadow-[inset_0_0_10px_rgba(192,132,252,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    masterwork: 'border-[rgba(251,146,60,1)] shadow-[inset_0_0_10px_rgba(251,146,60,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    legendary: 'border-[rgba(74,222,128,1)] shadow-[inset_0_0_10px_rgba(74,222,128,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    unique: 'border-[rgba(247,118,118,1)] shadow-[inset_0_0_10px_rgba(247,118,118,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
   }
 
   return variants[item.value?.rarity] || variants.common
@@ -34,23 +34,22 @@ const rarityBorderClass = computed(() => {
 
 <template>
   <div
-    class="session-inventory-item h-full w-full cursor-grab touch-none select-none outline-none"
+    class="session-inventory-item h-full w-full cursor-grab touch-none select-none outline-none transition-transform duration-150 ease-out hover:scale-[1.05]"
     :data-entry-id="entry.id"
     tabindex="0"
     :title="item.name || 'Unnamed item'"
   >
     <div
-      class="relative h-full w-full overflow-hidden rounded-[0.12rem] border bg-[linear-gradient(180deg,rgba(27,49,93,0.98),rgba(13,24,47,1)),linear-gradient(135deg,rgba(106,147,211,0.2),rgba(7,12,24,0))] shadow-[inset_0_0_0_1px_rgba(171,204,255,0.08),0_8px_16px_rgba(0,0,0,0.18)] after:pointer-events-none after:absolute after:inset-[0.16rem] after:rounded-[0.08rem] after:border after:border-[rgba(151,188,245,0.1)] after:content-['']"
+      class="relative h-full w-full overflow-hidden rounded-[0.12rem] border-2 bg-[linear-gradient(180deg,rgba(27,49,93,0.98),rgba(13,24,47,1)),linear-gradient(135deg,rgba(106,147,211,0.2),rgba(7,12,24,0))]"
       :class="rarityBorderClass"
     >
-      <div class="flex h-full w-full min-h-0 items-center justify-center rounded-[0.05rem] bg-[radial-gradient(circle_at_top,rgba(255,247,226,0.2),transparent_46%),linear-gradient(180deg,rgba(222,211,182,0.9),rgba(170,151,104,0.78))]">
+      <div class="flex h-full w-full min-h-0 items-center justify-center bg-[radial-gradient(circle_at_top,rgba(255,247,226,0.2),transparent_46%),linear-gradient(180deg,rgba(222,211,182,0.9),rgba(170,151,104,0.78))]">
         <img
           v-if="itemImageUrl"
           :src="itemImageUrl"
           :alt="item.name"
           draggable="false"
-          class="h-full w-full object-contain"
-          :class="variant === 'equipment' ? 'p-[0.36rem]' : 'p-[0.3rem]'"
+          class="h-full w-full object-cover"
         />
         <span v-else class="font-[Cinzel] text-[clamp(1rem,1.5vw,1.45rem)] font-bold text-[rgba(23,36,66,0.92)]">{{ itemInitial }}</span>
       </div>
