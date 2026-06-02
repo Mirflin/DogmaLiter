@@ -112,7 +112,7 @@ const deleteCandidateSubmitting = ref(false)
 const cartItems = ref([])
 const showCartModal = ref(false)
 const cartCharacterSearch = ref('')
-const cartTargetCharacterId = ref('')
+const cartTargetCharacterIds = ref([])
 const cartSubmitting = ref(false)
 
 let searchDebounceHandle = null
@@ -278,8 +278,9 @@ const cartCharacterOptions = computed(() => {
   }
   return list.filter(character => String(character.name || '').toLowerCase().includes(query))
 })
-const cartTargetCharacter = computed(() => (props.characters ?? [])
-  .find(character => character?.id === cartTargetCharacterId.value) ?? null)
+const cartTargetCharacterIdSet = computed(() => new Set(cartTargetCharacterIds.value))
+const cartTargetCharacters = computed(() => (props.characters ?? [])
+  .filter(character => cartTargetCharacterIdSet.value.has(character?.id)))
 const itemContextMenuStyle = computed(() => ({
   left: `${itemContextMenu.value.x}px`,
   top: `${itemContextMenu.value.y}px`,
@@ -573,11 +574,19 @@ function createCartLine(item) {
   return {
     item,
     quantity: 1,
-    hasDurability: false,
     durability: 100,
     maxDurability: 100,
+    hasEnchantment: false,
     enchantment: 0,
   }
+}
+
+function toggleCartCharacter(characterId) {
+  if (cartTargetCharacterIds.value.includes(characterId)) {
+    cartTargetCharacterIds.value = cartTargetCharacterIds.value.filter(id => id !== characterId)
+    return
+  }
+  cartTargetCharacterIds.value = [...cartTargetCharacterIds.value, characterId]
 }
 
 function toggleCartItem(item) {
@@ -605,7 +614,7 @@ function openCartModal() {
   }
   closeItemContextMenu()
   cartCharacterSearch.value = ''
-  cartTargetCharacterId.value = ''
+  cartTargetCharacterIds.value = []
   showCartModal.value = true
 }
 
@@ -632,45 +641,64 @@ async function deliverCart() {
     notify.warning({ title: 'Cart is empty', message: 'Add at least one item before delivering.' })
     return
   }
-  if (!cartTargetCharacterId.value) {
-    notify.warning({ title: 'Choose a character', message: 'Select who receives these items.' })
+  if (!cartTargetCharacterIds.value.length) {
+    notify.warning({ title: 'Choose a character', message: 'Select at least one character to receive these items.' })
     return
   }
 
   const payload = cartItems.value.map((line) => {
+    const maxDurability = clampInt(line.maxDurability, 1, 1000000, 100)
     const entry = {
       item_id: line.item.id,
       quantity: clampInt(line.quantity, 1, 9999, 1),
-      enchantment: clampInt(line.enchantment, -999, 999, 0),
+      max_durability: maxDurability,
+      durability: clampInt(line.durability, 0, maxDurability, maxDurability),
     }
-    if (line.hasDurability) {
-      const max = clampInt(line.maxDurability, 1, 1000000, 1)
-      entry.max_durability = max
-      entry.durability = clampInt(line.durability, 0, max, max)
+    if (line.hasEnchantment) {
+      entry.enchantment = clampInt(line.enchantment, -999, 999, 0)
     }
     return entry
   })
 
-  const targetName = cartTargetCharacter.value?.name || 'the character'
+  const targets = cartTargetCharacters.value
+  const succeeded = []
+  const succeededIds = []
+  const failed = []
   cartSubmitting.value = true
 
   try {
-    const result = await auth.giveItemsToCharacter(props.gameId, cartTargetCharacterId.value, payload)
-    clearCart()
-    closeCartModal(true)
-    emit('created')
-    notify.success({
-      title: 'Items delivered',
-      message: `${result?.delivered ?? payload.length} item(s) added to ${targetName}.`,
-    })
-  } catch (error) {
-    notify.error({
-      title: 'Failed to deliver items',
-      message: getErrorMessage(error, 'Failed to deliver items'),
-    })
+    for (const character of targets) {
+      try {
+        await auth.giveItemsToCharacter(props.gameId, character.id, payload)
+        succeeded.push(character.name || 'Unnamed')
+        succeededIds.push(character.id)
+      } catch (error) {
+        failed.push(`${character.name || 'Unnamed'}: ${getErrorMessage(error, 'delivery failed')}`)
+      }
+    }
   } finally {
     cartSubmitting.value = false
   }
+
+  if (succeeded.length) {
+    emit('created')
+    notify.success({
+      title: 'Items delivered',
+      message: `${payload.length} item(s) delivered to ${succeeded.join(', ')}.`,
+    })
+  }
+
+  if (failed.length) {
+    cartTargetCharacterIds.value = cartTargetCharacterIds.value.filter(id => !succeededIds.includes(id))
+    notify.error({
+      title: 'Some deliveries failed',
+      message: failed.join(' · '),
+    })
+    return
+  }
+
+  clearCart()
+  closeCartModal(true)
 }
 
 function openItemDetailModal(item, mode = 'view') {
@@ -1556,7 +1584,7 @@ function itemSizeLabel(item) {
               :aria-checked="isInCart(item)"
               :title="isInCart(item) ? 'Remove from transfer cart' : 'Add to transfer cart'"
               @click.stop.prevent="toggleCartItem(item)"
-              class="absolute left-3 top-3 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border shadow-[0_4px_12px_rgba(0,0,0,0.4)] transition-all duration-200"
+              class="absolute bottom-3 left-3 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border shadow-[0_4px_12px_rgba(0,0,0,0.4)] transition-all duration-200"
               :class="isInCart(item)
                 ? 'border-[rgba(233,69,96,0.55)] bg-[rgba(233,69,96,0.92)] text-white'
                 : 'border-[rgba(126,200,227,0.35)] bg-[rgba(7,17,31,0.92)] text-transparent hover:border-[rgba(126,200,227,0.7)]'"
@@ -1788,23 +1816,22 @@ function itemSizeLabel(item) {
                         <input v-model.number="line.quantity" type="number" min="1" max="9999" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Enchantment</span>
-                        <input v-model.number="line.enchantment" type="number" min="-999" max="999" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
-                      </label>
-                      <label class="flex cursor-pointer items-center gap-2.5 self-end rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5">
-                        <input v-model="line.hasDurability" type="checkbox" class="h-4 w-4 cursor-pointer accent-[#e94560]" />
-                        <span class="text-[12px] font-semibold text-[#d8dce7]/78">Track durability</span>
-                      </label>
-                    </div>
-
-                    <div v-if="line.hasDurability" class="mt-3 grid gap-3 sm:grid-cols-2">
-                      <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Durability</span>
                         <input v-model.number="line.durability" type="number" min="0" :max="line.maxDurability" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
                       </label>
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Max durability</span>
                         <input v-model.number="line.maxDurability" type="number" min="1" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                      </label>
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap items-center gap-3">
+                      <label class="flex cursor-pointer items-center gap-2.5 rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5">
+                        <input v-model="line.hasEnchantment" type="checkbox" class="h-4 w-4 cursor-pointer accent-[#e94560]" />
+                        <span class="text-[12px] font-semibold text-[#d8dce7]/78">Enchantment</span>
+                      </label>
+                      <label v-if="line.hasEnchantment" class="block min-w-[8rem] flex-1">
+                        <input v-model.number="line.enchantment" type="number" min="-999" max="999" placeholder="Enchantment level" class="session-input w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
                       </label>
                     </div>
                   </div>
@@ -1821,7 +1848,10 @@ function itemSizeLabel(item) {
           <div class="border-t border-[rgba(126,200,227,0.1)] px-5 py-5 sm:px-6">
             <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
               <div>
-                <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Recipient</span>
+                <div class="flex items-center justify-between gap-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Recipients</span>
+                  <span v-if="cartTargetCharacterIds.length" class="text-[11px] font-semibold text-[#8fd7ef]">{{ cartTargetCharacterIds.length }} selected</span>
+                </div>
                 <div class="mt-2 flex items-center gap-3 rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3">
                   <Search class="h-4 w-4 text-[#7ec8e3]/45" :stroke-width="2" />
                   <input v-model="cartCharacterSearch" type="text" placeholder="Search characters" class="session-input w-full border-0 bg-transparent p-0 text-[14px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30" />
@@ -1831,10 +1861,18 @@ function itemSizeLabel(item) {
                     v-for="character in cartCharacterOptions"
                     :key="character.id"
                     type="button"
-                    @click="cartTargetCharacterId = character.id"
+                    @click="toggleCartCharacter(character.id)"
                     class="flex w-full cursor-pointer items-center gap-3 border-b border-[rgba(126,200,227,0.06)] px-4 py-3 text-left transition-all duration-200 last:border-b-0 hover:bg-[rgba(126,200,227,0.06)]"
-                    :class="cartTargetCharacterId === character.id ? 'bg-[rgba(233,69,96,0.12)]' : ''"
+                    :class="cartTargetCharacterIdSet.has(character.id) ? 'bg-[rgba(233,69,96,0.12)]' : ''"
                   >
+                    <span
+                      class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-all duration-200"
+                      :class="cartTargetCharacterIdSet.has(character.id)
+                        ? 'border-[rgba(233,69,96,0.55)] bg-[rgba(233,69,96,0.92)] text-white'
+                        : 'border-[rgba(126,200,227,0.3)] bg-[rgba(7,17,31,0.7)] text-transparent'"
+                    >
+                      <Check class="h-3.5 w-3.5" :stroke-width="3" />
+                    </span>
                     <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#8fd7ef]">
                       <User class="h-4 w-4" :stroke-width="2" />
                     </div>
@@ -1842,7 +1880,6 @@ function itemSizeLabel(item) {
                       <p class="truncate text-[14px] font-semibold text-[#f6f7fb]">{{ character.name }}</p>
                       <p v-if="character.owner?.username" class="truncate text-[12px] text-[#d8dce7]/52">{{ character.owner.username }}</p>
                     </div>
-                    <Check v-if="cartTargetCharacterId === character.id" class="h-4 w-4 shrink-0 text-[#ff9bb0]" :stroke-width="3" />
                   </button>
                   <p v-if="!cartCharacterOptions.length" class="px-4 py-4 text-[13px] text-[#d8dce7]/50">No characters match your search.</p>
                 </div>
@@ -1851,13 +1888,13 @@ function itemSizeLabel(item) {
               <div class="flex flex-col justify-end gap-3">
                 <p class="text-[13px] leading-relaxed text-[#d8dce7]/58">
                   Delivering <span class="font-semibold text-[#f6f7fb]">{{ cartCount }}</span> item(s) to
-                  <span class="font-semibold text-[#f6f7fb]">{{ cartTargetCharacter?.name || 'no character selected' }}</span>.
+                  <span class="font-semibold text-[#f6f7fb]">{{ cartTargetCharacterIds.length }}</span> character(s).
                 </p>
                 <div class="flex gap-3">
                   <button type="button" @click="clearCart" :disabled="cartSubmitting || !cartCount" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-50">
                     Clear
                   </button>
-                  <button type="button" @click="deliverCart" :disabled="cartSubmitting || !cartCount || !cartTargetCharacterId" class="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0">
+                  <button type="button" @click="deliverCart" :disabled="cartSubmitting || !cartCount || !cartTargetCharacterIds.length" class="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0">
                     <Send class="h-4 w-4" :stroke-width="2" />
                     {{ cartSubmitting ? 'Delivering...' : 'Deliver Items' }}
                   </button>
