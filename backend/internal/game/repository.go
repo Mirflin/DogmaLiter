@@ -360,6 +360,62 @@ func (r *Repository) CreateItem(item *models.Item, tagNames []string) error {
 	})
 }
 
+func (r *Repository) UpdateItem(item *models.Item, tagNames []string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.Item{}).
+			Where("game_id = ? AND id = ?", item.GameID, item.ID).
+			Updates(map[string]interface{}{
+				"name":        item.Name,
+				"description": item.Description,
+				"rarity":      item.Rarity,
+				"category":    item.Category,
+				"grid_width":  item.GridWidth,
+				"grid_height": item.GridHeight,
+				"equip_slot":  item.EquipSlot,
+				"updated_at":  time.Now(),
+			}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where("item_id = ?", item.ID).Delete(&models.ItemRequiredAttribute{}).Error; err != nil {
+			return err
+		}
+		if len(item.RequiredAttributes) > 0 {
+			if err := tx.Create(&item.RequiredAttributes).Error; err != nil {
+				return err
+			}
+		}
+
+		if err := tx.Where("item_id = ?", item.ID).Delete(&models.ItemAttributeModifier{}).Error; err != nil {
+			return err
+		}
+		if len(item.AttributeModifiers) > 0 {
+			if err := tx.Create(&item.AttributeModifiers).Error; err != nil {
+				return err
+			}
+		}
+
+		if err := tx.Where("item_id = ?", item.ID).Delete(&models.ItemType{}).Error; err != nil {
+			return err
+		}
+
+		tags := make([]models.GameItemTag, 0, len(tagNames))
+		if len(tagNames) > 0 {
+			resolvedTags, err := r.ensureGameItemTagsTx(tx, item.GameID, item.CreatedByID, tagNames)
+			if err != nil {
+				return err
+			}
+			tags = resolvedTags
+		}
+
+		if err := tx.Model(item).Association("Tags").Replace(tags); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
 func (r *Repository) ListGameItemTags(gameID string) ([]models.GameItemTag, error) {
 	var tags []models.GameItemTag
 	err := r.db.
@@ -490,6 +546,41 @@ func (r *Repository) DeleteGame(gameID string) error {
 		return err
 	}
 	return r.db.Delete(&models.Game{}, "id = ?", gameID).Error
+}
+
+func (r *Repository) DeleteItem(gameID, itemID string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var inventoryItemIDs []string
+		if err := tx.Model(&models.CharacterInventory{}).
+			Where("item_id = ?", itemID).
+			Pluck("id", &inventoryItemIDs).Error; err != nil {
+			return err
+		}
+
+		if len(inventoryItemIDs) > 0 {
+			if err := tx.Where("inventory_item_id IN ?", inventoryItemIDs).Delete(&models.CharacterEquipment{}).Error; err != nil {
+				return err
+			}
+		}
+
+		if err := tx.Where("item_id = ?", itemID).Delete(&models.CharacterInventory{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("item_id = ?", itemID).Delete(&models.ItemTagAssignment{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("item_id = ?", itemID).Delete(&models.ItemRequiredAttribute{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("item_id = ?", itemID).Delete(&models.ItemAttributeModifier{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("item_id = ?", itemID).Delete(&models.ItemType{}).Error; err != nil {
+			return err
+		}
+
+		return tx.Where("game_id = ? AND id = ?", gameID, itemID).Delete(&models.Item{}).Error
+	})
 }
 
 func (r *Repository) UpdateCoverImage(gameID string, coverImageID *string) error {

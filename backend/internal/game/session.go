@@ -26,6 +26,9 @@ const gameChatMessageLimit = 40
 const defaultGameItemPage = 1
 const defaultGameItemPerPage = 18
 const maxGameItemPerPage = 60
+const maxItemNameLength = 20
+const maxItemDescriptionLength = 100
+const maxItemDescriptionLineBreaks = 1
 
 type updateCharacterBaseAttributesRequest struct {
 	Strength     *int `json:"strength"`
@@ -347,6 +350,92 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 
 	respondJSON(w, 201, map[string]interface{}{
 		"item": serializeItem(*createdItem),
+	})
+}
+
+func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	itemID := chi.URLParam(r, "itemID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can update items"})
+		return
+	}
+
+	existingItem, err := h.service.repo.GetItemByID(gameID, itemID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Item %s not found", itemID)})
+		return
+	}
+
+	var req createItemRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	item, err := normalizeItemRequest(itemID, gameID, existingItem.CreatedByID, req)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	tagNames, err := normalizeItemTagNames(req.Tags)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	if err := h.service.repo.UpdateItem(item, tagNames); err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to update item"})
+		return
+	}
+
+	updatedItem, err := h.service.repo.GetItemByID(gameID, itemID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Item was updated but could not be loaded"})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"item": serializeItem(*updatedItem),
+	})
+}
+
+func (h *Handler) DeleteItem(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	itemID := chi.URLParam(r, "itemID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can delete items"})
+		return
+	}
+
+	item, err := h.service.repo.GetItemByID(gameID, itemID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Item %s not found", itemID)})
+		return
+	}
+
+	if err := h.service.DeleteItem(item); err != nil {
+		respondJSON(w, 500, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"deleted_item_id": itemID,
 	})
 }
 
@@ -1295,18 +1384,23 @@ func validateCurrencyAmount(value int, label string) (int, error) {
 	return value, nil
 }
 
+
 func normalizeCreateItemRequest(gameID, userID string, req createItemRequest) (*models.Item, error) {
+	return normalizeItemRequest(uuid.New().String(), gameID, userID, req)
+}
+
+func normalizeItemRequest(itemID, gameID, createdByID string, req createItemRequest) (*models.Item, error) {
 	name := strings.TrimSpace(req.Name)
 	if name == "" {
 		return nil, fmt.Errorf("Item name cannot be empty")
 	}
-	if len(name) > 200 {
-		return nil, fmt.Errorf("Item name must be 200 characters or less")
+	if len(name) > maxItemNameLength {
+		return nil, fmt.Errorf("Item name must be %d characters or less", maxItemNameLength)
 	}
 
-	description := strings.TrimSpace(req.Description)
-	if len(description) > 5000 {
-		return nil, fmt.Errorf("Item description must be 5000 characters or less")
+	description, err := normalizeItemDescription(req.Description)
+	if err != nil {
+		return nil, err
 	}
 
 	rarity, err := normalizeItemRarity(req.Rarity)
@@ -1350,7 +1444,6 @@ func normalizeCreateItemRequest(gameID, userID string, req createItemRequest) (*
 		return nil, err
 	}
 
-	itemID := uuid.New().String()
 	for index := range requirements {
 		requirements[index].ID = uuid.New().String()
 		requirements[index].ItemID = itemID
@@ -1363,7 +1456,7 @@ func normalizeCreateItemRequest(gameID, userID string, req createItemRequest) (*
 	return &models.Item{
 		ID:                 itemID,
 		GameID:             gameID,
-		CreatedByID:        userID,
+		CreatedByID:        createdByID,
 		Name:               name,
 		Description:        description,
 		Rarity:             rarity,
@@ -1374,6 +1467,21 @@ func normalizeCreateItemRequest(gameID, userID string, req createItemRequest) (*
 		RequiredAttributes: requirements,
 		AttributeModifiers: modifiers,
 	}, nil
+}
+
+func normalizeItemDescription(value string) (string, error) {
+	normalized := strings.ReplaceAll(value, "\r\n", "\n")
+	normalized = strings.ReplaceAll(normalized, "\r", "\n")
+	normalized = strings.TrimSpace(normalized)
+
+	if strings.Count(normalized, "\n") > maxItemDescriptionLineBreaks {
+		return "", fmt.Errorf("Item description can contain at most one line break")
+	}
+	if len(normalized) > maxItemDescriptionLength {
+		return "", fmt.Errorf("Item description must be %d characters or less", maxItemDescriptionLength)
+	}
+
+	return normalized, nil
 }
 
 func normalizeItemTagNames(input []string) ([]string, error) {

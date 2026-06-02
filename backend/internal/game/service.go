@@ -429,3 +429,25 @@ func (s *Service) UploadItemImage(userID string, item *models.Item, file multipa
 	s.repo.AddStorageUsage(userID, header.Size)
 	return upload, nil
 }
+
+func (s *Service) DeleteItem(item *models.Item) error {
+	var upload *models.Upload
+	if item.ImageID != nil {
+		resolvedUpload, err := s.repo.GetUploadByID(*item.ImageID)
+		if err == nil {
+			upload = resolvedUpload
+		}
+	}
+
+	if err := s.repo.DeleteItem(item.GameID, item.ID); err != nil {
+		return errors.New("failed to delete item")
+	}
+
+	if upload != nil {
+		_ = os.Remove(filepath.Join(s.uploadDir, upload.StorageKey))
+		_ = s.repo.SubtractStorageUsage(upload.UserID, upload.SizeBytes)
+		_ = s.repo.DeleteUpload(upload.ID)
+	}
+
+	return nil
+}

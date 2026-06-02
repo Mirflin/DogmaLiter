@@ -279,6 +279,16 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function updateGameItem(gameID, itemID, payload) {
+    const { data } = await api.patch(`/games/${gameID}/items/${itemID}`, payload)
+    return data
+  }
+
+  async function deleteGameItem(gameID, itemID) {
+    const { data } = await api.delete(`/games/${gameID}/items/${itemID}`)
+    return data
+  }
+
   async function updateGameCharacter(gameID, characterID, updates) {
     const { data } = await api.patch(`/games/${gameID}/characters/${characterID}`, updates)
     return data
@@ -353,6 +363,8 @@ export const useAuthStore = defineStore('auth', () => {
     createGameItem,
     getGameItems,
     uploadGameItemImage,
+    updateGameItem,
+    deleteGameItem,
     updateGameCharacter,
     uploadCharacterPortrait,
     getGameChatMessages,

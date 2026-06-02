@@ -29,6 +29,8 @@ func (h *Handler) Routes() chi.Router {
 	r.Post("/{gameID}/characters", h.CreateCharacter)
 	r.Get("/{gameID}/items", h.ListItems)
 	r.Post("/{gameID}/items", h.CreateItem)
+	r.Patch("/{gameID}/items/{itemID}", h.UpdateItem)
+	r.Delete("/{gameID}/items/{itemID}", h.DeleteItem)
 	r.Post("/{gameID}/items/{itemID}/image", h.UploadItemImage)
 	r.Get("/{gameID}/characters/{characterID}", h.GetCharacter)
 	r.Patch("/{gameID}/characters/{characterID}", h.UpdateCharacter)

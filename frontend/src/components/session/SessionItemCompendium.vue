@@ -1,9 +1,12 @@
 <script setup>
 import {
+  Eye,
   FilePlus2,
   Package,
+  Pencil,
   Plus,
   Search,
+  Trash2,
   X,
 } from '@lucide/vue'
 import { API_URL } from '@/api'
@@ -82,12 +85,24 @@ const pagination = ref({
 const selectedItemId = ref('')
 const hoveredItemId = ref('')
 const showCreateItemModal = ref(false)
+const showItemDetailModal = ref(false)
 const createItemSubmitting = ref(false)
+const detailItemSubmitting = ref(false)
+const detailDeleteSubmitting = ref(false)
+const itemDetailMode = ref('view')
+const detailItemId = ref('')
+const confirmItemDeletion = ref(false)
 const newTagDraft = ref('')
 const itemDraft = ref(createEmptyItemDraft())
+const detailNewTagDraft = ref('')
+const detailItemDraft = ref(createEmptyItemDraft())
 const itemImageInputRef = ref(null)
+const detailItemImageInputRef = ref(null)
 const itemImageFile = ref(null)
+const detailItemImageFile = ref(null)
 const itemImagePreviewUrl = ref('')
+const detailItemImagePreviewUrl = ref('')
+const itemContextMenu = ref(createClosedItemContextMenu())
 
 let searchDebounceHandle = null
 let itemListRequestId = 0
@@ -190,8 +205,21 @@ const itemImageMetaLabel = computed(() => {
   }
   return `${itemImageFile.value.name} · ${formatFileSize(itemImageFile.value.size)}`
 })
+const detailItem = computed(() => itemById.value[detailItemId.value] ?? null)
+const detailItemImageMetaLabel = computed(() => {
+  if (detailItemImageFile.value) {
+    return `${detailItemImageFile.value.name} · ${formatFileSize(detailItemImageFile.value.size)}`
+  }
+  if (detailItem.value?.image_id) {
+    return 'Using the currently linked image.'
+  }
+  return 'No image selected yet.'
+})
+const detailTagSuggestions = computed(() => availableTagNames.value.filter(tag => !detailItemDraft.value.tags
+  .some(selectedTag => selectedTag.toLowerCase() === tag.toLowerCase())))
 const itemNameLength = computed(() => itemDraft.value.name.length)
 const itemDescriptionLength = computed(() => itemDraft.value.description.length)
+const detailFormDisabled = computed(() => itemDetailMode.value !== 'edit' || detailItemSubmitting.value || detailDeleteSubmitting.value)
 const draftPreviewItem = computed(() => normalizeItem({
   id: 'draft-preview',
   name: itemDraft.value.name || 'Untitled Item',
@@ -205,6 +233,32 @@ const draftPreviewItem = computed(() => normalizeItem({
   required_attributes: itemDraft.value.requiredAttributes,
   attribute_modifiers: itemDraft.value.attributeModifiers,
   updated_at: new Date().toISOString(),
+}))
+const detailPreviewItem = computed(() => {
+  if (itemDetailMode.value !== 'edit') {
+    return detailItem.value
+  }
+
+  return normalizeItem({
+    ...(detailItem.value ?? {}),
+    id: 'detail-preview',
+    name: detailItemDraft.value.name || detailItem.value?.name || 'Untitled Item',
+    description: detailItemDraft.value.description,
+    rarity: detailItemDraft.value.rarity,
+    category: detailItemDraft.value.category,
+    grid_width: normalizePositiveInteger(detailItemDraft.value.gridWidth, 1),
+    grid_height: normalizePositiveInteger(detailItemDraft.value.gridHeight, 1),
+    equip_slot: detailItemDraft.value.category === 'equipment' ? detailItemDraft.value.equipSlot : null,
+    tags: detailItemDraft.value.tags,
+    required_attributes: detailItemDraft.value.requiredAttributes,
+    attribute_modifiers: detailItemDraft.value.attributeModifiers,
+    updated_at: new Date().toISOString(),
+  })
+})
+const contextMenuItem = computed(() => itemById.value[itemContextMenu.value.itemId] ?? null)
+const itemContextMenuStyle = computed(() => ({
+  left: `${itemContextMenu.value.x}px`,
+  top: `${itemContextMenu.value.y}px`,
 }))
 
 watch(searchQuery, (value) => {
@@ -234,6 +288,20 @@ watch(currentPage, () => {
   fetchItems()
 })
 
+watch(() => itemDraft.value.description, (value) => {
+  const sanitizedValue = sanitizeDescriptionInput(value)
+  if (sanitizedValue !== value) {
+    itemDraft.value.description = sanitizedValue
+  }
+})
+
+watch(() => detailItemDraft.value.description, (value) => {
+  const sanitizedValue = sanitizeDescriptionInput(value)
+  if (sanitizedValue !== value) {
+    detailItemDraft.value.description = sanitizedValue
+  }
+})
+
 watch(
   () => allItems.value.map(item => item.id),
   (visibleIds) => {
@@ -251,6 +319,7 @@ onBeforeUnmount(() => {
     clearTimeout(searchDebounceHandle)
   }
   clearItemImageSelection()
+  clearDetailItemImageSelection()
 })
 
 async function fetchItems() {
@@ -392,7 +461,89 @@ function selectItem(itemId) {
   selectedItemId.value = itemId
 }
 
+function createClosedItemContextMenu() {
+  return {
+    visible: false,
+    itemId: '',
+    x: 0,
+    y: 0,
+  }
+}
+
+function openItemContextMenu(event, item) {
+  selectItem(item.id)
+
+  const menuWidth = 220
+  const menuHeight = 120
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+
+  itemContextMenu.value = {
+    visible: true,
+    itemId: item.id,
+    x: Math.max(12, Math.min(event.clientX, viewportWidth - menuWidth - 12)),
+    y: Math.max(12, Math.min(event.clientY, viewportHeight - menuHeight - 12)),
+  }
+}
+
+function closeItemContextMenu() {
+  itemContextMenu.value = createClosedItemContextMenu()
+}
+
+function openItemDetailModal(item, mode = 'view') {
+  closeItemContextMenu()
+  selectItem(item.id)
+  detailItemId.value = item.id
+  detailItemDraft.value = createItemDraftFromItem(item)
+  detailNewTagDraft.value = ''
+  confirmItemDeletion.value = false
+  clearDetailItemImageSelection()
+  itemDetailMode.value = mode
+  showItemDetailModal.value = true
+}
+
+function closeItemDetailModal(force = false) {
+  if ((detailItemSubmitting.value || detailDeleteSubmitting.value) && !force) {
+    return
+  }
+
+  showItemDetailModal.value = false
+  itemDetailMode.value = 'view'
+  detailItemId.value = ''
+  detailItemDraft.value = createEmptyItemDraft()
+  detailNewTagDraft.value = ''
+  confirmItemDeletion.value = false
+  clearDetailItemImageSelection()
+}
+
+function beginDetailItemEdit() {
+  if (!detailItem.value) {
+    return
+  }
+
+  detailItemDraft.value = createItemDraftFromItem(detailItem.value)
+  detailNewTagDraft.value = ''
+  confirmItemDeletion.value = false
+  clearDetailItemImageSelection()
+  itemDetailMode.value = 'edit'
+}
+
+function cancelDetailItemEdit() {
+  if (detailItemSubmitting.value) {
+    return
+  }
+
+  if (detailItem.value) {
+    detailItemDraft.value = createItemDraftFromItem(detailItem.value)
+  }
+  detailNewTagDraft.value = ''
+  confirmItemDeletion.value = false
+  clearDetailItemImageSelection()
+  itemDetailMode.value = 'view'
+}
+
 function openCreateItemModal() {
+  closeItemContextMenu()
   itemDraft.value = createEmptyItemDraft()
   newTagDraft.value = ''
   clearItemImageSelection()
@@ -425,6 +576,22 @@ function removeModifierRow(index) {
   itemDraft.value.attributeModifiers.splice(index, 1)
 }
 
+function addDetailRequirementRow() {
+  detailItemDraft.value.requiredAttributes.push(createEmptyRequirementRow(defaultAttributeName()))
+}
+
+function removeDetailRequirementRow(index) {
+  detailItemDraft.value.requiredAttributes.splice(index, 1)
+}
+
+function addDetailModifierRow() {
+  detailItemDraft.value.attributeModifiers.push(createEmptyModifierRow(defaultAttributeName()))
+}
+
+function removeDetailModifierRow(index) {
+  detailItemDraft.value.attributeModifiers.splice(index, 1)
+}
+
 function toggleDraftTag(tag) {
   const lookupKey = tag.toLowerCase()
   if (itemDraft.value.tags.some(entry => entry.toLowerCase() === lookupKey)) {
@@ -442,6 +609,25 @@ function toggleDraftTag(tag) {
 
 function removeDraftTag(tag) {
   itemDraft.value.tags = itemDraft.value.tags.filter(entry => entry.toLowerCase() !== tag.toLowerCase())
+}
+
+function toggleDetailDraftTag(tag) {
+  const lookupKey = tag.toLowerCase()
+  if (detailItemDraft.value.tags.some(entry => entry.toLowerCase() === lookupKey)) {
+    detailItemDraft.value.tags = detailItemDraft.value.tags.filter(entry => entry.toLowerCase() !== lookupKey)
+    return
+  }
+
+  if (detailItemDraft.value.tags.length >= 20) {
+    notifyCreateItemValidation('Each item can have up to 20 tags.')
+    return
+  }
+
+  detailItemDraft.value.tags = [...detailItemDraft.value.tags, tag].sort((left, right) => left.localeCompare(right))
+}
+
+function removeDetailDraftTag(tag) {
+  detailItemDraft.value.tags = detailItemDraft.value.tags.filter(entry => entry.toLowerCase() !== tag.toLowerCase())
 }
 
 function addDraftTagFromInput() {
@@ -465,8 +651,44 @@ function addDraftTagFromInput() {
   newTagDraft.value = ''
 }
 
+function addDetailDraftTagFromInput() {
+  const normalized = normalizeTagName(detailNewTagDraft.value)
+  if (!normalized) {
+    detailNewTagDraft.value = ''
+    return
+  }
+  if (normalized.length > 60) {
+    notifyCreateItemValidation('Tag names must be 60 characters or fewer.')
+    return
+  }
+  if (detailItemDraft.value.tags.length >= 20) {
+    notifyCreateItemValidation('Each item can have up to 20 tags.')
+    return
+  }
+
+  if (!detailItemDraft.value.tags.some(entry => entry.toLowerCase() === normalized.toLowerCase())) {
+    detailItemDraft.value.tags = [...detailItemDraft.value.tags, normalized].sort((left, right) => left.localeCompare(right))
+  }
+  detailNewTagDraft.value = ''
+}
+
 function openItemImagePicker() {
   itemImageInputRef.value?.click()
+}
+
+function openDetailItemImagePicker() {
+  detailItemImageInputRef.value?.click()
+}
+
+function validateItemImageFile(file) {
+  if (!ALLOWED_ITEM_IMAGE_TYPES.includes(file.type)) {
+    return 'Only JPEG, PNG, and WebP images are allowed.'
+  }
+  if (file.size > MAX_ITEM_IMAGE_SIZE) {
+    return 'Item image must be under 5MB.'
+  }
+
+  return ''
 }
 
 function handleItemImageSelected(event) {
@@ -474,18 +696,12 @@ function handleItemImageSelected(event) {
   if (!file) {
     return
   }
-  if (!ALLOWED_ITEM_IMAGE_TYPES.includes(file.type)) {
+
+  const validationMessage = validateItemImageFile(file)
+  if (validationMessage) {
     notify.error({
-      title: 'Unsupported image format',
-      message: 'Only JPEG, PNG, and WebP images are allowed.',
-    })
-    clearItemImageSelection()
-    return
-  }
-  if (file.size > MAX_ITEM_IMAGE_SIZE) {
-    notify.error({
-      title: 'Image is too large',
-      message: 'Item image must be under 5MB.',
+      title: 'Item image problem',
+      message: validationMessage,
     })
     clearItemImageSelection()
     return
@@ -497,6 +713,30 @@ function handleItemImageSelected(event) {
 
   itemImageFile.value = file
   itemImagePreviewUrl.value = URL.createObjectURL(file)
+}
+
+function handleDetailItemImageSelected(event) {
+  const file = event.target?.files?.[0]
+  if (!file) {
+    return
+  }
+
+  const validationMessage = validateItemImageFile(file)
+  if (validationMessage) {
+    notify.error({
+      title: 'Item image problem',
+      message: validationMessage,
+    })
+    clearDetailItemImageSelection()
+    return
+  }
+
+  if (detailItemImagePreviewUrl.value) {
+    URL.revokeObjectURL(detailItemImagePreviewUrl.value)
+  }
+
+  detailItemImageFile.value = file
+  detailItemImagePreviewUrl.value = URL.createObjectURL(file)
 }
 
 function clearItemImageSelection() {
@@ -511,53 +751,27 @@ function clearItemImageSelection() {
   }
 }
 
+function clearDetailItemImageSelection() {
+  if (detailItemImagePreviewUrl.value) {
+    URL.revokeObjectURL(detailItemImagePreviewUrl.value)
+  }
+  detailItemImagePreviewUrl.value = ''
+  detailItemImageFile.value = null
+
+  if (detailItemImageInputRef.value) {
+    detailItemImageInputRef.value.value = ''
+  }
+}
+
 async function createItem() {
   if (createItemSubmitting.value) {
     return
   }
 
-  const payload = {
-    name: itemDraft.value.name.trim(),
-    description: itemDraft.value.description.trim(),
-    rarity: itemDraft.value.rarity,
-    category: itemDraft.value.category,
-    tags: itemDraft.value.tags,
-    grid_width: normalizePositiveInteger(itemDraft.value.gridWidth, 1),
-    grid_height: normalizePositiveInteger(itemDraft.value.gridHeight, 1),
-    equip_slot: itemDraft.value.category === 'equipment' ? normalizeEquipSlot(itemDraft.value.equipSlot) : undefined,
-    required_attributes: itemDraft.value.requiredAttributes
-      .map(entry => ({
-        attribute_name: normalizeAttributeName(entry.attribute_name),
-        min_value: normalizeInteger(entry.min_value, 0),
-      }))
-      .filter(entry => entry.attribute_name),
-    attribute_modifiers: itemDraft.value.attributeModifiers
-      .map(entry => ({
-        attribute_name: normalizeAttributeName(entry.attribute_name),
-        modifier_value: normalizeSignedInteger(entry.modifier_value, 0),
-        is_percentage: Boolean(entry.is_percentage),
-      }))
-      .filter(entry => entry.attribute_name),
-  }
-
-  if (!props.gameId) {
-    notifyCreateItemValidation('Game context is missing.')
-    return
-  }
-  if (!payload.name) {
-    notifyCreateItemValidation('Item name cannot be empty.')
-    return
-  }
-  if (payload.name.length > ITEM_NAME_LIMIT) {
-    notifyCreateItemValidation(`Item names can be up to ${ITEM_NAME_LIMIT} characters.`)
-    return
-  }
-  if (payload.description.length > ITEM_DESCRIPTION_LIMIT) {
-    notifyCreateItemValidation(`Descriptions can be up to ${ITEM_DESCRIPTION_LIMIT} characters.`)
-    return
-  }
-  if (payload.category === 'equipment' && !payload.equip_slot) {
-    notifyCreateItemValidation('Equipment items need an equip slot.')
+  const payload = buildItemPayload(itemDraft.value)
+  const validationMessage = validateItemPayload(payload)
+  if (validationMessage) {
+    notifyCreateItemValidation(validationMessage)
     return
   }
 
@@ -604,6 +818,103 @@ async function createItem() {
   }
 }
 
+async function saveDetailItem() {
+  if (detailItemSubmitting.value || !props.gameId || !detailItemId.value) {
+    return
+  }
+
+  const payload = buildItemPayload(detailItemDraft.value)
+  const validationMessage = validateItemPayload(payload)
+  if (validationMessage) {
+    notifyCreateItemValidation(validationMessage)
+    return
+  }
+
+  detailItemSubmitting.value = true
+
+  try {
+    await auth.updateGameItem(props.gameId, detailItemId.value, payload)
+    let imageUploadWarning = ''
+
+    if (detailItemImageFile.value) {
+      try {
+        await auth.uploadGameItemImage(props.gameId, detailItemId.value, detailItemImageFile.value)
+      } catch (error) {
+        imageUploadWarning = getErrorMessage(error, 'Item image upload failed')
+        notify.warning({
+          title: 'Item updated without new image',
+          message: imageUploadWarning,
+        })
+      }
+    }
+
+    await fetchItems()
+    emit('created')
+
+    const refreshedItem = itemById.value[detailItemId.value]
+    if (refreshedItem) {
+      detailItemDraft.value = createItemDraftFromItem(refreshedItem)
+    }
+    clearDetailItemImageSelection()
+    detailNewTagDraft.value = ''
+    confirmItemDeletion.value = false
+    itemDetailMode.value = 'view'
+
+    notify.success({
+      title: 'Item updated',
+      message: imageUploadWarning
+        ? `${payload.name} was updated. Upload the image again if needed.`
+        : `${payload.name} was updated.`,
+    })
+  } catch (error) {
+    notify.error({
+      title: 'Failed to update item',
+      message: getErrorMessage(error, 'Failed to update item'),
+    })
+  } finally {
+    detailItemSubmitting.value = false
+  }
+}
+
+async function deleteCurrentItem() {
+  if (!confirmItemDeletion.value) {
+    confirmItemDeletion.value = true
+    return
+  }
+  if (detailDeleteSubmitting.value || !props.gameId || !detailItemId.value) {
+    return
+  }
+
+  detailDeleteSubmitting.value = true
+  const deletedItemId = detailItemId.value
+  const deletedItemName = detailItem.value?.name || detailItemDraft.value.name.trim() || 'Item'
+
+  try {
+    await auth.deleteGameItem(props.gameId, deletedItemId)
+    closeItemDetailModal(true)
+
+    if (currentPage.value > 1 && allItems.value.length === 1) {
+      currentPage.value -= 1
+    } else {
+      await fetchItems()
+    }
+
+    emit('created')
+    notify.success({
+      title: 'Item deleted',
+      message: `${deletedItemName} was removed from the compendium and every character inventory.`,
+    })
+  } catch (error) {
+    notify.error({
+      title: 'Failed to delete item',
+      message: getErrorMessage(error, 'Failed to delete item'),
+    })
+  } finally {
+    detailDeleteSubmitting.value = false
+    confirmItemDeletion.value = false
+  }
+}
+
 function createEmptyItemDraft() {
   return {
     name: '',
@@ -617,6 +928,93 @@ function createEmptyItemDraft() {
     requiredAttributes: [],
     attributeModifiers: [],
   }
+}
+
+function createItemDraftFromItem(item) {
+  const normalizedItem = normalizeItem(item)
+
+  return {
+    name: normalizedItem.name,
+    description: normalizedItem.description,
+    rarity: normalizedItem.rarity,
+    category: normalizedItem.category,
+    gridWidth: normalizedItem.grid_width,
+    gridHeight: normalizedItem.grid_height,
+    equipSlot: normalizedItem.equip_slot || 'main_hand',
+    tags: [...normalizedItem.tags],
+    requiredAttributes: normalizedItem.required_attributes.map(entry => ({
+      attribute_name: entry.attribute_name,
+      min_value: entry.min_value,
+    })),
+    attributeModifiers: normalizedItem.attribute_modifiers.map(entry => ({
+      attribute_name: entry.attribute_name,
+      modifier_value: entry.modifier_value,
+      is_percentage: Boolean(entry.is_percentage),
+    })),
+  }
+}
+
+function buildItemPayload(draft) {
+  return {
+    name: String(draft?.name || '').trim(),
+    description: sanitizeDescriptionInput(String(draft?.description || '').trim()),
+    rarity: draft?.rarity,
+    category: draft?.category,
+    tags: uniqueLabels(Array.isArray(draft?.tags) ? draft.tags : []),
+    grid_width: normalizePositiveInteger(draft?.gridWidth, 1),
+    grid_height: normalizePositiveInteger(draft?.gridHeight, 1),
+    equip_slot: draft?.category === 'equipment' ? normalizeEquipSlot(draft?.equipSlot) : undefined,
+    required_attributes: (draft?.requiredAttributes ?? [])
+      .map(entry => ({
+        attribute_name: normalizeAttributeName(entry.attribute_name),
+        min_value: normalizeInteger(entry.min_value, 0),
+      }))
+      .filter(entry => entry.attribute_name),
+    attribute_modifiers: (draft?.attributeModifiers ?? [])
+      .map(entry => ({
+        attribute_name: normalizeAttributeName(entry.attribute_name),
+        modifier_value: normalizeSignedInteger(entry.modifier_value, 0),
+        is_percentage: Boolean(entry.is_percentage),
+      }))
+      .filter(entry => entry.attribute_name),
+  }
+}
+
+function validateItemPayload(payload) {
+  if (!props.gameId) {
+    return 'Game context is missing.'
+  }
+  if (!payload.name) {
+    return 'Item name cannot be empty.'
+  }
+  if (payload.name.length > ITEM_NAME_LIMIT) {
+    return `Item names can be up to ${ITEM_NAME_LIMIT} characters.`
+  }
+  if (payload.description.length > ITEM_DESCRIPTION_LIMIT) {
+    return `Descriptions can be up to ${ITEM_DESCRIPTION_LIMIT} characters.`
+  }
+  if (countLineBreaks(payload.description) > 1) {
+    return 'Descriptions can contain only one line break.'
+  }
+  if (payload.category === 'equipment' && !payload.equip_slot) {
+    return 'Equipment items need an equip slot.'
+  }
+
+  return ''
+}
+
+function sanitizeDescriptionInput(value) {
+  const normalized = String(value || '').replace(/\r\n?/g, '\n')
+  const parts = normalized.split('\n')
+  const limitedValue = parts.length <= 2
+    ? normalized
+    : `${parts[0]}\n${parts.slice(1).join(' ')}`
+
+  return limitedValue.slice(0, ITEM_DESCRIPTION_LIMIT)
+}
+
+function countLineBreaks(value) {
+  return (String(value || '').match(/\n/g) ?? []).length
 }
 
 function createEmptyRequirementRow(attributeName = BASE_ATTRIBUTE_OPTIONS[0].value) {
@@ -780,6 +1178,9 @@ function itemImageUrl(item) {
 function resolvedItemImageUrl(item) {
   if (item?.id === 'draft-preview') {
     return itemImagePreviewUrl.value
+  }
+  if (item?.id === 'detail-preview') {
+    return detailItemImagePreviewUrl.value || itemImageUrl(detailItem.value)
   }
   return itemImageUrl(item)
 }
@@ -947,6 +1348,7 @@ function itemSizeLabel(item) {
             :key="item.id"
             type="button"
             @click="selectItem(item.id)"
+            @contextmenu.prevent="openItemContextMenu($event, item)"
             @mouseenter="hoveredItemId = item.id"
             @mouseleave="hoveredItemId = ''"
             @focus="selectedItemId = item.id"
@@ -992,6 +1394,7 @@ function itemSizeLabel(item) {
               <span>{{ item.required_attributes.length }} requirements</span>
               <span>{{ item.attribute_modifiers.length }} modifiers</span>
               <span>Updated {{ formatDateTime(item.updated_at) }}</span>
+              <span class="ml-auto text-[#7ec8e3]/38">Right-click</span>
             </div>
           </button>
         </div>
@@ -1077,6 +1480,380 @@ function itemSizeLabel(item) {
     </div>
 
     <Teleport to="body">
+      <div v-if="itemContextMenu.visible && contextMenuItem" class="fixed inset-0 z-[12480]" @click="closeItemContextMenu" @contextmenu.prevent="closeItemContextMenu">
+        <div class="fixed z-[12490] w-[220px] overflow-hidden rounded-[1.3rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]" :style="itemContextMenuStyle" @click.stop @contextmenu.prevent>
+          <button type="button" class="flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:bg-[rgba(126,200,227,0.08)]" @click="openItemDetailModal(contextMenuItem, 'view')">
+            <Eye class="h-4 w-4 text-[#8fd7ef]" :stroke-width="2" />
+            Open Details
+          </button>
+          <button type="button" class="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:bg-[rgba(233,69,96,0.12)]" @click="openItemDetailModal(contextMenuItem, 'edit')">
+            <Pencil class="h-4 w-4 text-[#ffe0e7]" :stroke-width="2" />
+            Edit Item
+          </button>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showItemDetailModal && detailPreviewItem" class="fixed inset-0 z-[12510] p-3 sm:p-4">
+        <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeItemDetailModal"></div>
+
+        <div class="relative flex h-full w-full flex-col overflow-hidden rounded-[2rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
+          <button
+            type="button"
+            @click="closeItemDetailModal"
+            :disabled="detailItemSubmitting || detailDeleteSubmitting"
+            class="absolute right-5 top-5 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Close item detail modal"
+          >
+            <X class="h-5 w-5" :stroke-width="2" />
+          </button>
+
+          <div class="border-b border-[rgba(126,200,227,0.1)] px-5 py-5 pr-16 sm:px-6">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Compendium Entry</p>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+              <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">{{ itemDetailMode === 'edit' ? 'Edit Compendium Entry' : 'Compendium Entry Details' }}</h2>
+              <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
+                {{ detailPreviewItem.name }}
+              </span>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                @click="itemDetailMode === 'edit' ? cancelDetailItemEdit() : beginDetailItemEdit()"
+                :disabled="detailItemSubmitting || detailDeleteSubmitting"
+                class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Pencil class="h-4 w-4" :stroke-width="2" />
+                {{ itemDetailMode === 'edit' ? 'Discard Changes' : 'Edit Item' }}
+              </button>
+            </div>
+            <p class="mt-3 max-w-[52rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
+              Review the complete item card, adjust its fields, or delete it entirely. Deletion also removes this item from every character inventory and equipment slot in the game.
+            </p>
+          </div>
+
+          <div class="grid min-h-0 flex-1 gap-6 overflow-hidden px-5 pb-5 pt-5 sm:px-6 lg:grid-cols-[390px_minmax(0,1fr)]">
+            <aside class="min-h-0 space-y-5 overflow-y-auto pr-1">
+              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
+                  <div class="flex h-64 items-center justify-center" :class="itemFrameClass(detailPreviewItem.rarity)">
+                    <img v-if="resolvedItemImageUrl(detailPreviewItem)" :src="resolvedItemImageUrl(detailPreviewItem)" :alt="detailPreviewItem.name" class="h-full w-full object-cover" />
+                    <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(detailPreviewItem) }}</span>
+                  </div>
+                </div>
+
+                <div class="mt-5">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="min-w-0 flex-1 break-words whitespace-normal font-[Cinzel] text-[28px] font-bold leading-tight text-[#f6f7fb] line-clamp-2 [overflow-wrap:anywhere]">{{ detailPreviewItem.name }}</h3>
+                    <span class="shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(detailPreviewItem.rarity)">
+                      {{ formatLabel(detailPreviewItem.rarity) }}
+                    </span>
+                  </div>
+                  <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-[#d8dce7]/62">{{ truncateText(detailPreviewItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'No description yet.') }}</p>
+                </div>
+
+                <div class="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Category</p>
+                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ formatLabel(detailPreviewItem.category) }}</p>
+                  </div>
+                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Size</p>
+                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ itemSizeLabel(detailPreviewItem) }}</p>
+                  </div>
+                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3 sm:col-span-2">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Equip Slot</p>
+                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ detailPreviewItem.equip_slot ? formatLabel(detailPreviewItem.equip_slot) : 'Not equippable' }}</p>
+                  </div>
+                </div>
+
+                <div class="mt-5 min-h-[5.75rem]">
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Custom Tags</p>
+                  <div v-if="detailPreviewItem.tags.length" class="mt-3 flex min-h-[2.5rem] flex-wrap content-start gap-2">
+                    <span v-for="tag in detailPreviewItem.tags" :key="`detail-tag-${tag}`" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-3 py-1.5 text-[12px] text-[#ffe0e7]">
+                      {{ tag }}
+                    </span>
+                  </div>
+                  <div v-else class="mt-3 flex min-h-[2.5rem] items-center">
+                    <p class="text-[14px] text-[#d8dce7]/58">No custom tags assigned to this item.</p>
+                  </div>
+                </div>
+              </article>
+            </aside>
+
+            <section class="min-h-0 space-y-5 overflow-y-auto pr-1">
+              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+                  <label class="block">
+                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Name</span>
+                    <input
+                      v-model="detailItemDraft.name"
+                      type="text"
+                      :maxlength="ITEM_NAME_LIMIT"
+                      :disabled="detailFormDisabled"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30 disabled:cursor-not-allowed disabled:opacity-65"
+                    />
+                    <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ detailItemDraft.name.length }}/{{ ITEM_NAME_LIMIT }}</p>
+                  </label>
+
+                  <div class="grid gap-4 sm:grid-cols-3">
+                    <label class="block">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Quality</span>
+                      <select v-model="detailItemDraft.rarity" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
+                        <option v-for="rarity in RARITY_OPTIONS" :key="rarity" :value="rarity">{{ formatLabel(rarity) }}</option>
+                      </select>
+                    </label>
+
+                    <label class="block">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Category</span>
+                      <select v-model="detailItemDraft.category" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
+                        <option v-for="category in CATEGORY_OPTIONS" :key="category" :value="category">{{ formatLabel(category) }}</option>
+                      </select>
+                    </label>
+
+                    <label class="block">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Equip Slot</span>
+                      <select v-model="detailItemDraft.equipSlot" :disabled="detailFormDisabled || detailItemDraft.category !== 'equipment'" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-45">
+                        <option v-for="slot in EQUIP_SLOT_OPTIONS" :key="slot" :value="slot">{{ formatLabel(slot) }}</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                <label class="mt-5 block">
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Description</span>
+                  <textarea
+                    v-model="detailItemDraft.description"
+                    rows="6"
+                    :maxlength="ITEM_DESCRIPTION_LIMIT"
+                    :disabled="detailFormDisabled"
+                    class="session-input mt-2 w-full resize-y rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30 disabled:cursor-not-allowed disabled:opacity-65"
+                  ></textarea>
+                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ detailItemDraft.description.length }}/{{ ITEM_DESCRIPTION_LIMIT }} · 1 line break max</p>
+                </label>
+              </article>
+
+              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                <div>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Image Upload</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Select a replacement image to upload after the item details are saved. Leaving this empty keeps the current image.</p>
+                </div>
+
+                <input ref="detailItemImageInputRef" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleDetailItemImageSelected" />
+
+                <div class="mt-5 flex flex-wrap gap-3">
+                  <button type="button" @click="openDetailItemImagePicker" :disabled="detailFormDisabled" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                    {{ detailItemImageFile ? 'Replace Selected Image' : 'Select Replacement Image' }}
+                  </button>
+                  <button v-if="detailItemImageFile" type="button" @click="clearDetailItemImageSelection" :disabled="detailFormDisabled" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">
+                    Remove Selection
+                  </button>
+                </div>
+
+                <div class="mt-4 rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Selected File</p>
+                  <p class="mt-2 text-[14px] text-[#f6f7fb]">{{ detailItemImageMetaLabel }}</p>
+                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">JPEG, PNG, or WebP up to 5MB.</p>
+                </div>
+              </article>
+
+              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                <div>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Footprint</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">These values still define the occupied inventory cells for this item.</p>
+                </div>
+
+                <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  <label class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Width</span>
+                    <input v-model.number="detailItemDraft.gridWidth" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
+                  </label>
+                  <label class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Height</span>
+                    <input v-model.number="detailItemDraft.gridHeight" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
+                  </label>
+                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3 sm:col-span-2">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Preview Summary</span>
+                    <p class="mt-3 text-[18px] font-semibold text-[#f6f7fb]">{{ itemSizeLabel(detailPreviewItem) }}</p>
+                    <p class="mt-2 text-[13px] leading-relaxed text-[#d8dce7]/56">Adjust width and height to match the intended inventory footprint.</p>
+                  </div>
+                </div>
+              </article>
+
+              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                <div>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Tags</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Game-scoped tags remain unique. Add a new one or attach an existing campaign tag.</p>
+                </div>
+
+                <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
+                  <label class="block">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Create New Tag</span>
+                    <input
+                      v-model="detailNewTagDraft"
+                      type="text"
+                      maxlength="60"
+                      :disabled="detailFormDisabled"
+                      placeholder="Example: Quest Reward"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30 disabled:cursor-not-allowed disabled:opacity-65"
+                      @keydown.enter.prevent="addDetailDraftTagFromInput"
+                    />
+                  </label>
+
+                  <button type="button" @click="addDetailDraftTagFromInput" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center justify-center gap-2 self-end rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-3 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                    <Plus class="h-4 w-4" :stroke-width="2" />
+                    Create Tag
+                  </button>
+                </div>
+
+                <div class="mt-5">
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Selected Tags</p>
+                  <div v-if="detailItemDraft.tags.length" class="mt-3 flex flex-wrap gap-2">
+                    <button
+                      v-for="tag in detailItemDraft.tags"
+                      :key="`detail-selected-${tag}`"
+                      type="button"
+                      @click="removeDetailDraftTag(tag)"
+                      :disabled="detailFormDisabled"
+                      class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-3 py-1.5 text-[12px] text-[#ffe0e7] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {{ tag }}
+                      <X class="h-3.5 w-3.5" :stroke-width="2" />
+                    </button>
+                  </div>
+                  <p v-else class="mt-3 text-[14px] text-[#d8dce7]/58">No tags assigned yet.</p>
+                </div>
+
+                <div v-if="detailTagSuggestions.length" class="mt-5">
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Existing Game Tags</p>
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <button
+                      v-for="tag in detailTagSuggestions"
+                      :key="`detail-suggestion-${tag}`"
+                      type="button"
+                      @click="toggleDetailDraftTag(tag)"
+                      :disabled="detailFormDisabled"
+                      class="cursor-pointer rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] text-[#d8dce7]/72 transition-all duration-200 hover:border-[rgba(126,200,227,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {{ tag }}
+                    </button>
+                  </div>
+                </div>
+              </article>
+
+              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Requirements</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Edit the stat gates that must be met before the item can be used.</p>
+                  </div>
+                  <button type="button" @click="addDetailRequirementRow" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                    <Plus class="h-4 w-4" :stroke-width="2" />
+                    Add Requirement
+                  </button>
+                </div>
+
+                <div v-if="detailItemDraft.requiredAttributes.length" class="mt-5 space-y-3">
+                  <article v-for="(requirement, index) in detailItemDraft.requiredAttributes" :key="`detail-requirement-${index}`" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4">
+                    <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
+                        <select v-model="requirement.attribute_name" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
+                          <option v-for="option in attributeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Minimum</span>
+                        <input v-model.number="requirement.min_value" :disabled="detailFormDisabled" type="number" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
+                      </label>
+                      <div class="flex items-end justify-start lg:justify-end">
+                        <button type="button" @click="removeDetailRequirementRow(index)" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No requirements yet.</p>
+              </article>
+
+              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Modifiers</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Tune the bonuses or penalties this item grants.</p>
+                  </div>
+                  <button type="button" @click="addDetailModifierRow" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                    <Plus class="h-4 w-4" :stroke-width="2" />
+                    Add Modifier
+                  </button>
+                </div>
+
+                <div v-if="detailItemDraft.attributeModifiers.length" class="mt-5 space-y-3">
+                  <article v-for="(modifier, index) in detailItemDraft.attributeModifiers" :key="`detail-modifier-${index}`" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4">
+                    <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
+                        <select v-model="modifier.attribute_name" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
+                          <option v-for="option in attributeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </select>
+                      </label>
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Value</span>
+                        <input v-model.number="modifier.modifier_value" :disabled="detailFormDisabled" type="number" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
+                      </label>
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Mode</span>
+                        <select v-model="modifier.is_percentage" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
+                          <option :value="false">Flat</option>
+                          <option :value="true">Percent</option>
+                        </select>
+                      </label>
+                      <div class="flex items-end justify-start xl:justify-end">
+                        <button type="button" @click="removeDetailModifierRow(index)" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+
+                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No modifiers yet.</p>
+              </article>
+            </section>
+          </div>
+
+          <div class="flex flex-col gap-4 border-t border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <p class="max-w-[48rem] text-[13px] leading-relaxed text-[#d8dce7]/56">
+                {{ confirmItemDeletion
+                  ? 'Press delete again to confirm. The item will be removed from the compendium and from every character inventory and equipped slot.'
+                  : 'Use edit mode to change fields, then save. Deletion is permanent for this game.' }}
+              </p>
+
+              <div class="flex flex-wrap gap-3">
+                <button type="button" @click="deleteCurrentItem" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <Trash2 class="h-4 w-4" :stroke-width="2" />
+                  {{ detailDeleteSubmitting ? 'Deleting...' : (confirmItemDeletion ? 'Confirm Delete' : 'Delete Item') }}
+                </button>
+                <button v-if="confirmItemDeletion" type="button" @click="confirmItemDeletion = false" :disabled="detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                  Cancel Delete
+                </button>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap justify-end gap-3">
+              <button type="button" @click="closeItemDetailModal" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                Close
+              </button>
+              <button v-if="itemDetailMode === 'edit'" type="button" @click="saveDetailItem" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.9),rgba(194,49,82,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)] disabled:cursor-not-allowed disabled:opacity-60">
+                {{ detailItemSubmitting ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
       <div v-if="showCreateItemModal" class="fixed inset-0 z-[12500] p-3 sm:p-4">
         <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeCreateItemModal"></div>
 
@@ -1150,7 +1927,7 @@ function itemSizeLabel(item) {
                     :disabled="createItemSubmitting"
                     class="session-input mt-2 w-full resize-y rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30"
                   ></textarea>
-                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ itemDescriptionLength }}/{{ ITEM_DESCRIPTION_LIMIT }}</p>
+                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ itemDescriptionLength }}/{{ ITEM_DESCRIPTION_LIMIT }} · 1 line break max</p>
                 </label>
               </article>
 
