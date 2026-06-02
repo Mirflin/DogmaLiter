@@ -185,6 +185,13 @@ func (r *Repository) UpdateCharacter(character *models.Character, replaceCustomA
 	})
 }
 
+func (r *Repository) AddCharacterInventoryItems(entries []models.CharacterInventory) error {
+	if len(entries) == 0 {
+		return nil
+	}
+	return r.db.Create(&entries).Error
+}
+
 func (r *Repository) UpdateCharacterPortrait(gameID, characterID string, portraitID *string) error {
 	return r.db.Model(&models.Character{}).
 		Where("game_id = ? AND id = ?", gameID, characterID).

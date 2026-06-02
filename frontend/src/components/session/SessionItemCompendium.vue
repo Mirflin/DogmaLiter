@@ -1,12 +1,16 @@
 <script setup>
 import {
+  Check,
   Eye,
   FilePlus2,
   Package,
   Pencil,
   Plus,
   Search,
+  Send,
+  ShoppingCart,
   Trash2,
+  User,
   X,
 } from '@lucide/vue'
 import { API_URL } from '@/api'
@@ -103,6 +107,13 @@ const detailItemImageFile = ref(null)
 const itemImagePreviewUrl = ref('')
 const detailItemImagePreviewUrl = ref('')
 const itemContextMenu = ref(createClosedItemContextMenu())
+const deleteCandidateId = ref('')
+const deleteCandidateSubmitting = ref(false)
+const cartItems = ref([])
+const showCartModal = ref(false)
+const cartCharacterSearch = ref('')
+const cartTargetCharacterId = ref('')
+const cartSubmitting = ref(false)
 
 let searchDebounceHandle = null
 let itemListRequestId = 0
@@ -256,6 +267,19 @@ const detailPreviewItem = computed(() => {
   })
 })
 const contextMenuItem = computed(() => itemById.value[itemContextMenu.value.itemId] ?? null)
+const deleteCandidateItem = computed(() => itemById.value[deleteCandidateId.value] ?? null)
+const cartItemIds = computed(() => new Set(cartItems.value.map(line => line.item.id)))
+const cartCount = computed(() => cartItems.value.length)
+const cartCharacterOptions = computed(() => {
+  const query = cartCharacterSearch.value.trim().toLowerCase()
+  const list = (props.characters ?? []).filter(character => character?.id)
+  if (!query) {
+    return list
+  }
+  return list.filter(character => String(character.name || '').toLowerCase().includes(query))
+})
+const cartTargetCharacter = computed(() => (props.characters ?? [])
+  .find(character => character?.id === cartTargetCharacterId.value) ?? null)
 const itemContextMenuStyle = computed(() => ({
   left: `${itemContextMenu.value.x}px`,
   top: `${itemContextMenu.value.y}px`,
@@ -474,7 +498,7 @@ function openItemContextMenu(event, item) {
   selectItem(item.id)
 
   const menuWidth = 220
-  const menuHeight = 120
+  const menuHeight = 176
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
 
@@ -488,6 +512,165 @@ function openItemContextMenu(event, item) {
 
 function closeItemContextMenu() {
   itemContextMenu.value = createClosedItemContextMenu()
+}
+
+function requestItemDeletion(item) {
+  closeItemContextMenu()
+  selectItem(item.id)
+  deleteCandidateId.value = item.id
+}
+
+function cancelItemDeletion() {
+  if (deleteCandidateSubmitting.value) {
+    return
+  }
+  deleteCandidateId.value = ''
+}
+
+async function confirmCandidateDeletion() {
+  if (deleteCandidateSubmitting.value || !props.gameId || !deleteCandidateId.value) {
+    return
+  }
+
+  const deletedItemId = deleteCandidateId.value
+  const deletedItemName = deleteCandidateItem.value?.name || 'Item'
+  deleteCandidateSubmitting.value = true
+
+  try {
+    await auth.deleteGameItem(props.gameId, deletedItemId)
+    deleteCandidateId.value = ''
+
+    if (detailItemId.value === deletedItemId) {
+      closeItemDetailModal(true)
+    }
+
+    if (currentPage.value > 1 && allItems.value.length === 1) {
+      currentPage.value -= 1
+    } else {
+      await fetchItems()
+    }
+
+    emit('created')
+    notify.success({
+      title: 'Item deleted',
+      message: `${deletedItemName} was removed from the compendium and every character inventory.`,
+    })
+  } catch (error) {
+    notify.error({
+      title: 'Failed to delete item',
+      message: getErrorMessage(error, 'Failed to delete item'),
+    })
+  } finally {
+    deleteCandidateSubmitting.value = false
+  }
+}
+
+function isInCart(item) {
+  return cartItemIds.value.has(item.id)
+}
+
+function createCartLine(item) {
+  return {
+    item,
+    quantity: 1,
+    hasDurability: false,
+    durability: 100,
+    maxDurability: 100,
+    enchantment: 0,
+  }
+}
+
+function toggleCartItem(item) {
+  const normalized = normalizeItem(item)
+  const index = cartItems.value.findIndex(line => line.item.id === normalized.id)
+  if (index >= 0) {
+    cartItems.value.splice(index, 1)
+    return
+  }
+  cartItems.value.push(createCartLine(normalized))
+}
+
+function removeCartLine(itemId) {
+  cartItems.value = cartItems.value.filter(line => line.item.id !== itemId)
+}
+
+function clearCart() {
+  cartItems.value = []
+}
+
+function openCartModal() {
+  if (!cartItems.value.length) {
+    notify.warning({ title: 'Cart is empty', message: 'Select items from the compendium first.' })
+    return
+  }
+  closeItemContextMenu()
+  cartCharacterSearch.value = ''
+  cartTargetCharacterId.value = ''
+  showCartModal.value = true
+}
+
+function closeCartModal(force = false) {
+  if (cartSubmitting.value && !force) {
+    return
+  }
+  showCartModal.value = false
+}
+
+function clampInt(value, min, max, fallback) {
+  const parsed = Number.parseInt(value, 10)
+  if (Number.isNaN(parsed)) {
+    return fallback
+  }
+  return Math.min(max, Math.max(min, parsed))
+}
+
+async function deliverCart() {
+  if (cartSubmitting.value) {
+    return
+  }
+  if (!cartItems.value.length) {
+    notify.warning({ title: 'Cart is empty', message: 'Add at least one item before delivering.' })
+    return
+  }
+  if (!cartTargetCharacterId.value) {
+    notify.warning({ title: 'Choose a character', message: 'Select who receives these items.' })
+    return
+  }
+
+  const payload = cartItems.value.map((line) => {
+    const entry = {
+      item_id: line.item.id,
+      quantity: clampInt(line.quantity, 1, 9999, 1),
+      enchantment: clampInt(line.enchantment, -999, 999, 0),
+    }
+    if (line.hasDurability) {
+      const max = clampInt(line.maxDurability, 1, 1000000, 1)
+      entry.max_durability = max
+      entry.durability = clampInt(line.durability, 0, max, max)
+    }
+    return entry
+  })
+
+  const targetName = cartTargetCharacter.value?.name || 'the character'
+  cartSubmitting.value = true
+
+  try {
+    const result = await auth.giveItemsToCharacter(props.gameId, cartTargetCharacterId.value, payload)
+    clearCart()
+    closeCartModal(true)
+    emit('created')
+    notify.success({
+      title: 'Items delivered',
+      message: `${result?.delivered ?? payload.length} item(s) added to ${targetName}.`,
+    })
+  } catch (error) {
+    notify.error({
+      title: 'Failed to deliver items',
+      message: getErrorMessage(error, 'Failed to deliver items'),
+    })
+  } finally {
+    cartSubmitting.value = false
+  }
 }
 
 function openItemDetailModal(item, mode = 'view') {
@@ -1200,7 +1383,7 @@ function itemSizeLabel(item) {
 </script>
 
 <template>
-  <section class="flex min-h-[48rem] flex-col gap-6 xl:min-h-[calc(100vh-10rem)]">
+  <section class="flex min-h-[52rem] flex-col gap-6 xl:h-[calc(100vh-5rem)] xl:min-h-0">
     <article class="overflow-hidden rounded-[1.9rem] border border-[rgba(126,200,227,0.14)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-5 shadow-[0_32px_90px_rgba(0,0,0,0.35)] sm:p-6">
       <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
@@ -1217,6 +1400,16 @@ function itemSizeLabel(item) {
         </div>
 
         <div class="flex flex-wrap gap-3">
+          <button
+            type="button"
+            @click="openCartModal"
+            :disabled="!cartCount"
+            class="relative inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ShoppingCart class="h-4 w-4" :stroke-width="2" />
+            Transfer Cart
+            <span v-if="cartCount" class="flex h-5 min-w-5 items-center justify-center rounded-full bg-[rgba(233,69,96,0.92)] px-1.5 text-[11px] font-semibold text-white">{{ cartCount }}</span>
+          </button>
           <button
             type="button"
             @click="openCreateItemModal"
@@ -1310,8 +1503,8 @@ function itemSizeLabel(item) {
       </div>
     </article>
 
-    <div class="grid flex-1 content-stretch gap-6 xl:grid-cols-[minmax(0,1.45fr)_390px]">
-      <article class="flex min-h-[42rem] flex-col overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] xl:min-h-full">
+    <div class="grid min-h-0 flex-1 content-stretch gap-6 xl:grid-cols-[minmax(0,1.45fr)_390px]">
+      <article class="flex min-h-[42rem] flex-col overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] xl:h-full xl:min-h-0">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
           <div>
             <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Compendium Entries</p>
@@ -1342,7 +1535,7 @@ function itemSizeLabel(item) {
           {{ itemsError }}
         </p>
 
-        <div v-if="allItems.length" class="grid flex-1 gap-4 p-5 sm:grid-cols-2 2xl:grid-cols-3 sm:p-6">
+        <div v-if="allItems.length" class="grid min-h-0 flex-1 content-start auto-rows-min gap-4 overflow-y-auto p-5 sm:grid-cols-2 2xl:grid-cols-3 sm:p-6">
           <button
             v-for="item in allItems"
             :key="item.id"
@@ -1352,9 +1545,24 @@ function itemSizeLabel(item) {
             @mouseenter="hoveredItemId = item.id"
             @mouseleave="hoveredItemId = ''"
             @focus="selectedItemId = item.id"
-            class="group cursor-pointer rounded-[1.45rem] border bg-[rgba(7,17,31,0.72)] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(126,200,227,0.24)]"
-            :class="selectedItemId === item.id ? 'border-[rgba(233,69,96,0.32)] shadow-[0_12px_36px_rgba(233,69,96,0.12)]' : 'border-[rgba(126,200,227,0.12)]'"
+            class="group relative cursor-pointer rounded-[1.45rem] border bg-[rgba(7,17,31,0.72)] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(126,200,227,0.24)]"
+            :class="[
+              selectedItemId === item.id ? 'border-[rgba(233,69,96,0.32)] shadow-[0_12px_36px_rgba(233,69,96,0.12)]' : 'border-[rgba(126,200,227,0.12)]',
+              isInCart(item) ? 'ring-2 ring-[rgba(233,69,96,0.45)]' : '',
+            ]"
           >
+            <span
+              role="checkbox"
+              :aria-checked="isInCart(item)"
+              :title="isInCart(item) ? 'Remove from transfer cart' : 'Add to transfer cart'"
+              @click.stop.prevent="toggleCartItem(item)"
+              class="absolute left-3 top-3 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border shadow-[0_4px_12px_rgba(0,0,0,0.4)] transition-all duration-200"
+              :class="isInCart(item)
+                ? 'border-[rgba(233,69,96,0.55)] bg-[rgba(233,69,96,0.92)] text-white'
+                : 'border-[rgba(126,200,227,0.35)] bg-[rgba(7,17,31,0.92)] text-transparent hover:border-[rgba(126,200,227,0.7)]'"
+            >
+              <Check class="h-4 w-4" :stroke-width="3" />
+            </span>
             <div class="flex items-start gap-4">
               <div class="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.3rem] border text-[24px] font-bold uppercase" :class="itemFrameClass(item.rarity)">
                 <img v-if="itemImageUrl(item)" :src="itemImageUrl(item)" :alt="item.name" class="h-full w-full object-cover" />
@@ -1416,9 +1624,9 @@ function itemSizeLabel(item) {
         </div>
       </article>
 
-      <aside class="space-y-6">
+      <aside class="space-y-6 min-h-0">
 
-        <article class="flex min-h-[42rem] flex-col rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 sm:p-6 xl:min-h-full">
+        <article class="flex min-h-[42rem] flex-col overflow-y-auto rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 sm:p-6 xl:h-full xl:min-h-0">
           <div>
             <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Inspector</p>
             <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Pinned preview for the currently selected compendium entry.</p>
@@ -1490,6 +1698,173 @@ function itemSizeLabel(item) {
             <Pencil class="h-4 w-4 text-[#ffe0e7]" :stroke-width="2" />
             Edit Item
           </button>
+          <button type="button" class="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:bg-[rgba(248,113,113,0.12)]" @click="requestItemDeletion(contextMenuItem)">
+            <Trash2 class="h-4 w-4 text-[#fca5a5]" :stroke-width="2" />
+            Delete Item
+          </button>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="deleteCandidateItem" class="fixed inset-0 z-[12520] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="cancelItemDeletion"></div>
+
+        <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-[rgba(248,113,113,0.24)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
+          <div class="flex items-center gap-3">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] text-[#fca5a5]">
+              <Trash2 class="h-6 w-6" :stroke-width="2" />
+            </div>
+            <div class="min-w-0">
+              <p class="text-[11px] uppercase tracking-[0.24em] text-[#fca5a5]/70">Delete Item</p>
+              <h3 class="mt-1 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ deleteCandidateItem.name }}</h3>
+            </div>
+          </div>
+
+          <p class="mt-4 text-[14px] leading-relaxed text-[#d8dce7]/68">
+            This permanently removes the item from the compendium and from every character inventory. This action cannot be undone.
+          </p>
+
+          <div class="mt-6 flex flex-wrap justify-end gap-3">
+            <button type="button" @click="cancelItemDeletion" :disabled="deleteCandidateSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+              Cancel
+            </button>
+            <button type="button" @click="confirmCandidateDeletion" :disabled="deleteCandidateSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[linear-gradient(135deg,rgba(248,113,113,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+              <Trash2 class="h-4 w-4" :stroke-width="2" />
+              {{ deleteCandidateSubmitting ? 'Deleting...' : 'Delete Item' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="showCartModal" class="fixed inset-0 z-[12530] p-3 sm:p-4">
+        <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeCartModal"></div>
+
+        <div class="relative mx-auto flex h-full w-full max-w-[62rem] flex-col overflow-hidden rounded-[2rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
+          <button
+            type="button"
+            @click="closeCartModal"
+            :disabled="cartSubmitting"
+            class="absolute right-5 top-5 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label="Close transfer cart"
+          >
+            <X class="h-5 w-5" :stroke-width="2" />
+          </button>
+
+          <div class="border-b border-[rgba(126,200,227,0.1)] px-5 py-5 pr-16 sm:px-6">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Deliver Items</p>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+              <h2 class="font-[Cinzel] text-[26px] font-bold text-[#f6f7fb] sm:text-[32px]">Transfer Cart</h2>
+              <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">{{ cartCount }} item(s)</span>
+            </div>
+            <p class="mt-3 max-w-[44rem] text-[13px] leading-relaxed text-[#d8dce7]/58">Tune each item's quantity, enchantment, and optional durability, then choose a character to receive the whole cart.</p>
+          </div>
+
+          <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+            <div v-if="cartItems.length" class="space-y-4">
+              <article v-for="line in cartItems" :key="line.item.id" class="rounded-[1.4rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-4">
+                <div class="flex items-start gap-4">
+                  <div class="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[1.1rem] border text-[18px] font-bold uppercase" :class="itemFrameClass(line.item.rarity)">
+                    <img v-if="itemImageUrl(line.item)" :src="itemImageUrl(line.item)" :alt="line.item.name" class="h-full w-full object-cover" />
+                    <span v-else>{{ itemGlyph(line.item) }}</span>
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <h3 class="break-words text-[15px] font-semibold leading-snug text-[#f6f7fb] [overflow-wrap:anywhere]">{{ line.item.name }}</h3>
+                        <p class="mt-1 text-[12px] text-[#d8dce7]/55">{{ formatLabel(line.item.rarity) }} · {{ formatLabel(line.item.category) }} · {{ itemSizeLabel(line.item) }}</p>
+                      </div>
+                      <button type="button" @click="removeCartLine(line.item.id)" :disabled="cartSubmitting" class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] text-[#fca5a5] transition-all duration-200 hover:border-[rgba(248,113,113,0.4)] disabled:cursor-not-allowed disabled:opacity-60" aria-label="Remove from cart">
+                        <Trash2 class="h-4 w-4" :stroke-width="2" />
+                      </button>
+                    </div>
+
+                    <div class="mt-3 grid gap-3 sm:grid-cols-3">
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Quantity</span>
+                        <input v-model.number="line.quantity" type="number" min="1" max="9999" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                      </label>
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Enchantment</span>
+                        <input v-model.number="line.enchantment" type="number" min="-999" max="999" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                      </label>
+                      <label class="flex cursor-pointer items-center gap-2.5 self-end rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5">
+                        <input v-model="line.hasDurability" type="checkbox" class="h-4 w-4 cursor-pointer accent-[#e94560]" />
+                        <span class="text-[12px] font-semibold text-[#d8dce7]/78">Track durability</span>
+                      </label>
+                    </div>
+
+                    <div v-if="line.hasDurability" class="mt-3 grid gap-3 sm:grid-cols-2">
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Durability</span>
+                        <input v-model.number="line.durability" type="number" min="0" :max="line.maxDurability" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                      </label>
+                      <label class="block">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Max durability</span>
+                        <input v-model.number="line.maxDurability" type="number" min="1" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <div v-else class="flex min-h-[12rem] flex-col items-center justify-center gap-3 text-center">
+              <ShoppingCart class="h-8 w-8 text-[#7ec8e3]/40" :stroke-width="1.8" />
+              <p class="text-[14px] text-[#d8dce7]/58">Your cart is empty.</p>
+            </div>
+          </div>
+
+          <div class="border-t border-[rgba(126,200,227,0.1)] px-5 py-5 sm:px-6">
+            <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
+              <div>
+                <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Recipient</span>
+                <div class="mt-2 flex items-center gap-3 rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3">
+                  <Search class="h-4 w-4 text-[#7ec8e3]/45" :stroke-width="2" />
+                  <input v-model="cartCharacterSearch" type="text" placeholder="Search characters" class="session-input w-full border-0 bg-transparent p-0 text-[14px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30" />
+                </div>
+                <div class="mt-3 max-h-[12rem] overflow-y-auto rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(7,17,31,0.5)]">
+                  <button
+                    v-for="character in cartCharacterOptions"
+                    :key="character.id"
+                    type="button"
+                    @click="cartTargetCharacterId = character.id"
+                    class="flex w-full cursor-pointer items-center gap-3 border-b border-[rgba(126,200,227,0.06)] px-4 py-3 text-left transition-all duration-200 last:border-b-0 hover:bg-[rgba(126,200,227,0.06)]"
+                    :class="cartTargetCharacterId === character.id ? 'bg-[rgba(233,69,96,0.12)]' : ''"
+                  >
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#8fd7ef]">
+                      <User class="h-4 w-4" :stroke-width="2" />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-[14px] font-semibold text-[#f6f7fb]">{{ character.name }}</p>
+                      <p v-if="character.owner?.username" class="truncate text-[12px] text-[#d8dce7]/52">{{ character.owner.username }}</p>
+                    </div>
+                    <Check v-if="cartTargetCharacterId === character.id" class="h-4 w-4 shrink-0 text-[#ff9bb0]" :stroke-width="3" />
+                  </button>
+                  <p v-if="!cartCharacterOptions.length" class="px-4 py-4 text-[13px] text-[#d8dce7]/50">No characters match your search.</p>
+                </div>
+              </div>
+
+              <div class="flex flex-col justify-end gap-3">
+                <p class="text-[13px] leading-relaxed text-[#d8dce7]/58">
+                  Delivering <span class="font-semibold text-[#f6f7fb]">{{ cartCount }}</span> item(s) to
+                  <span class="font-semibold text-[#f6f7fb]">{{ cartTargetCharacter?.name || 'no character selected' }}</span>.
+                </p>
+                <div class="flex gap-3">
+                  <button type="button" @click="clearCart" :disabled="cartSubmitting || !cartCount" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-50">
+                    Clear
+                  </button>
+                  <button type="button" @click="deliverCart" :disabled="cartSubmitting || !cartCount || !cartTargetCharacterId" class="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0">
+                    <Send class="h-4 w-4" :stroke-width="2" />
+                    {{ cartSubmitting ? 'Delivering...' : 'Deliver Items' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -1528,9 +1903,6 @@ function itemSizeLabel(item) {
                 {{ itemDetailMode === 'edit' ? 'Discard Changes' : 'Edit Item' }}
               </button>
             </div>
-            <p class="mt-3 max-w-[52rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
-              Review the complete item card, adjust its fields, or delete it entirely. Deletion also removes this item from every character inventory and equipment slot in the game.
-            </p>
           </div>
 
           <div class="grid min-h-0 flex-1 gap-6 overflow-hidden px-5 pb-5 pt-5 sm:px-6 lg:grid-cols-[390px_minmax(0,1fr)]">

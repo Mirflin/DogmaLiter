@@ -701,6 +701,220 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) GiveInventoryItems(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	characterID := chi.URLParam(r, "characterID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can deliver items to characters"})
+		return
+	}
+
+	character, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Character %s not found", characterID)})
+		return
+	}
+
+	var req struct {
+		Items []struct {
+			ItemID        string `json:"item_id"`
+			Quantity      *int   `json:"quantity"`
+			Durability    *int   `json:"durability"`
+			MaxDurability *int   `json:"max_durability"`
+			Enchantment   *int   `json:"enchantment"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+		return
+	}
+	if len(req.Items) == 0 {
+		respondJSON(w, 400, map[string]string{"error": "Select at least one item to deliver"})
+		return
+	}
+	if len(req.Items) > 50 {
+		respondJSON(w, 400, map[string]string{"error": "You can deliver up to 50 items at once"})
+		return
+	}
+
+	width := character.InventoryWidth
+	height := character.InventoryHeight
+	occupied := make([][]bool, height)
+	for y := range occupied {
+		occupied[y] = make([]bool, width)
+	}
+	markInventoryOccupancy(occupied, character.Inventory)
+
+	entries := make([]models.CharacterInventory, 0, len(req.Items))
+	unplaced := make([]string, 0)
+
+	for _, line := range req.Items {
+		item, err := h.service.repo.GetItemByID(gameID, line.ItemID)
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("Item %s is not part of this compendium", line.ItemID)})
+			return
+		}
+
+		quantity := 1
+		if line.Quantity != nil {
+			quantity = *line.Quantity
+		}
+		if quantity < 1 || quantity > 9999 {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("%s: quantity must be between 1 and 9999", item.Name)})
+			return
+		}
+
+		enchantment := 0
+		if line.Enchantment != nil {
+			enchantment = *line.Enchantment
+		}
+		if enchantment < -999 || enchantment > 999 {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("%s: enchantment must be between -999 and 999", item.Name)})
+			return
+		}
+
+		var durability, maxDurability *int
+		if line.MaxDurability != nil {
+			value := *line.MaxDurability
+			if value < 1 || value > 1000000 {
+				respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("%s: max durability must be between 1 and 1,000,000", item.Name)})
+				return
+			}
+			maxDurability = &value
+		}
+		if line.Durability != nil {
+			value := *line.Durability
+			if value < 0 || value > 1000000 {
+				respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("%s: durability must be between 0 and 1,000,000", item.Name)})
+				return
+			}
+			if maxDurability != nil && value > *maxDurability {
+				respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("%s: durability cannot exceed max durability", item.Name)})
+				return
+			}
+			durability = &value
+		}
+
+		gridX, gridY, placed := findFreeInventorySlot(occupied, width, height, item.GridWidth, item.GridHeight)
+		if !placed {
+			unplaced = append(unplaced, item.Name)
+			continue
+		}
+		markCells(occupied, gridX, gridY, item.GridWidth, item.GridHeight, true)
+
+		entries = append(entries, models.CharacterInventory{
+			ID:            uuid.New().String(),
+			CharacterID:   character.ID,
+			ItemID:        item.ID,
+			Quantity:      quantity,
+			Durability:    durability,
+			MaxDurability: maxDurability,
+			Enchantment:   enchantment,
+			GridX:         gridX,
+			GridY:         gridY,
+			IsRotated:     false,
+		})
+	}
+
+	if len(unplaced) > 0 {
+		respondJSON(w, 400, map[string]string{
+			"error": fmt.Sprintf("%s has no free inventory space for: %s", character.Name, strings.Join(unplaced, ", ")),
+		})
+		return
+	}
+
+	if err := h.service.repo.AddCharacterInventoryItems(entries); err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to deliver items"})
+		return
+	}
+
+	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Items were delivered but the character could not be reloaded"})
+		return
+	}
+
+	respondJSON(w, 201, map[string]interface{}{
+		"character": serializeCharacterDetail(updated),
+		"delivered": len(entries),
+	})
+}
+
+func markInventoryOccupancy(occupied [][]bool, items []models.CharacterInventory) {
+	for _, entry := range items {
+		width := entry.Item.GridWidth
+		height := entry.Item.GridHeight
+		if width < 1 {
+			width = 1
+		}
+		if height < 1 {
+			height = 1
+		}
+		if entry.IsRotated {
+			width, height = height, width
+		}
+		markCells(occupied, entry.GridX, entry.GridY, width, height, true)
+	}
+}
+
+func markCells(occupied [][]bool, startX, startY, width, height int, value bool) {
+	for y := startY; y < startY+height; y++ {
+		if y < 0 || y >= len(occupied) {
+			continue
+		}
+		for x := startX; x < startX+width; x++ {
+			if x < 0 || x >= len(occupied[y]) {
+				continue
+			}
+			occupied[y][x] = value
+		}
+	}
+}
+
+func findFreeInventorySlot(occupied [][]bool, gridWidth, gridHeight, itemWidth, itemHeight int) (int, int, bool) {
+	if itemWidth < 1 {
+		itemWidth = 1
+	}
+	if itemHeight < 1 {
+		itemHeight = 1
+	}
+	if itemWidth > gridWidth || itemHeight > gridHeight {
+		return 0, 0, false
+	}
+	for y := 0; y+itemHeight <= gridHeight; y++ {
+		for x := 0; x+itemWidth <= gridWidth; x++ {
+			if regionFree(occupied, x, y, itemWidth, itemHeight) {
+				return x, y, true
+			}
+		}
+	}
+	return 0, 0, false
+}
+
+func regionFree(occupied [][]bool, startX, startY, width, height int) bool {
+	for y := startY; y < startY+height; y++ {
+		if y < 0 || y >= len(occupied) {
+			return false
+		}
+		for x := startX; x < startX+width; x++ {
+			if x < 0 || x >= len(occupied[y]) {
+				return false
+			}
+			if occupied[y][x] {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func (h *Handler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
