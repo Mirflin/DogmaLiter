@@ -847,6 +847,149 @@ func (h *Handler) GiveInventoryItems(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) UpdateInventoryLayout(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	characterID := chi.URLParam(r, "characterID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+
+	character, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Character %s not found", characterID)})
+		return
+	}
+
+	if !isGM && character.UserID != userID {
+		respondJSON(w, 403, map[string]string{"error": "You do not have access to update this character"})
+		return
+	}
+
+	var req struct {
+		Inventory []struct {
+			ID        string `json:"id"`
+			GridX     int    `json:"grid_x"`
+			GridY     int    `json:"grid_y"`
+			IsRotated bool   `json:"is_rotated"`
+		} `json:"inventory"`
+		Equipment []struct {
+			Slot            string `json:"slot"`
+			InventoryItemID string `json:"inventory_item_id"`
+		} `json:"equipment"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	inventoryByID := make(map[string]models.CharacterInventory, len(character.Inventory))
+	for _, entry := range character.Inventory {
+		inventoryByID[entry.ID] = entry
+	}
+
+	positions := make([]InventoryPositionUpdate, 0, len(req.Inventory))
+	for _, line := range req.Inventory {
+		entry, ok := inventoryByID[line.ID]
+		if !ok {
+			respondJSON(w, 400, map[string]string{"error": "Inventory item does not belong to this character"})
+			return
+		}
+
+		width := entry.Item.GridWidth
+		height := entry.Item.GridHeight
+		if line.IsRotated {
+			width, height = height, width
+		}
+		if width < 1 {
+			width = 1
+		}
+		if height < 1 {
+			height = 1
+		}
+		if line.GridX < 0 || line.GridY < 0 || line.GridX+width > character.InventoryWidth || line.GridY+height > character.InventoryHeight {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("%s does not fit at the requested position", entry.Item.Name)})
+			return
+		}
+
+		positions = append(positions, InventoryPositionUpdate{
+			ID:        line.ID,
+			GridX:     line.GridX,
+			GridY:     line.GridY,
+			IsRotated: line.IsRotated,
+		})
+	}
+
+	validSlots := make(map[string]bool, len(models.ValidSlots))
+	for _, slot := range models.ValidSlots {
+		validSlots[slot] = true
+	}
+
+	seenSlots := make(map[string]bool)
+	seenItems := make(map[string]bool)
+	equipment := make([]models.CharacterEquipment, 0, len(req.Equipment))
+	for _, line := range req.Equipment {
+		if !validSlots[line.Slot] {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("Unknown equipment slot %s", line.Slot)})
+			return
+		}
+		entry, ok := inventoryByID[line.InventoryItemID]
+		if !ok {
+			respondJSON(w, 400, map[string]string{"error": "Equipped item does not belong to this character"})
+			return
+		}
+		if !equipSlotMatches(entry.Item.EquipSlot, line.Slot) {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("%s cannot be equipped in the %s slot", entry.Item.Name, line.Slot)})
+			return
+		}
+		if seenSlots[line.Slot] {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("Slot %s was assigned more than once", line.Slot)})
+			return
+		}
+		if seenItems[line.InventoryItemID] {
+			respondJSON(w, 400, map[string]string{"error": "An item cannot be equipped in more than one slot"})
+			return
+		}
+		seenSlots[line.Slot] = true
+		seenItems[line.InventoryItemID] = true
+
+		equipment = append(equipment, models.CharacterEquipment{
+			CharacterID:     characterID,
+			Slot:            line.Slot,
+			InventoryItemID: line.InventoryItemID,
+		})
+	}
+
+	if err := h.service.repo.UpdateInventoryLayout(characterID, positions, equipment); err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to save inventory layout"})
+		return
+	}
+
+	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Inventory layout was saved but the character could not be reloaded"})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"character": serializeCharacterDetail(updated),
+	})
+}
+
+func equipSlotMatches(itemEquip *string, slot string) bool {
+	if itemEquip == nil {
+		return false
+	}
+	value := *itemEquip
+	if value == models.ItemEquipSlotRing {
+		return slot == models.SlotRing1 || slot == models.SlotRing2
+	}
+	return value == slot
+}
+
 func markInventoryOccupancy(occupied [][]bool, items []models.CharacterInventory) {
 	for _, entry := range items {
 		width := entry.Item.GridWidth

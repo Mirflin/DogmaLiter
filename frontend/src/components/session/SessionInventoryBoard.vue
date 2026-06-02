@@ -1,6 +1,7 @@
 <script setup>
 import interact from 'interactjs'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { notify } from '@/notify'
 import SessionInventoryDraggableItem from './SessionInventoryDraggableItem.vue'
 
 const props = defineProps({
@@ -28,7 +29,23 @@ const props = defineProps({
     type: Number,
     default: 6,
   },
+  characterAttributes: {
+    type: Object,
+    default: () => ({}),
+  },
+  characterId: {
+    type: String,
+    default: '',
+  },
+  canEdit: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+const emit = defineEmits(['persist'])
+
+provide('inventoryCharacterAttributes', computed(() => props.characterAttributes))
 
 const SLOT_DEFAULT = 'border-[rgba(126,200,227,0.34)] bg-[linear-gradient(180deg,rgba(30,49,96,0.96),rgba(15,25,49,0.98))] shadow-[inset_0_0_0_1px_rgba(126,200,227,0.06)]'
 const SLOT_ACTIVE = 'border-[rgba(74,222,128,0.85)] bg-[linear-gradient(180deg,rgba(21,128,61,0.5),rgba(13,70,38,0.72))] shadow-[inset_0_0_0_1px_rgba(74,222,128,0.2),0_0_0_1px_rgba(74,222,128,0.12)]'
@@ -51,6 +68,7 @@ const mounted = ref(false)
 let interactable = null
 let grabPxX = 0
 let grabPxY = 0
+let persistTimer = null
 
 const safeInventoryWidth = computed(() => Math.max(1, Number(props.inventoryWidth) || 10))
 const safeInventoryHeight = computed(() => Math.max(1, Number(props.inventoryHeight) || 6))
@@ -147,6 +165,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  flushPersist()
   if (interactable) {
     interactable.unset()
     interactable = null
@@ -352,11 +371,59 @@ function placeIntoInventory(entryId, x, y) {
       y,
     },
   }
+  schedulePersist()
+}
+
+function buildLayout() {
+  const inventory = []
+  const equipment = []
+
+  for (const placement of Object.values(placements.value)) {
+    if (placement.kind === 'inventory') {
+      inventory.push({ id: placement.entryId, grid_x: placement.x, grid_y: placement.y, is_rotated: false })
+    } else if (placement.kind === 'equipment') {
+      equipment.push({ slot: placement.slot, inventory_item_id: placement.entryId })
+    }
+  }
+
+  return { inventory, equipment }
+}
+
+function schedulePersist() {
+  if (!props.canEdit || !props.characterId) return
+  clearTimeout(persistTimer)
+  persistTimer = setTimeout(() => {
+    persistTimer = null
+    emit('persist', buildLayout())
+  }, 400)
+}
+
+function flushPersist() {
+  if (!persistTimer) return
+  clearTimeout(persistTimer)
+  persistTimer = null
+  emit('persist', buildLayout())
+}
+
+function meetsItemRequirements(entry) {
+  const requirements = entry?.item?.required_attributes ?? []
+  return requirements.every((requirement) => {
+    const current = Number(props.characterAttributes?.[requirement?.attribute_name] ?? 0)
+    return current >= Number(requirement?.min_value ?? 0)
+  })
 }
 
 function placeIntoEquipment(entryId, slot) {
   const entry = allEntriesById.value[entryId]
   if (!canEquip(entry, slot)) return
+
+  if (!meetsItemRequirements(entry)) {
+    notify.warning({
+      title: 'Requirements not met',
+      message: `Your character does not meet the requirements to equip ${entry.item?.name || 'this item'}.`,
+    })
+    return
+  }
 
   placements.value = {
     ...placements.value,
@@ -366,6 +433,7 @@ function placeIntoEquipment(entryId, slot) {
       slot,
     },
   }
+  schedulePersist()
 }
 
 function canEquip(entry, slot) {

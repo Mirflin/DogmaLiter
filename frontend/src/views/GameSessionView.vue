@@ -17,7 +17,7 @@ import SessionGMCharacterCreateModal from '@/components/session/SessionGMCharact
 import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemCompendium from '@/components/session/SessionItemCompendium.vue'
-import { notify } from '@/notify'
+import { getErrorMessage, notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -104,21 +104,111 @@ const canEditCharacter = computed(() => {
   return isGM.value || characterSnapshot.value.user_id === viewer.value?.user_id
 })
 const attributeCards = computed(() => {
-  const stats = characterSnapshot.value?.base_attributes
-  if (!stats) return []
+  if (!characterSnapshot.value?.base_attributes) return []
 
-  return [
-    { key: 'strength', label: 'Strength', value: stats.strength ?? 0 },
-    { key: 'dexterity', label: 'Dexterity', value: stats.dexterity ?? 0 },
-    { key: 'constitution', label: 'Constitution', value: stats.constitution ?? 0 },
-    { key: 'intelligence', label: 'Intelligence', value: stats.intelligence ?? 0 },
-    { key: 'wisdom', label: 'Wisdom', value: stats.wisdom ?? 0 },
-    { key: 'charisma', label: 'Charisma', value: stats.charisma ?? 0 },
+  const definitions = [
+    { key: 'strength', label: 'Strength' },
+    { key: 'dexterity', label: 'Dexterity' },
+    { key: 'constitution', label: 'Constitution' },
+    { key: 'intelligence', label: 'Intelligence' },
+    { key: 'wisdom', label: 'Wisdom' },
+    { key: 'charisma', label: 'Charisma' },
   ]
+
+  return definitions.map(({ key, label }) => {
+    const base = baseAttributeMap.value[key] ?? 0
+    const total = effectiveAttributeMap.value[key] ?? base
+    return { key, label, base, value: total, bonus: total - base, contributions: attributeContributions.value[key] ?? [] }
+  })
 })
 const inventoryItems = computed(() => activeCharacter.value?.inventory ?? [])
 const equipment = computed(() => activeCharacter.value?.equipment ?? [])
 const customAttributes = computed(() => characterSnapshot.value?.custom_attributes ?? [])
+const customAttributeCards = computed(() => customAttributes.value.map((attribute) => {
+  const name = normalizeAttributeName(attribute?.name)
+  const base = Number(attribute?.value) || 0
+  const total = effectiveAttributeMap.value[name] ?? base
+  return { id: attribute?.id, name: attribute?.name, base, value: total, bonus: total - base, contributions: attributeContributions.value[name] ?? [] }
+}))
+const baseAttributeMap = computed(() => {
+  const map = {}
+  const base = characterSnapshot.value?.base_attributes
+  if (base) {
+    for (const [key, value] of Object.entries(base)) {
+      map[normalizeAttributeName(key)] = Number(value) || 0
+    }
+  }
+  for (const attribute of customAttributes.value) {
+    const name = normalizeAttributeName(attribute?.name)
+    if (name) {
+      map[name] = Number(attribute?.value) || 0
+    }
+  }
+  return map
+})
+const equipmentModifiers = computed(() => {
+  const acc = {}
+  for (const slot of equipment.value) {
+    const modifiers = slot?.inventory_item?.item?.attribute_modifiers ?? []
+    for (const modifier of modifiers) {
+      const name = normalizeAttributeName(modifier?.attribute_name)
+      if (!name) continue
+      if (!acc[name]) acc[name] = { flat: 0, percent: 0 }
+      if (modifier?.is_percentage) acc[name].percent += Number(modifier?.modifier_value) || 0
+      else acc[name].flat += Number(modifier?.modifier_value) || 0
+    }
+  }
+  return acc
+})
+const effectiveAttributeMap = computed(() => {
+  const result = {}
+  const base = baseAttributeMap.value
+  const modifiers = equipmentModifiers.value
+  const names = new Set([...Object.keys(base), ...Object.keys(modifiers)])
+  for (const name of names) {
+    const baseValue = base[name] ?? 0
+    const mod = modifiers[name] ?? { flat: 0, percent: 0 }
+    result[name] = baseValue + mod.flat + Math.round(baseValue * mod.percent / 100)
+  }
+  return result
+})
+const attributeContributions = computed(() => {
+  const map = {}
+  for (const slot of equipment.value) {
+    const itemName = slot?.inventory_item?.item?.name || 'Equipped item'
+    const modifiers = slot?.inventory_item?.item?.attribute_modifiers ?? []
+    for (const modifier of modifiers) {
+      const name = normalizeAttributeName(modifier?.attribute_name)
+      if (!name) continue
+      if (!map[name]) map[name] = []
+      map[name].push({ source: itemName, value: Number(modifier?.modifier_value) || 0, percent: Boolean(modifier?.is_percentage) })
+    }
+  }
+  return map
+})
+function normalizeAttributeName(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s_-]+/g, '')
+    .replace(/[\s-]+/g, '_')
+}
+async function persistInventoryLayout(layout) {
+  const characterId = activeCharacterId.value
+  if (!characterId || !gameId.value) return
+
+  try {
+    const data = await auth.updateCharacterInventory(gameId.value, characterId, layout)
+    if (data?.character && activeCharacter.value?.id === data.character.id) {
+      activeCharacter.value = data.character
+    }
+  } catch (error) {
+    notify.error({
+      title: 'Inventory not saved',
+      message: getErrorMessage(error, 'Failed to save inventory changes'),
+    })
+  }
+}
 const inventoryWidth = computed(() => characterSnapshot.value?.inventory_width ?? 0)
 const inventoryHeight = computed(() => characterSnapshot.value?.inventory_height ?? 0)
 const inventoryCapacity = computed(() => inventoryWidth.value * inventoryHeight.value)
@@ -1229,10 +1319,35 @@ onBeforeUnmount(() => {
                           <div
                             v-for="attribute in attributeCards"
                             :key="attribute.key"
-                            class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
+                            class="group relative rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
                           >
                             <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ attribute.label }}</p>
-                            <p class="mt-2 text-[24px] font-bold text-[#f6f7fb]">{{ attribute.value }}</p>
+                            <div class="mt-2 flex items-baseline gap-2">
+                              <p class="text-[24px] font-bold text-[#f6f7fb]">{{ attribute.value }}</p>
+                              <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'">
+                                {{ attribute.base }} ({{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }})
+                              </span>
+                            </div>
+
+                            <div class="pointer-events-none absolute inset-x-0 top-full z-30 mt-2 hidden rounded-xl border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.5)] group-hover:block">
+                              <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">{{ attribute.label }} breakdown</p>
+                              <div class="mt-2 flex items-center justify-between text-[12px] text-[#d8dce7]/75">
+                                <span>Base</span><span class="font-semibold">{{ attribute.base }}</span>
+                              </div>
+                              <div
+                                v-for="(contribution, index) in attribute.contributions"
+                                :key="index"
+                                class="mt-1 flex items-center justify-between gap-2 text-[12px]"
+                                :class="contribution.value >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'"
+                              >
+                                <span class="truncate pr-2">{{ contribution.source }}</span>
+                                <span class="shrink-0 font-semibold">{{ contribution.value >= 0 ? '+' : '' }}{{ contribution.value }}{{ contribution.percent ? '%' : '' }}</span>
+                              </div>
+                              <p v-if="!attribute.contributions.length" class="mt-1 text-[11px] text-[#d8dce7]/50">No equipment bonuses</p>
+                              <div class="mt-2 flex items-center justify-between border-t border-[rgba(126,200,227,0.12)] pt-2 text-[12px] font-semibold text-[#f6f7fb]">
+                                <span>Total</span><span>{{ attribute.value }}</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1247,14 +1362,39 @@ onBeforeUnmount(() => {
                       <span class="text-[12px] text-[#e8e8f0]/45">{{ customAttributes.length }} tracked</span>
                     </div>
 
-                    <div v-if="customAttributes.length" class="mt-4 grid gap-3 md:grid-cols-2">
+                    <div v-if="customAttributeCards.length" class="mt-4 grid gap-3 md:grid-cols-2">
                       <div
-                        v-for="attribute in customAttributes"
+                        v-for="attribute in customAttributeCards"
                         :key="attribute.id"
-                        class="rounded-2xl border border-[rgba(233,69,96,0.12)] bg-[rgba(233,69,96,0.08)] px-4 py-3"
+                        class="group relative rounded-2xl border border-[rgba(233,69,96,0.12)] bg-[rgba(233,69,96,0.08)] px-4 py-3"
                       >
                         <p class="text-[11px] uppercase tracking-[0.18em] text-[#ff8fa3]/60">{{ attribute.name }}</p>
-                        <p class="mt-2 text-[20px] font-semibold text-[#f6f7fb]">{{ attribute.value }}</p>
+                        <div class="mt-2 flex items-baseline gap-2">
+                          <p class="text-[20px] font-semibold text-[#f6f7fb]">{{ attribute.value }}</p>
+                          <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'">
+                            {{ attribute.base }} ({{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }})
+                          </span>
+                        </div>
+
+                        <div class="pointer-events-none absolute inset-x-0 top-full z-30 mt-2 hidden rounded-xl border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.5)] group-hover:block">
+                          <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">{{ attribute.name }} breakdown</p>
+                          <div class="mt-2 flex items-center justify-between text-[12px] text-[#d8dce7]/75">
+                            <span>Base</span><span class="font-semibold">{{ attribute.base }}</span>
+                          </div>
+                          <div
+                            v-for="(contribution, index) in attribute.contributions"
+                            :key="index"
+                            class="mt-1 flex items-center justify-between gap-2 text-[12px]"
+                            :class="contribution.value >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'"
+                          >
+                            <span class="truncate pr-2">{{ contribution.source }}</span>
+                            <span class="shrink-0 font-semibold">{{ contribution.value >= 0 ? '+' : '' }}{{ contribution.value }}{{ contribution.percent ? '%' : '' }}</span>
+                          </div>
+                          <p v-if="!attribute.contributions.length" class="mt-1 text-[11px] text-[#d8dce7]/50">No equipment bonuses</p>
+                          <div class="mt-2 flex items-center justify-between border-t border-[rgba(126,200,227,0.12)] pt-2 text-[12px] font-semibold text-[#f6f7fb]">
+                            <span>Total</span><span>{{ attribute.value }}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -1311,6 +1451,10 @@ onBeforeUnmount(() => {
               :currency-cards="currencyCards"
               :inventory-width="inventoryWidth"
               :inventory-height="inventoryHeight"
+              :character-attributes="effectiveAttributeMap"
+              :character-id="activeCharacterId"
+              :can-edit="canEditCharacter"
+              @persist="persistInventoryLayout"
             />
           </section>
 

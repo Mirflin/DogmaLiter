@@ -192,6 +192,42 @@ func (r *Repository) AddCharacterInventoryItems(entries []models.CharacterInvent
 	return r.db.Create(&entries).Error
 }
 
+type InventoryPositionUpdate struct {
+	ID        string
+	GridX     int
+	GridY     int
+	IsRotated bool
+}
+
+func (r *Repository) UpdateInventoryLayout(characterID string, positions []InventoryPositionUpdate, equipment []models.CharacterEquipment) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, position := range positions {
+			if err := tx.Model(&models.CharacterInventory{}).
+				Where("id = ? AND character_id = ?", position.ID, characterID).
+				Updates(map[string]interface{}{
+					"grid_x":     position.GridX,
+					"grid_y":     position.GridY,
+					"is_rotated": position.IsRotated,
+					"updated_at": time.Now(),
+				}).Error; err != nil {
+				return err
+			}
+		}
+
+		if err := tx.Where("character_id = ?", characterID).Delete(&models.CharacterEquipment{}).Error; err != nil {
+			return err
+		}
+
+		if len(equipment) > 0 {
+			if err := tx.Create(&equipment).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
 func (r *Repository) UpdateCharacterPortrait(gameID, characterID string, portraitID *string) error {
 	return r.db.Model(&models.Character{}).
 		Where("game_id = ? AND id = ?", gameID, characterID).
