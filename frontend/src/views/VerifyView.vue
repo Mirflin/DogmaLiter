@@ -59,7 +59,7 @@ async function handleResend() {
         <h2 class="font-[Cinzel] text-[24px] font-bold text-[#e8e8f0] tracking-wide">Verified!</h2>
         <p class="text-[#6deca9] text-sm">{{ message }}</p>
         <router-link
-          to="/login"
+          to="/auth"
           class="mt-3 inline-block py-3 px-8 bg-linear-to-br from-[#e94560] to-[#c23152] text-white rounded-xl text-[15px] font-semibold no-underline transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(233,69,96,0.4)]"
         >
           Sign In

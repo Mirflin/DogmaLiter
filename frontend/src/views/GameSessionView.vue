@@ -1636,11 +1636,6 @@ onBeforeUnmount(() => {
                   </button>
                 </div>
 
-                <div class="mt-4 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.14em] text-[#7ec8e3]/52">
-                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">
-                    {{ gmRosterMembers.length }} members visible
-                  </span>
-                </div>
               </div>
 
               <div class="mt-5 space-y-3">

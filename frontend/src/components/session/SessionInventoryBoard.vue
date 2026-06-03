@@ -5,6 +5,16 @@ import { API_URL } from '@/api'
 import { notify } from '@/notify'
 import { Trash2, X } from '@lucide/vue'
 import SessionInventoryDraggableItem from './SessionInventoryDraggableItem.vue'
+import weaponImg from '@/assets/weapon.png'
+import offHandImg from '@/assets/lamp.png'
+import headImg from '@/assets/helmet.png'
+import chestImg from '@/assets/armour.png'
+import amuletImg from '@/assets/charm.png'
+import ringImg from '@/assets/ring1.png'
+import ring2Img from '@/assets/ring2.png'
+import beltImg from '@/assets/belt.png'
+import glovesImg from '@/assets/gloves.png'
+import bootsImg from '@/assets/boots.png'
 
 const props = defineProps({
   characterName: {
@@ -611,8 +621,12 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('main_hand')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('main_hand')" :entry="equipmentEntry('main_hand')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Main Hand</span>
+              <div :style="{
+                backgroundImage: `url(${weaponImg})`,
+                backgroundSize: '85%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
               </div>
             </div>
 
@@ -622,8 +636,13 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('gloves')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('gloves')" :entry="equipmentEntry('gloves')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Gloves</span>
+              <div :style="{
+                backgroundImage: `url(${glovesImg})`,
+                backgroundSize: '75%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
+                
               </div>
             </div>
           </div>
@@ -635,8 +654,13 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('ring_1')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('ring_1')" :entry="equipmentEntry('ring_1')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Ring</span>
+              <div :style="{
+                backgroundImage: `url(${ringImg})`,
+                backgroundSize: '75%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
+                
               </div>
             </div>
           </div>
@@ -648,8 +672,12 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('head')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('head')" :entry="equipmentEntry('head')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Head</span>
+              <div :style="{
+                backgroundImage: `url(${headImg})`,
+                backgroundSize: '85%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
               </div>
             </div>
 
@@ -659,8 +687,13 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('chest')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('chest')" :entry="equipmentEntry('chest')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Chest</span>
+              <div :style="{
+                backgroundImage: `url(${chestImg})`,
+                backgroundSize: '85%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
+                
               </div>
             </div>
 
@@ -670,8 +703,13 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('belt')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('belt')" :entry="equipmentEntry('belt')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Belt</span>
+              <div :style="{
+                backgroundImage: `url(${beltImg})`,
+                backgroundSize: '85%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
+                
               </div>
             </div>
           </div>
@@ -683,8 +721,13 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('amulet')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('amulet')" :entry="equipmentEntry('amulet')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Amulet</span>
+              <div :style="{
+                backgroundImage: `url(${amuletImg})`,
+                backgroundSize: '85%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
+                
               </div>
             </div>
 
@@ -694,8 +737,13 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('ring_2')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('ring_2')" :entry="equipmentEntry('ring_2')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Ring</span>
+              <div :style="{
+                backgroundImage: `url(${ring2Img})`,
+                backgroundSize: '75%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
+                
               </div>
             </div>
           </div>
@@ -707,8 +755,13 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('off_hand')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('off_hand')" :entry="equipmentEntry('off_hand')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Off Hand</span>
+              <div :style="{
+                backgroundImage: `url(${offHandImg})`,
+                backgroundSize: '85%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
+                
               </div>
             </div>
 
@@ -718,8 +771,13 @@ function equipmentEntry(slot) {
               :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('boots')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('boots')" :entry="equipmentEntry('boots')" variant="equipment" />
-              <div v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
-                <span class="text-[clamp(0.48rem,1vw,0.82rem)] font-bold uppercase tracking-[0.14em] text-[rgba(126,200,227,0.62)]">Boots</span>
+              <div :style="{
+                backgroundImage: `url(${bootsImg})`,
+                backgroundSize: '70%',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+              }" v-else class="flex h-full items-center justify-center p-[clamp(0.25rem,0.7vw,0.45rem)] text-center">
+                
               </div>
             </div>
           </div>
