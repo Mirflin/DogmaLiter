@@ -23,6 +23,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const CHAT_POLL_INTERVAL = 15000
+const CHARACTER_POLL_INTERVAL = 8000
 const CHAT_MESSAGE_LIMIT = 40
 const MAX_PORTRAIT_SIZE = 5 * 1024 * 1024
 const ALLOWED_PORTRAIT_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -77,6 +78,7 @@ const gmCharacterEditorError = ref('')
 const gmCharacterCreateRestorePicker = ref(false)
 
 let chatPollHandle = null
+let characterPollHandle = null
 let characterRequestId = 0
 
 const gameId = computed(() => route.params.id)
@@ -585,6 +587,7 @@ function clearActiveCharacter() {
   activeCharacterId.value = ''
   activeCharacter.value = null
   characterError.value = null
+  persistActiveCharacter('')
   syncCharacterForm(null)
 }
 
@@ -713,6 +716,72 @@ function startChatPolling() {
   }, CHAT_POLL_INTERVAL)
 }
 
+function activeCharacterStorageKey() {
+  return `dl:active-character:${gameId.value}`
+}
+
+function readStoredCharacterId() {
+  try {
+    return localStorage.getItem(activeCharacterStorageKey()) || ''
+  } catch {
+    return ''
+  }
+}
+
+function persistActiveCharacter(characterId) {
+  try {
+    if (characterId) {
+      localStorage.setItem(activeCharacterStorageKey(), characterId)
+    } else {
+      localStorage.removeItem(activeCharacterStorageKey())
+    }
+  } catch {}
+}
+
+function characterSignature(character) {
+  if (!character) return ''
+  return JSON.stringify({
+    inv: (character.inventory || []).map(i => [i.id, i.grid_x, i.grid_y, i.is_rotated, i.quantity, i.durability, i.max_durability, i.enchantment, i.item?.id, i.item?.updated_at]),
+    eq: (character.equipment || []).map(e => [e.slot, e.inventory_item_id]),
+    cur: [character.currency_gold, character.currency_silver, character.currency_copper],
+    base: character.base_attributes,
+    custom: (character.custom_attributes || []).map(a => [a.id, a.name, a.value]),
+    name: character.name,
+    backstory: character.backstory,
+    portrait: character.portrait_id,
+    iw: character.inventory_width,
+    ih: character.inventory_height,
+  })
+}
+
+function stopCharacterPolling() {
+  if (characterPollHandle) {
+    window.clearInterval(characterPollHandle)
+    characterPollHandle = null
+  }
+}
+
+function startCharacterPolling() {
+  stopCharacterPolling()
+  characterPollHandle = window.setInterval(() => {
+    pollActiveCharacter()
+  }, CHARACTER_POLL_INTERVAL)
+}
+
+async function pollActiveCharacter() {
+  const characterId = activeCharacterId.value
+  if (!characterId || profileEditMode.value || characterLoading.value) return
+
+  try {
+    const data = await auth.getGameCharacter(gameId.value, characterId)
+    const next = data?.character
+    if (!next || next.id !== activeCharacterId.value) return
+    if (characterSignature(next) !== characterSignature(activeCharacter.value)) {
+      mergeUpdatedCharacterIntoSession(next)
+    }
+  } catch {}
+}
+
 function isChatNearBottom() {
   const node = chatMessagesRef.value
   if (!node) return true
@@ -778,6 +847,7 @@ async function switchCharacter(characterId, { nextTab = 'sheet', prefetchedChara
   }
 
   activeCharacterId.value = characterId
+  persistActiveCharacter(characterId)
   activeTab.value = nextTab
   pickerVisible.value = false
 
@@ -856,16 +926,18 @@ async function loadSession({ preserveCharacter = true, promptSelection = false }
     }
 
     const availableCharacters = data.characters ?? []
-    const keepCurrentCharacter = Boolean(previousCharacterId && availableCharacters.some(character => character.id === previousCharacterId))
+    const candidateCharacterId = previousCharacterId || (preserveCharacter ? readStoredCharacterId() : '')
+    const keepCurrentCharacter = Boolean(candidateCharacterId && availableCharacters.some(character => character.id === candidateCharacterId))
 
     if (promptSelection) {
       clearActiveCharacter()
       pickerVisible.value = Boolean(availableCharacters.length || data.viewer?.can_create_character)
     } else if (keepCurrentCharacter) {
       pickerVisible.value = false
-      activeCharacterId.value = previousCharacterId
-      if (activeCharacter.value?.id !== previousCharacterId) {
-        await loadCharacter(previousCharacterId)
+      activeCharacterId.value = candidateCharacterId
+      persistActiveCharacter(candidateCharacterId)
+      if (activeCharacter.value?.id !== candidateCharacterId) {
+        await loadCharacter(candidateCharacterId)
       }
     } else {
       clearActiveCharacter()
@@ -1109,11 +1181,13 @@ watch(
 )
 
 onMounted(() => {
-  loadSession({ preserveCharacter: false, promptSelection: true })
+  loadSession({ preserveCharacter: true, promptSelection: false })
+  startCharacterPolling()
 })
 
 onBeforeUnmount(() => {
   stopChatPolling()
+  stopCharacterPolling()
   resetPortraitSelection()
 })
 </script>
