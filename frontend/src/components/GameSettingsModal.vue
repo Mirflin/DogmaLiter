@@ -285,6 +285,7 @@ function close() {
               </span>
               <span class="text-[#e8e8f0]/70 text-[13px] select-none">Chat</span>
             </label>
+            <!--
             <label class="flex items-center gap-3 cursor-pointer group">
               <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
                 :class="enableItemTrading ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
@@ -295,6 +296,7 @@ function close() {
               </span>
               <span class="text-[#e8e8f0]/70 text-[13px] select-none">Item Trading</span>
             </label>
+          -->
           </div>
           <div class="border-t border-[rgba(126,200,227,0.08)] pt-5">
             <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-3">Invite Code</label>

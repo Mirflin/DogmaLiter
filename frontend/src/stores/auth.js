@@ -304,6 +304,16 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function updateInventoryItem(gameID, characterID, inventoryItemID, updates) {
+    const { data } = await api.patch(`/games/${gameID}/characters/${characterID}/inventory/${inventoryItemID}`, updates)
+    return data
+  }
+
+  async function deleteInventoryItem(gameID, characterID, inventoryItemID) {
+    const { data } = await api.delete(`/games/${gameID}/characters/${characterID}/inventory/${inventoryItemID}`)
+    return data
+  }
+
   async function uploadCharacterPortrait(gameID, characterID, file) {
     const formData = new FormData()
     formData.append('portrait', file)
@@ -378,6 +388,8 @@ export const useAuthStore = defineStore('auth', () => {
     updateGameCharacter,
     giveItemsToCharacter,
     updateCharacterInventory,
+    updateInventoryItem,
+    deleteInventoryItem,
     uploadCharacterPortrait,
     getGameChatMessages,
     sendGameChatMessage,

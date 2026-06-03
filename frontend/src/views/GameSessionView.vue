@@ -172,6 +172,30 @@ const effectiveAttributeMap = computed(() => {
   }
   return result
 })
+const statTooltip = ref({ visible: false, left: 0, top: 0, label: '', base: 0, total: 0, contributions: [] })
+function showStatTooltip(event, attribute) {
+  const rect = event.currentTarget.getBoundingClientRect()
+  const width = 240
+  const estHeight = 96 + (attribute.contributions.length * 22)
+  let top = rect.bottom + 8
+  if (top + estHeight > window.innerHeight - 8) {
+    top = rect.top - estHeight - 8
+  }
+  top = Math.max(8, top)
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))
+  statTooltip.value = {
+    visible: true,
+    left,
+    top,
+    label: attribute.label || attribute.name,
+    base: attribute.base,
+    total: attribute.value,
+    contributions: attribute.contributions,
+  }
+}
+function hideStatTooltip() {
+  statTooltip.value = { ...statTooltip.value, visible: false }
+}
 const attributeContributions = computed(() => {
   const map = {}
   for (const slot of equipment.value) {
@@ -206,6 +230,42 @@ async function persistInventoryLayout(layout) {
     notify.error({
       title: 'Inventory not saved',
       message: getErrorMessage(error, 'Failed to save inventory changes'),
+    })
+  }
+}
+async function handleInventoryItemUpdate(payload) {
+  const characterId = activeCharacterId.value
+  if (!characterId || !gameId.value || !payload?.id) return
+
+  try {
+    const data = await auth.updateInventoryItem(gameId.value, characterId, payload.id, {
+      durability: payload.durability,
+      max_durability: payload.max_durability,
+    })
+    if (data?.character && activeCharacter.value?.id === data.character.id) {
+      activeCharacter.value = data.character
+    }
+  } catch (error) {
+    notify.error({
+      title: 'Item not updated',
+      message: getErrorMessage(error, 'Failed to update item'),
+    })
+  }
+}
+async function handleInventoryItemDelete(inventoryItemId) {
+  const characterId = activeCharacterId.value
+  if (!characterId || !gameId.value || !inventoryItemId) return
+
+  try {
+    const data = await auth.deleteInventoryItem(gameId.value, characterId, inventoryItemId)
+    if (data?.character && activeCharacter.value?.id === data.character.id) {
+      activeCharacter.value = data.character
+    }
+    notify.success({ title: 'Item removed', message: 'The item was removed from the inventory.' })
+  } catch (error) {
+    notify.error({
+      title: 'Item not removed',
+      message: getErrorMessage(error, 'Failed to remove item'),
     })
   }
 }
@@ -1033,14 +1093,6 @@ onBeforeUnmount(() => {
             <div class="session-count-pill rounded-full border border-[rgba(126,200,227,0.12)] bg-[rgba(15,15,35,0.64)] px-3 py-2 text-[12px] text-[#7ec8e3]/65">
               {{ game.members?.length ?? 0 }} / {{ game.max_players }} players
             </div>
-            <button
-              @click="loadSession({ preserveCharacter: true, promptSelection: false })"
-              :disabled="refreshing"
-              class="flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#e8e8f0] transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(126,200,227,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              <RefreshCwIcon class="h-4 w-4" :stroke-width="2" :class="refreshing ? 'animate-spin' : ''" />
-              {{ refreshing ? 'Refreshing' : 'Refresh Workspace' }}
-            </button>
           </div>
         </div>
       </header>
@@ -1319,7 +1371,9 @@ onBeforeUnmount(() => {
                           <div
                             v-for="attribute in attributeCards"
                             :key="attribute.key"
-                            class="group relative rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
+                            class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
+                            @mouseenter="showStatTooltip($event, attribute)"
+                            @mouseleave="hideStatTooltip"
                           >
                             <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ attribute.label }}</p>
                             <div class="mt-2 flex items-baseline gap-2">
@@ -1327,26 +1381,6 @@ onBeforeUnmount(() => {
                               <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'">
                                 {{ attribute.base }} ({{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }})
                               </span>
-                            </div>
-
-                            <div class="pointer-events-none absolute inset-x-0 top-full z-30 mt-2 hidden rounded-xl border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.5)] group-hover:block">
-                              <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">{{ attribute.label }} breakdown</p>
-                              <div class="mt-2 flex items-center justify-between text-[12px] text-[#d8dce7]/75">
-                                <span>Base</span><span class="font-semibold">{{ attribute.base }}</span>
-                              </div>
-                              <div
-                                v-for="(contribution, index) in attribute.contributions"
-                                :key="index"
-                                class="mt-1 flex items-center justify-between gap-2 text-[12px]"
-                                :class="contribution.value >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'"
-                              >
-                                <span class="truncate pr-2">{{ contribution.source }}</span>
-                                <span class="shrink-0 font-semibold">{{ contribution.value >= 0 ? '+' : '' }}{{ contribution.value }}{{ contribution.percent ? '%' : '' }}</span>
-                              </div>
-                              <p v-if="!attribute.contributions.length" class="mt-1 text-[11px] text-[#d8dce7]/50">No equipment bonuses</p>
-                              <div class="mt-2 flex items-center justify-between border-t border-[rgba(126,200,227,0.12)] pt-2 text-[12px] font-semibold text-[#f6f7fb]">
-                                <span>Total</span><span>{{ attribute.value }}</span>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -1366,7 +1400,9 @@ onBeforeUnmount(() => {
                       <div
                         v-for="attribute in customAttributeCards"
                         :key="attribute.id"
-                        class="group relative rounded-2xl border border-[rgba(233,69,96,0.12)] bg-[rgba(233,69,96,0.08)] px-4 py-3"
+                        class="rounded-2xl border border-[rgba(233,69,96,0.12)] bg-[rgba(233,69,96,0.08)] px-4 py-3"
+                        @mouseenter="showStatTooltip($event, attribute)"
+                        @mouseleave="hideStatTooltip"
                       >
                         <p class="text-[11px] uppercase tracking-[0.18em] text-[#ff8fa3]/60">{{ attribute.name }}</p>
                         <div class="mt-2 flex items-baseline gap-2">
@@ -1374,26 +1410,6 @@ onBeforeUnmount(() => {
                           <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'">
                             {{ attribute.base }} ({{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }})
                           </span>
-                        </div>
-
-                        <div class="pointer-events-none absolute inset-x-0 top-full z-30 mt-2 hidden rounded-xl border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.5)] group-hover:block">
-                          <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">{{ attribute.name }} breakdown</p>
-                          <div class="mt-2 flex items-center justify-between text-[12px] text-[#d8dce7]/75">
-                            <span>Base</span><span class="font-semibold">{{ attribute.base }}</span>
-                          </div>
-                          <div
-                            v-for="(contribution, index) in attribute.contributions"
-                            :key="index"
-                            class="mt-1 flex items-center justify-between gap-2 text-[12px]"
-                            :class="contribution.value >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'"
-                          >
-                            <span class="truncate pr-2">{{ contribution.source }}</span>
-                            <span class="shrink-0 font-semibold">{{ contribution.value >= 0 ? '+' : '' }}{{ contribution.value }}{{ contribution.percent ? '%' : '' }}</span>
-                          </div>
-                          <p v-if="!attribute.contributions.length" class="mt-1 text-[11px] text-[#d8dce7]/50">No equipment bonuses</p>
-                          <div class="mt-2 flex items-center justify-between border-t border-[rgba(126,200,227,0.12)] pt-2 text-[12px] font-semibold text-[#f6f7fb]">
-                            <span>Total</span><span>{{ attribute.value }}</span>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -1455,6 +1471,8 @@ onBeforeUnmount(() => {
               :character-id="activeCharacterId"
               :can-edit="canEditCharacter"
               @persist="persistInventoryLayout"
+              @update-item="handleInventoryItemUpdate"
+              @delete-item="handleInventoryItemDelete"
             />
           </section>
 
@@ -1725,6 +1743,32 @@ onBeforeUnmount(() => {
           <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
         </main>
       </div>
+
+      <Teleport to="body">
+        <div
+          v-if="statTooltip.visible"
+          class="pointer-events-none fixed z-[12000] w-[15rem] rounded-xl border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+          :style="{ left: `${statTooltip.left}px`, top: `${statTooltip.top}px` }"
+        >
+          <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">{{ statTooltip.label }} breakdown</p>
+          <div class="mt-2 flex items-center justify-between text-[12px] text-[#d8dce7]/75">
+            <span>Base</span><span class="font-semibold">{{ statTooltip.base }}</span>
+          </div>
+          <div
+            v-for="(contribution, index) in statTooltip.contributions"
+            :key="index"
+            class="mt-1 flex items-center justify-between gap-2 text-[12px]"
+            :class="contribution.value >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'"
+          >
+            <span class="truncate pr-2">{{ contribution.source }}</span>
+            <span class="shrink-0 font-semibold">{{ contribution.value >= 0 ? '+' : '' }}{{ contribution.value }}{{ contribution.percent ? '%' : '' }}</span>
+          </div>
+          <p v-if="!statTooltip.contributions.length" class="mt-1 text-[11px] text-[#d8dce7]/50">No equipment bonuses</p>
+          <div class="mt-2 flex items-center justify-between border-t border-[rgba(126,200,227,0.12)] pt-2 text-[12px] font-semibold text-[#f6f7fb]">
+            <span>Total</span><span>{{ statTooltip.total }}</span>
+          </div>
+        </div>
+      </Teleport>
 
       <button
         v-if="chatCollapsed"

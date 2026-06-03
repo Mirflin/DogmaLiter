@@ -990,6 +990,157 @@ func equipSlotMatches(itemEquip *string, slot string) bool {
 	return value == slot
 }
 
+func (h *Handler) UpdateInventoryItem(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	characterID := chi.URLParam(r, "characterID")
+	inventoryItemID := chi.URLParam(r, "inventoryItemID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+
+	character, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Character %s not found", characterID)})
+		return
+	}
+	if !isGM && character.UserID != userID {
+		respondJSON(w, 403, map[string]string{"error": "You do not have access to update this character"})
+		return
+	}
+
+	var target *models.CharacterInventory
+	for i := range character.Inventory {
+		if character.Inventory[i].ID == inventoryItemID {
+			target = &character.Inventory[i]
+			break
+		}
+	}
+	if target == nil {
+		respondJSON(w, 404, map[string]string{"error": "Inventory item not found"})
+		return
+	}
+
+	var req struct {
+		Durability    *int `json:"durability"`
+		MaxDurability *int `json:"max_durability"`
+		Enchantment   *int `json:"enchantment"`
+		Quantity      *int `json:"quantity"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	updates := map[string]interface{}{}
+	effectiveMax := target.MaxDurability
+
+	if req.MaxDurability != nil {
+		value := *req.MaxDurability
+		if value < 1 || value > 1000000 {
+			respondJSON(w, 400, map[string]string{"error": "Max durability must be between 1 and 1,000,000"})
+			return
+		}
+		updates["max_durability"] = value
+		effectiveMax = &value
+	}
+	if req.Durability != nil {
+		value := *req.Durability
+		if value < 0 || value > 1000000 {
+			respondJSON(w, 400, map[string]string{"error": "Durability must be between 0 and 1,000,000"})
+			return
+		}
+		if effectiveMax != nil && value > *effectiveMax {
+			respondJSON(w, 400, map[string]string{"error": "Durability cannot exceed max durability"})
+			return
+		}
+		updates["durability"] = value
+	}
+	if req.Enchantment != nil {
+		value := *req.Enchantment
+		if value < -999 || value > 999 {
+			respondJSON(w, 400, map[string]string{"error": "Enchantment must be between -999 and 999"})
+			return
+		}
+		updates["enchantment"] = value
+	}
+	if req.Quantity != nil {
+		value := *req.Quantity
+		if value < 1 || value > 9999 {
+			respondJSON(w, 400, map[string]string{"error": "Quantity must be between 1 and 9999"})
+			return
+		}
+		updates["quantity"] = value
+	}
+
+	if len(updates) == 0 {
+		respondJSON(w, 400, map[string]string{"error": "No changes were provided"})
+		return
+	}
+	updates["updated_at"] = time.Now()
+
+	if _, err := h.service.repo.UpdateInventoryEntry(characterID, inventoryItemID, updates); err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to update inventory item"})
+		return
+	}
+
+	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Item was updated but the character could not be reloaded"})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"character": serializeCharacterDetail(updated),
+	})
+}
+
+func (h *Handler) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	characterID := chi.URLParam(r, "characterID")
+	inventoryItemID := chi.URLParam(r, "inventoryItemID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+
+	character, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Character %s not found", characterID)})
+		return
+	}
+	if !isGM && character.UserID != userID {
+		respondJSON(w, 403, map[string]string{"error": "You do not have access to update this character"})
+		return
+	}
+
+	affected, err := h.service.repo.DeleteInventoryEntry(characterID, inventoryItemID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to delete inventory item"})
+		return
+	}
+	if affected == 0 {
+		respondJSON(w, 404, map[string]string{"error": "Inventory item not found"})
+		return
+	}
+
+	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Item was removed but the character could not be reloaded"})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"character": serializeCharacterDetail(updated),
+	})
+}
+
 func markInventoryOccupancy(occupied [][]bool, items []models.CharacterInventory) {
 	for _, entry := range items {
 		width := entry.Item.GridWidth

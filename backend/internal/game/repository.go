@@ -228,6 +228,32 @@ func (r *Repository) UpdateInventoryLayout(characterID string, positions []Inven
 	})
 }
 
+func (r *Repository) UpdateInventoryEntry(characterID, inventoryItemID string, updates map[string]interface{}) (int64, error) {
+	result := r.db.Model(&models.CharacterInventory{}).
+		Where("id = ? AND character_id = ?", inventoryItemID, characterID).
+		Updates(updates)
+	return result.RowsAffected, result.Error
+}
+
+func (r *Repository) DeleteInventoryEntry(characterID, inventoryItemID string) (int64, error) {
+	var affected int64
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("character_id = ? AND inventory_item_id = ?", characterID, inventoryItemID).
+			Delete(&models.CharacterEquipment{}).Error; err != nil {
+			return err
+		}
+
+		result := tx.Where("id = ? AND character_id = ?", inventoryItemID, characterID).
+			Delete(&models.CharacterInventory{})
+		if result.Error != nil {
+			return result.Error
+		}
+		affected = result.RowsAffected
+		return nil
+	})
+	return affected, err
+}
+
 func (r *Repository) UpdateCharacterPortrait(gameID, characterID string, portraitID *string) error {
 	return r.db.Model(&models.Character{}).
 		Where("game_id = ? AND id = ?", gameID, characterID).

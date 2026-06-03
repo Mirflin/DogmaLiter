@@ -1,7 +1,9 @@
 <script setup>
 import interact from 'interactjs'
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { API_URL } from '@/api'
 import { notify } from '@/notify'
+import { Trash2, X } from '@lucide/vue'
 import SessionInventoryDraggableItem from './SessionInventoryDraggableItem.vue'
 
 const props = defineProps({
@@ -43,7 +45,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['persist'])
+const emit = defineEmits(['persist', 'update-item', 'delete-item'])
 
 provide('inventoryCharacterAttributes', computed(() => props.characterAttributes))
 
@@ -405,6 +407,80 @@ function flushPersist() {
   emit('persist', buildLayout())
 }
 
+const detailEntryId = ref('')
+const detailDurability = ref(0)
+const detailMaxDurability = ref(100)
+const detailConfirmDelete = ref(false)
+const detailEntry = computed(() => allEntriesById.value[detailEntryId.value] ?? null)
+const detailImageUrl = computed(() => detailEntry.value?.item?.image_id ? `${API_URL}/api/uploads/${detailEntry.value.item.image_id}` : '')
+const detailRequirements = computed(() => (detailEntry.value?.item?.required_attributes ?? []).map((requirement) => {
+  const name = String(requirement?.attribute_name || '')
+  const current = Number(props.characterAttributes?.[name] ?? 0)
+  const required = Number(requirement?.min_value ?? 0)
+  return { label: formatLabel(name), required, current, met: current >= required }
+}))
+const detailModifiers = computed(() => (detailEntry.value?.item?.attribute_modifiers ?? []).map((modifier) => ({
+  label: formatLabel(modifier?.attribute_name),
+  value: Number(modifier?.modifier_value) || 0,
+  percent: Boolean(modifier?.is_percentage),
+})))
+const detailMeetsRequirements = computed(() => detailRequirements.value.every((requirement) => requirement.met))
+
+function formatLabel(value) {
+  return String(value || '').split('_').filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
+}
+
+function rarityTextClass(rarity) {
+  const variants = {
+    common: 'text-[#e2e8f0]',
+    uncommon: 'text-[#fde68a]',
+    rare: 'text-[#93c5fd]',
+    epic: 'text-[#e9d5ff]',
+    masterwork: 'text-[#fdba74]',
+    legendary: 'text-[#86efac]',
+    unique: 'text-[#fca5a5]',
+  }
+  return variants[rarity] || variants.common
+}
+
+function onBoardDblClick(event) {
+  const element = event.target.closest?.('.session-inventory-item')
+  if (!element) return
+  const entry = allEntriesById.value[element.dataset.entryId]
+  if (entry) openItemDetail(entry)
+}
+
+function openItemDetail(entry) {
+  detailEntryId.value = entry.id
+  detailMaxDurability.value = Number(entry.max_durability ?? entry.durability ?? 100) || 100
+  detailDurability.value = Number(entry.durability ?? detailMaxDurability.value) || 0
+  detailConfirmDelete.value = false
+}
+
+function closeItemDetail() {
+  detailEntryId.value = ''
+  detailConfirmDelete.value = false
+}
+
+function saveItemDetail() {
+  const entry = detailEntry.value
+  if (!entry) return
+  const max = clampInt(Number(detailMaxDurability.value) || 1, 1, 1000000)
+  const current = clampInt(Number(detailDurability.value) || 0, 0, max)
+  emit('update-item', { id: entry.id, durability: current, max_durability: max })
+  closeItemDetail()
+}
+
+function deleteItemDetail() {
+  if (!detailConfirmDelete.value) {
+    detailConfirmDelete.value = true
+    return
+  }
+  const entry = detailEntry.value
+  if (entry) emit('delete-item', entry.id)
+  closeItemDetail()
+}
+
 function meetsItemRequirements(entry) {
   const requirements = entry?.item?.required_attributes ?? []
   return requirements.every((requirement) => {
@@ -521,6 +597,7 @@ function equipmentEntry(slot) {
 <template>
   <article
     ref="boardRef"
+    @dblclick="onBoardDblClick"
     :class="mounted ? 'opacity-100' : 'opacity-0'"
     class="relative mx-auto w-full max-w-full transition-opacity duration-500 ease-out rounded-[clamp(0.22rem,0.5vw,0.34rem)] border border-[rgba(126,200,227,0.28)] bg-[radial-gradient(circle_at_top,rgba(233,69,96,0.12),transparent_26%),linear-gradient(180deg,rgba(16,24,44,0.98),rgba(9,15,29,1)),linear-gradient(135deg,rgba(126,200,227,0.05),transparent_42%)] p-[0.48rem] shadow-[inset_0_0_0_1px_rgba(126,200,227,0.06),0_18px_34px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:inset-[clamp(0.3rem,0.8vw,0.55rem)] before:rounded-[clamp(0.16rem,0.4vw,0.28rem)] before:border before:border-[rgba(126,200,227,0.14)] before:content-[''] md:p-[0.7rem] lg:w-fit lg:p-[clamp(0.55rem,1.4vw,0.95rem)] [--inv-cell:clamp(1.58rem,8.8vw,2.15rem)] min-[480px]:[--inv-cell:clamp(1.72rem,8vw,2.6rem)] md:[--inv-cell:clamp(1.9rem,6.2vw,3.85rem)] lg:[--inv-cell:clamp(1.9rem,5.9vw,4.95rem)] [--inv-gap:calc(var(--inv-cell)*0.28)] [--inv-weapon-col:calc(var(--inv-cell)*2.6)] [--inv-trinket-col:calc(var(--inv-cell)*0.98)] [--inv-center-col:calc(var(--inv-cell)*2.08)] [--inv-weapon-h:calc(var(--inv-cell)*3.76)] [--inv-glove-h:calc(var(--inv-cell)*1.88)] [--inv-head:calc(var(--inv-cell)*1.07)] [--inv-chest-h:calc(var(--inv-cell)*2.42)] [--inv-belt-h:calc(var(--inv-cell)*1.03)] [--inv-ring:calc(var(--inv-cell)*0.91)] [--inv-amulet:var(--inv-cell)]"
   >
@@ -679,4 +756,110 @@ function equipmentEntry(slot) {
 
     </div>
   </article>
+
+  <Teleport to="body">
+    <div v-if="detailEntry" class="fixed inset-0 z-[12500] flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeItemDetail"></div>
+
+      <div class="relative flex max-h-full w-full max-w-[40rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+        <button
+          type="button"
+          @click="closeItemDetail"
+          class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]"
+          aria-label="Close item details"
+        >
+          <X class="h-5 w-5" :stroke-width="2" />
+        </button>
+
+        <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div class="h-28 w-28 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
+              <img v-if="detailImageUrl" :src="detailImageUrl" :alt="detailEntry.item?.name" class="h-full w-full object-cover" />
+              <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[32px] font-bold text-[#7ec8e3]/40">
+                {{ (detailEntry.item?.name || '?').charAt(0).toUpperCase() }}
+              </div>
+            </div>
+
+            <div class="min-w-0 flex-1 pr-8">
+              <h3 class="break-words text-[20px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ detailEntry.item?.name || 'Unnamed item' }}</h3>
+              <div class="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.16em]">
+                <span class="font-bold" :class="rarityTextClass(detailEntry.item?.rarity)">{{ formatLabel(detailEntry.item?.rarity || 'common') }}</span>
+                <span class="text-[#7ec8e3]/45">{{ formatLabel(detailEntry.item?.category || 'other') }}</span>
+                <span class="text-[#7ec8e3]/45">{{ detailEntry.item?.grid_width || 1 }}x{{ detailEntry.item?.grid_height || 1 }}</span>
+                <span v-if="detailEntry.item?.equip_slot" class="text-[#7ec8e3]/45">{{ formatLabel(detailEntry.item.equip_slot) }}</span>
+              </div>
+              <div class="mt-2 flex flex-wrap gap-3 text-[12px] text-[#d8dce7]/70">
+                <span>Quantity: <span class="font-semibold text-[#f6f7fb]">{{ detailEntry.quantity || 1 }}</span></span>
+                <span v-if="detailEntry.enchantment">Enchantment: <span class="font-semibold text-[#8fd7ef]">+{{ detailEntry.enchantment }}</span></span>
+              </div>
+              <p v-if="detailEntry.item?.description" class="mt-3 break-words whitespace-pre-line text-[13px] leading-relaxed text-[#d8dce7]/68">{{ detailEntry.item.description }}</p>
+            </div>
+          </div>
+
+          <div v-if="detailRequirements.length" class="mt-5">
+            <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Requirements</p>
+            <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
+              <li
+                v-for="(requirement, index) in detailRequirements"
+                :key="`req-${index}`"
+                class="flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-[12px]"
+                :class="requirement.met ? 'border-[rgba(74,222,128,0.2)] bg-[rgba(21,128,61,0.12)] text-[#86efac]' : 'border-[rgba(248,113,113,0.2)] bg-[rgba(127,29,29,0.14)] text-[#fca5a5]'"
+              >
+                <span>{{ requirement.label }} {{ requirement.required }}</span>
+                <span class="opacity-80">you: {{ requirement.current }}</span>
+              </li>
+            </ul>
+            <p v-if="!detailMeetsRequirements" class="mt-1.5 text-[11px] font-semibold text-[#fca5a5]">Requirements not met</p>
+          </div>
+
+          <div v-if="detailModifiers.length" class="mt-5">
+            <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Grants</p>
+            <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
+              <li v-for="(modifier, index) in detailModifiers" :key="`mod-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[12px] text-[#d8dce7]/82">
+                <span>{{ modifier.label }}</span>
+                <span class="font-semibold" :class="modifier.value >= 0 ? 'text-[#8fd7ef]' : 'text-[#fca5a5]'">{{ modifier.value >= 0 ? '+' : '' }}{{ modifier.value }}{{ modifier.percent ? '%' : '' }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="mt-5">
+            <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Durability</p>
+            <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-[rgba(7,17,31,0.8)]">
+              <div class="h-full rounded-full bg-blue-200" :style="{ width: `${Math.max(0, Math.min(100, detailMaxDurability ? (detailDurability / detailMaxDurability) * 100 : 0))}%` }"></div>
+            </div>
+            <div v-if="canEdit" class="mt-3 grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Current</span>
+                <input v-model.number="detailDurability" type="number" min="0" :max="detailMaxDurability" class="session-input mt-1.5 w-full rounded-[0.9rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+              </label>
+              <label class="block">
+                <span class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Max</span>
+                <input disabled v-model.number="detailMaxDurability" type="number" min="1" class="session-input mt-1.5 w-full rounded-[0.9rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+              </label>
+            </div>
+            <p v-else class="mt-2 text-[13px] text-[#d8dce7]/70">{{ detailDurability }} / {{ detailMaxDurability }}</p>
+          </div>
+        </div>
+
+        <div v-if="canEdit" class="flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
+          <button
+            type="button"
+            @click="deleteItemDetail"
+            class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]"
+          >
+            <Trash2 class="h-4 w-4" :stroke-width="2" />
+            {{ detailConfirmDelete ? 'Confirm delete' : 'Delete item' }}
+          </button>
+          <div class="flex gap-3">
+            <button type="button" @click="closeItemDetail" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]">
+              Cancel
+            </button>
+            <button type="button" @click="saveItemDetail" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5">
+              Save changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
