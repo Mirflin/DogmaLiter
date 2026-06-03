@@ -294,6 +294,11 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function deleteGameCharacter(gameID, characterID) {
+    const { data } = await api.delete(`/games/${gameID}/characters/${characterID}`)
+    return data
+  }
+
   async function giveItemsToCharacter(gameID, characterID, items) {
     const { data } = await api.post(`/games/${gameID}/characters/${characterID}/inventory`, { items })
     return data
@@ -386,6 +391,7 @@ export const useAuthStore = defineStore('auth', () => {
     updateGameItem,
     deleteGameItem,
     updateGameCharacter,
+    deleteGameCharacter,
     giveItemsToCharacter,
     updateCharacterInventory,
     updateInventoryItem,

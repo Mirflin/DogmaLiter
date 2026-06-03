@@ -1141,6 +1141,39 @@ func (h *Handler) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	characterID := chi.URLParam(r, "characterID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+
+	character, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Character %s not found", characterID)})
+		return
+	}
+
+	if !isGM && character.UserID != userID {
+		respondJSON(w, 403, map[string]string{"error": "You do not have access to delete this character"})
+		return
+	}
+
+	if err := h.service.repo.DeleteCharacter(gameID, characterID); err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to delete character"})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"success":      true,
+		"character_id": characterID,
+	})
+}
+
 func markInventoryOccupancy(occupied [][]bool, items []models.CharacterInventory) {
 	for _, entry := range items {
 		width := entry.Item.GridWidth

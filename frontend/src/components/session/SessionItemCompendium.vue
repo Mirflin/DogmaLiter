@@ -1422,9 +1422,6 @@ function itemSizeLabel(item) {
               {{ compendiumStats.totalItems }} total
             </span>
           </div>
-          <p class="mt-3 max-w-[50rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
-            The compendium now reads server pages instead of loading every item through the session payload. Filters, sorting, and paging all happen against the backend.
-          </p>
         </div>
 
         <div class="flex flex-wrap gap-3">
@@ -1454,7 +1451,6 @@ function itemSizeLabel(item) {
       <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Filters</p>
-          <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">The search box, tag selector, and sorting all request a fresh server page.</p>
         </div>
         <button
           v-if="hasActiveFilters"

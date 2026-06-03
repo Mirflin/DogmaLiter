@@ -269,6 +269,45 @@ async function handleInventoryItemDelete(inventoryItemId) {
     })
   }
 }
+const characterPendingDeletion = ref(null)
+const deletingCharacter = ref(false)
+function canDeleteCharacter(character) {
+  if (!character) return false
+  return isGM.value || character.user_id === viewer.value?.user_id
+}
+function requestCharacterDeletion(character) {
+  if (!canDeleteCharacter(character)) return
+  characterPendingDeletion.value = character
+}
+function cancelCharacterDeletion() {
+  if (deletingCharacter.value) return
+  characterPendingDeletion.value = null
+}
+async function confirmCharacterDeletion() {
+  const character = characterPendingDeletion.value
+  if (!character || deletingCharacter.value) return
+
+  deletingCharacter.value = true
+  try {
+    await auth.deleteGameCharacter(gameId.value, character.id)
+    if (session.value?.characters) {
+      session.value.characters = session.value.characters.filter((entry) => entry.id !== character.id)
+    }
+    if (activeCharacterId.value === character.id) {
+      activeCharacterId.value = ''
+      activeCharacter.value = null
+    }
+    notify.success({ title: 'Character deleted', message: `${character.name || 'Character'} was removed.` })
+    characterPendingDeletion.value = null
+  } catch (error) {
+    notify.error({
+      title: 'Failed to delete character',
+      message: getErrorMessage(error, 'Failed to delete character'),
+    })
+  } finally {
+    deletingCharacter.value = false
+  }
+}
 const inventoryWidth = computed(() => characterSnapshot.value?.inventory_width ?? 0)
 const inventoryHeight = computed(() => characterSnapshot.value?.inventory_height ?? 0)
 const inventoryCapacity = computed(() => inventoryWidth.value * inventoryHeight.value)
@@ -1127,7 +1166,7 @@ onBeforeUnmount(() => {
                     {{ characterSnapshot?.owner?.username || 'Choose character' }}
                   </span>
                 </div>
-                <p class="mt-2 max-w-[44rem] text-[13px] leading-relaxed text-[#d8dce7]/62">{{ activeTabMeta?.description }}</p>
+                
               </div>
 
               <div class="flex flex-wrap items-center gap-3">
@@ -1482,9 +1521,6 @@ onBeforeUnmount(() => {
                 <div>
                   <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Character Switcher</p>
                   <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">{{ rosterTitle }}</h3>
-                  <p class="mt-2 max-w-[40rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
-                    {{ rosterDescription }}
-                  </p>
                 </div>
 
                 <div class="flex flex-wrap gap-3">
@@ -1562,6 +1598,13 @@ onBeforeUnmount(() => {
                     class="cursor-pointer rounded-xl border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-4 py-2.5 text-[13px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
                   >
                     Configure
+                  </button>
+                  <button
+                    v-if="canDeleteCharacter(character)"
+                    @click="requestCharacterDeletion(character)"
+                    class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]"
+                  >
+                    Delete
                   </button>
                 </div>
               </article>
@@ -1738,6 +1781,27 @@ onBeforeUnmount(() => {
           <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
         </main>
       </div>
+
+      <Teleport to="body">
+        <div v-if="characterPendingDeletion" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="cancelCharacterDeletion"></div>
+          <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-[rgba(248,113,113,0.24)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-[#fca5a5]/70">Delete Character</p>
+            <h3 class="mt-2 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ characterPendingDeletion.name || 'Character' }}</h3>
+            <p class="mt-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
+              This permanently removes the character along with its inventory, equipment, and attributes. This action cannot be undone.
+            </p>
+            <div class="mt-6 flex flex-wrap justify-end gap-3">
+              <button type="button" @click="cancelCharacterDeletion" :disabled="deletingCharacter" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                Cancel
+              </button>
+              <button type="button" @click="confirmCharacterDeletion" :disabled="deletingCharacter" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[linear-gradient(135deg,rgba(248,113,113,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+                {{ deletingCharacter ? 'Deleting...' : 'Delete Character' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
 
       <Teleport to="body">
         <div

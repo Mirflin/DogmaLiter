@@ -254,6 +254,21 @@ func (r *Repository) DeleteInventoryEntry(characterID, inventoryItemID string) (
 	return affected, err
 }
 
+func (r *Repository) DeleteCharacter(gameID, characterID string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("character_id = ?", characterID).Delete(&models.CharacterEquipment{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("character_id = ?", characterID).Delete(&models.CharacterInventory{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("character_id = ?", characterID).Delete(&models.CharacterCustomAttribute{}).Error; err != nil {
+			return err
+		}
+		return tx.Where("game_id = ? AND id = ?", gameID, characterID).Delete(&models.Character{}).Error
+	})
+}
+
 func (r *Repository) UpdateCharacterPortrait(gameID, characterID string, portraitID *string) error {
 	return r.db.Model(&models.Character{}).
 		Where("game_id = ? AND id = ?", gameID, characterID).

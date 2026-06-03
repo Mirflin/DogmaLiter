@@ -34,6 +34,7 @@ func (h *Handler) Routes() chi.Router {
 	r.Post("/{gameID}/items/{itemID}/image", h.UploadItemImage)
 	r.Get("/{gameID}/characters/{characterID}", h.GetCharacter)
 	r.Patch("/{gameID}/characters/{characterID}", h.UpdateCharacter)
+	r.Delete("/{gameID}/characters/{characterID}", h.DeleteCharacter)
 	r.Post("/{gameID}/characters/{characterID}/inventory", h.GiveInventoryItems)
 	r.Put("/{gameID}/characters/{characterID}/inventory", h.UpdateInventoryLayout)
 	r.Patch("/{gameID}/characters/{characterID}/inventory/{inventoryItemID}", h.UpdateInventoryItem)
