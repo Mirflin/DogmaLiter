@@ -14,6 +14,7 @@ import GameSessionView from '@/views/GameSessionView.vue'
 import NewsView from '@/views/NewsView.vue'
 import NewsDetailView from '@/views/NewsDetailView.vue'
 import CreateNewsView from '@/views/CreateNewsView.vue'
+import AdminView from '@/views/AdminView.vue'
 import TermsView from '@/views/TermsView.vue'
 import PrivacyView from '@/views/PrivacyView.vue'
 
@@ -86,7 +87,13 @@ const router = createRouter({
       path: '/news/create',
       name: 'create-news',
       component: CreateNewsView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
+      path: '/admin',
+      name: 'admin',
+      component: AdminView,
+      meta: { requiresAuth: true, requiresAdmin: true },
     },
     {
       path: '/news/:id',
@@ -130,6 +137,10 @@ router.beforeEach(async (to) => {
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'auth' }
+  }
+
+  if (to.meta.requiresAdmin && auth.user?.role !== 'admin') {
+    return { name: 'dashboard' }
   }
 })
 

@@ -4,6 +4,7 @@ import JoinGameModal from '@/components/JoinGameModal.vue'
 import GameSettingsModal from '@/components/GameSettingsModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { API_URL } from '@/api'
+import { notify } from '@/notify'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -12,6 +13,8 @@ const router = useRouter()
 const games = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
+const gamePendingDeletion = ref(null)
+const deletingGame = ref(false)
 
 const showJoinModal = ref(false)
 const showSettingsModal = ref(false)
@@ -87,13 +90,30 @@ async function handleLeave(game) {
   } catch {}
 }
 
-async function handleDelete(game) {
+function handleDelete(game) {
   closeContextMenu()
-  if (!confirm(`Delete "${game.title}"? This cannot be undone.`)) return
+  gamePendingDeletion.value = game
+}
+
+function cancelDeleteGame() {
+  if (deletingGame.value) return
+  gamePendingDeletion.value = null
+}
+
+async function confirmDeleteGame() {
+  const game = gamePendingDeletion.value
+  if (!game || deletingGame.value) return
+  deletingGame.value = true
   try {
     await auth.deleteGame(game.id)
     games.value = games.value.filter(g => g.id !== game.id)
-  } catch {}
+    notify.success({ title: 'Game deleted', message: `${game.title} was removed.` })
+    gamePendingDeletion.value = null
+  } catch (err) {
+    notify.error(err, 'Failed to delete the game')
+  } finally {
+    deletingGame.value = false
+  }
 }
 
 async function refreshGames() {
@@ -220,6 +240,27 @@ function onGameJoined() {
       </Teleport>
       <JoinGameModal :visible="showJoinModal" @close="showJoinModal = false" @joined="onGameJoined" />
       <GameSettingsModal :visible="showSettingsModal" :game-id="settingsGameId" @close="showSettingsModal = false" @updated="refreshGames" @deleted="onGameDeleted" />
+
+      <Teleport to="body">
+        <div v-if="gamePendingDeletion" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="cancelDeleteGame"></div>
+          <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-[rgba(248,113,113,0.24)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-[#fca5a5]/70">Delete Game</p>
+            <h3 class="mt-2 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ gamePendingDeletion.title }}</h3>
+            <p class="mt-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
+              This permanently deletes the game along with all its characters, items, maps, and chat history. This action cannot be undone.
+            </p>
+            <div class="mt-6 flex flex-wrap justify-end gap-3">
+              <button type="button" @click="cancelDeleteGame" :disabled="deletingGame" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                Cancel
+              </button>
+              <button type="button" @click="confirmDeleteGame" :disabled="deletingGame" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[linear-gradient(135deg,rgba(248,113,113,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+                {{ deletingGame ? 'Deleting...' : 'Delete Game' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </HomeLayout>
 </template>

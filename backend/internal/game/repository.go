@@ -634,10 +634,63 @@ func (r *Repository) RemoveMember(gameID, userID string) error {
 }
 
 func (r *Repository) DeleteGame(gameID string) error {
-	if err := r.db.Where("game_id = ?", gameID).Delete(&models.GameMember{}).Error; err != nil {
-		return err
-	}
-	return r.db.Delete(&models.Game{}, "id = ?", gameID).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var characterIDs []string
+		if err := tx.Model(&models.Character{}).Where("game_id = ?", gameID).Pluck("id", &characterIDs).Error; err != nil {
+			return err
+		}
+		if len(characterIDs) > 0 {
+			if err := tx.Where("character_id IN ?", characterIDs).Delete(&models.CharacterEquipment{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("character_id IN ?", characterIDs).Delete(&models.CharacterInventory{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("character_id IN ?", characterIDs).Delete(&models.CharacterCustomAttribute{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("game_id = ?", gameID).Delete(&models.Character{}).Error; err != nil {
+			return err
+		}
+
+		var itemIDs []string
+		if err := tx.Model(&models.Item{}).Where("game_id = ?", gameID).Pluck("id", &itemIDs).Error; err != nil {
+			return err
+		}
+		if len(itemIDs) > 0 {
+			if err := tx.Where("item_id IN ?", itemIDs).Delete(&models.ItemTagAssignment{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("item_id IN ?", itemIDs).Delete(&models.ItemRequiredAttribute{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("item_id IN ?", itemIDs).Delete(&models.ItemAttributeModifier{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("item_id IN ?", itemIDs).Delete(&models.ItemType{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("game_id = ?", gameID).Delete(&models.Item{}).Error; err != nil {
+			return err
+		}
+
+		if err := tx.Where("game_id = ?", gameID).Delete(&models.GameItemTag{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("game_id = ?", gameID).Delete(&models.GameMap{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("game_id = ?", gameID).Delete(&models.ChatMessage{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("game_id = ?", gameID).Delete(&models.GameMember{}).Error; err != nil {
+			return err
+		}
+
+		return tx.Delete(&models.Game{}, "id = ?", gameID).Error
+	})
 }
 
 func (r *Repository) DeleteItem(gameID, itemID string) error {

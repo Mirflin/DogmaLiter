@@ -20,6 +20,167 @@ func (r *Repository) CreateUser(user *models.User) error {
 	return r.db.Create(user).Error
 }
 
+func (r *Repository) AdminStats() (map[string]int64, error) {
+	stats := map[string]int64{}
+	targets := []struct {
+		key   string
+		model interface{}
+	}{
+		{"users", &models.User{}},
+		{"games", &models.Game{}},
+		{"news", &models.NewsPost{}},
+		{"items", &models.Item{}},
+		{"characters", &models.Character{}},
+	}
+
+	for _, target := range targets {
+		var count int64
+		if err := r.db.Model(target.model).Count(&count).Error; err != nil {
+			return nil, err
+		}
+		stats[target.key] = count
+	}
+
+	return stats, nil
+}
+
+func (r *Repository) ListRecentUsers(limit int) ([]models.User, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+
+	var users []models.User
+	err := r.db.Preload("Plan").Order("created_at DESC").Limit(limit).Find(&users).Error
+	return users, err
+}
+
+func (r *Repository) AdminUpdateUser(userID string, updates map[string]interface{}) error {
+	return r.db.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error
+}
+
+func (r *Repository) DeleteUser(userID, actingAdminID string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// 1. Fully delete games owned by the user (with all their content).
+		var ownedGameIDs []string
+		if err := tx.Model(&models.Game{}).Where("owner_id = ?", userID).Pluck("id", &ownedGameIDs).Error; err != nil {
+			return err
+		}
+		if len(ownedGameIDs) > 0 {
+			var gameCharIDs []string
+			if err := tx.Model(&models.Character{}).Where("game_id IN ?", ownedGameIDs).Pluck("id", &gameCharIDs).Error; err != nil {
+				return err
+			}
+			if len(gameCharIDs) > 0 {
+				if err := tx.Where("character_id IN ?", gameCharIDs).Delete(&models.CharacterEquipment{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("character_id IN ?", gameCharIDs).Delete(&models.CharacterInventory{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("character_id IN ?", gameCharIDs).Delete(&models.CharacterCustomAttribute{}).Error; err != nil {
+					return err
+				}
+			}
+			if err := tx.Where("game_id IN ?", ownedGameIDs).Delete(&models.Character{}).Error; err != nil {
+				return err
+			}
+
+			var gameItemIDs []string
+			if err := tx.Model(&models.Item{}).Where("game_id IN ?", ownedGameIDs).Pluck("id", &gameItemIDs).Error; err != nil {
+				return err
+			}
+			if len(gameItemIDs) > 0 {
+				if err := tx.Where("item_id IN ?", gameItemIDs).Delete(&models.ItemTagAssignment{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("item_id IN ?", gameItemIDs).Delete(&models.ItemRequiredAttribute{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("item_id IN ?", gameItemIDs).Delete(&models.ItemAttributeModifier{}).Error; err != nil {
+					return err
+				}
+				if err := tx.Where("item_id IN ?", gameItemIDs).Delete(&models.ItemType{}).Error; err != nil {
+					return err
+				}
+			}
+			if err := tx.Where("game_id IN ?", ownedGameIDs).Delete(&models.Item{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("game_id IN ?", ownedGameIDs).Delete(&models.GameItemTag{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("game_id IN ?", ownedGameIDs).Delete(&models.GameMap{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("game_id IN ?", ownedGameIDs).Delete(&models.ChatMessage{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("game_id IN ?", ownedGameIDs).Delete(&models.GameMember{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("id IN ?", ownedGameIDs).Delete(&models.Game{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 2. Reassign content the user created but that lives in others' games.
+		if err := tx.Model(&models.Character{}).Where("created_by_id = ? AND user_id <> ?", userID, userID).
+			Update("created_by_id", gorm.Expr("user_id")).Error; err != nil {
+			return err
+		}
+		if err := tx.Exec(`UPDATE items i JOIN games g ON i.game_id = g.id SET i.created_by_id = g.owner_id WHERE i.created_by_id = ?`, userID).Error; err != nil {
+			return err
+		}
+
+		// 3. Delete characters still owned by the user (in others' games).
+		var ownCharIDs []string
+		if err := tx.Model(&models.Character{}).Where("user_id = ?", userID).Pluck("id", &ownCharIDs).Error; err != nil {
+			return err
+		}
+		if len(ownCharIDs) > 0 {
+			if err := tx.Where("character_id IN ?", ownCharIDs).Delete(&models.CharacterEquipment{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("character_id IN ?", ownCharIDs).Delete(&models.CharacterInventory{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("character_id IN ?", ownCharIDs).Delete(&models.CharacterCustomAttribute{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("user_id = ?", userID).Delete(&models.Character{}).Error; err != nil {
+				return err
+			}
+		}
+
+		// 4. Reassign authored news to the acting admin so it survives.
+		if err := tx.Model(&models.NewsPost{}).Where("author_id = ?", userID).Update("author_id", actingAdminID).Error; err != nil {
+			return err
+		}
+
+		// 5. Memberships, verification tokens, storage usage.
+		if err := tx.Where("user_id = ?", userID).Delete(&models.GameMember{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.VerificationToken{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("user_id = ?", userID).Delete(&models.UserStorageUsage{}).Error; err != nil {
+			return err
+		}
+
+		// 6. Detach avatar, reassign uploads to the acting admin (keeps referenced images valid).
+		if err := tx.Model(&models.User{}).Where("id = ?", userID).Update("avatar_id", nil).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&models.Upload{}).Where("user_id = ?", userID).Update("user_id", actingAdminID).Error; err != nil {
+			return err
+		}
+
+		// 7. The account itself.
+		return tx.Delete(&models.User{}, "id = ?", userID).Error
+	})
+}
+
 func (r *Repository) GetUserByEmail(email string) (*models.User, error) {
 	var user models.User
 	err := r.db.Where("email = ?", email).First(&user).Error

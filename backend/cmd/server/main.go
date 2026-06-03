@@ -146,6 +146,90 @@ func main() {
 
 		r.Mount("/api/games", gameHandler.Routes())
 
+		r.Route("/api/admin", func(r chi.Router) {
+			r.Use(auth.RequireAdmin)
+
+			r.Get("/stats", func(w http.ResponseWriter, r *http.Request) {
+				stats, err := authRepo.AdminStats()
+				if err != nil {
+					respondJSON(w, 500, map[string]string{"error": "Failed to load stats"})
+					return
+				}
+				respondJSON(w, 200, stats)
+			})
+
+			r.Get("/users", func(w http.ResponseWriter, r *http.Request) {
+				users, err := authRepo.ListRecentUsers(100)
+				if err != nil {
+					respondJSON(w, 500, map[string]string{"error": "Failed to load users"})
+					return
+				}
+				result := make([]map[string]interface{}, 0, len(users))
+				for _, u := range users {
+					result = append(result, map[string]interface{}{
+						"id":          u.ID,
+						"username":    u.Username,
+						"email":       u.Email,
+						"role":        u.Role,
+						"is_verified": u.IsVerified,
+						"plan_name":   u.Plan.Name,
+						"created_at":  u.CreatedAt.Format("02.01.2006"),
+					})
+				}
+				respondJSON(w, 200, map[string]interface{}{"users": result})
+			})
+
+			r.Patch("/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
+				userID := chi.URLParam(r, "userID")
+
+				var req struct {
+					Role       *string `json:"role"`
+					IsVerified *bool   `json:"is_verified"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+					respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+					return
+				}
+
+				updates := map[string]interface{}{}
+				if req.Role != nil {
+					if *req.Role != "user" && *req.Role != "admin" {
+						respondJSON(w, 400, map[string]string{"error": "Role must be 'user' or 'admin'"})
+						return
+					}
+					updates["role"] = *req.Role
+				}
+				if req.IsVerified != nil {
+					updates["is_verified"] = *req.IsVerified
+				}
+				if len(updates) == 0 {
+					respondJSON(w, 400, map[string]string{"error": "No changes were provided"})
+					return
+				}
+
+				if err := authRepo.AdminUpdateUser(userID, updates); err != nil {
+					respondJSON(w, 500, map[string]string{"error": "Failed to update user"})
+					return
+				}
+				respondJSON(w, 200, map[string]interface{}{"success": true})
+			})
+
+			r.Delete("/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
+				userID := chi.URLParam(r, "userID")
+				adminID := auth.GetUserID(r)
+				if userID == adminID {
+					respondJSON(w, 400, map[string]string{"error": "You cannot delete your own account"})
+					return
+				}
+
+				if err := authRepo.DeleteUser(userID, adminID); err != nil {
+					respondJSON(w, 500, map[string]string{"error": "Failed to delete user"})
+					return
+				}
+				respondJSON(w, 200, map[string]interface{}{"success": true})
+			})
+		})
+
 	})
 
 	log.Printf("DogmaLiter: http://0.0.0.0:%s", cfg.Port)

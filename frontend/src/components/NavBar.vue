@@ -127,6 +127,15 @@ function isActive(path) {
                 <svg class="w-4 h-4 text-[#7ec8e3]/50" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z" /><circle cx="12" cy="12" r="3" /></svg>
                 Settings
               </router-link>
+              <router-link
+                v-if="auth.user?.role === 'admin'"
+                to="/admin"
+                @click="showDropdown = false"
+                class="flex items-center gap-3 px-4 py-3 text-[14px] text-[#e8e8f0]/80 no-underline hover:bg-[rgba(126,200,227,0.08)] hover:text-[#e8e8f0] transition-all duration-200"
+              >
+                <svg class="w-4 h-4 text-[#7ec8e3]/50" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Admin Dashboard
+              </router-link>
               <div class="border-t border-[rgba(126,200,227,0.1)]" />
               <button
                 @click="handleLogout"

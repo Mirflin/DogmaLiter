@@ -10,7 +10,7 @@ const news = ref([])
 
 onMounted(async () => {
   try {
-    const { data } = await api.get('/news?page=1&limit=3')
+    const { data } = await api.get('/news', { params: { limit: 3, offset: 0 } })
     news.value = data.posts || []
   } catch (e) {}
 })
@@ -70,20 +70,6 @@ function getPreviewText(content) {
             Create Free Account
           </router-link>
 
-          <div class="landing-hero__metrics mt-8 grid gap-3 sm:grid-cols-3">
-            <article class="landing-metric px-4 py-4">
-              <p class="text-[10px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">No Setup</p>
-              <p class="mt-2 font-[Cinzel] text-[22px] text-[#f6f7fb]">Browser First</p>
-            </article>
-            <article class="landing-metric px-4 py-4">
-              <p class="text-[10px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">Game Flow</p>
-              <p class="mt-2 font-[Cinzel] text-[22px] text-[#f6f7fb]">Sheets, Loot, Chat</p>
-            </article>
-            <article class="landing-metric px-4 py-4">
-              <p class="text-[10px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">Access</p>
-              <p class="mt-2 font-[Cinzel] text-[22px] text-[#f6f7fb]">Join by Link</p>
-            </article>
-          </div>
         </div>
 
         <div class="landing-hero__aside hidden md:flex flex-shrink-0 items-center justify-center">
@@ -182,8 +168,8 @@ function getPreviewText(content) {
           <div class="w-14 h-14 rounded-xl bg-[rgba(233,69,96,0.15)] flex items-center justify-center mb-5 group-hover:bg-[rgba(233,69,96,0.25)] transition-colors">
             <svg class="w-7 h-7 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>
           </div>
-          <h3 class="font-[Cinzel] text-[20px] font-bold text-[#e8e8f0] mb-3">Inventory System</h3>
-          <p class="text-[#7ec8e3]/50 text-[15px] leading-relaxed">Manage items, equipment, and loot. Trade between characters and track everything your party carries.</p>
+          <h3 class="font-[Cinzel] text-[20px] font-bold text-[#e8e8f0] mb-3">Grid Inventory</h3>
+          <p class="text-[#7ec8e3]/50 text-[15px] leading-relaxed">Drag-and-drop grid inventory with equipment slots, durability, and item requirements. GMs hand out loot from a shared compendium.</p>
         </div>
       </div>
     </section>
