@@ -28,8 +28,42 @@ func (h *Handler) Routes() chi.Router {
 		r.Use(auth.JWTMiddleware(h.jwtManager))
 		r.Use(auth.RequireAdmin)
 		r.Post("/", h.Create)
+		r.Patch("/{id}", h.Update)
+		r.Delete("/{id}", h.Delete)
 	})
 	return r
+}
+
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var req struct {
+		Title   string `json:"title"`
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "invalid request body"})
+		return
+	}
+
+	post, err := h.service.Update(id, req.Title, req.Content)
+	if err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, 200, postToMap(*post))
+}
+
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	if err := h.service.Delete(id); err != nil {
+		respondJSON(w, 404, map[string]string{"error": err.Error()})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{"success": true})
 }
 
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {

@@ -101,6 +101,41 @@ func (s *Service) Create(authorID, title, content string, imageFile multipart.Fi
 	return created, nil
 }
 
+func (s *Service) Update(id, title, content string) (*models.NewsPost, error) {
+	if len(title) < 1 || len(title) > 300 {
+		return nil, errors.New("title must be 1-300 characters")
+	}
+	if len(content) < 1 {
+		return nil, errors.New("content is required")
+	}
+
+	post, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, errors.New("news post not found")
+	}
+
+	post.Title = title
+	post.Content = content
+	post.UpdatedAt = time.Now()
+
+	if err := s.repo.Update(post); err != nil {
+		return nil, errors.New("failed to update news post")
+	}
+
+	updated, err := s.repo.GetByID(id)
+	if err != nil {
+		return post, nil
+	}
+	return updated, nil
+}
+
+func (s *Service) Delete(id string) error {
+	if _, err := s.repo.GetByID(id); err != nil {
+		return errors.New("news post not found")
+	}
+	return s.repo.Delete(id)
+}
+
 func (s *Service) GetByID(id string) (*models.NewsPost, error) {
 	post, err := s.repo.GetByID(id)
 	if err != nil {

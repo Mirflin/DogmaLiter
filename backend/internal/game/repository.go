@@ -133,6 +133,14 @@ func (r *Repository) GetCharacterByID(gameID, characterID string) (*models.Chara
 	return &character, nil
 }
 
+func (r *Repository) CountGameCharacters(gameID string) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.Character{}).
+		Where("game_id = ?", gameID).
+		Count(&count).Error
+	return count, err
+}
+
 func (r *Repository) CountGameCharactersForUser(gameID, userID string) (int64, error) {
 	var count int64
 	err := r.db.Model(&models.Character{}).

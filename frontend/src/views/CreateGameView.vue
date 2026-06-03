@@ -283,7 +283,7 @@ onUnmounted(() => clearInterval(countdownTimer))
               <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
             </div>
           </label>
-
+          <!--
           <label class="flex items-center justify-between cursor-pointer group">
             <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">Item Trading</span>
             <div class="relative">
@@ -292,6 +292,7 @@ onUnmounted(() => clearInterval(countdownTimer))
               <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
             </div>
           </label>
+        -->
         </div>
         <div class="flex gap-4 pt-2">
           <button

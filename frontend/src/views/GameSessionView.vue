@@ -308,6 +308,78 @@ async function confirmCharacterDeletion() {
     deletingCharacter.value = false
   }
 }
+const SHARED_ITEM_PREFIX = 'ITEMLINK::'
+const sharedItem = ref(null)
+function parseSharedItem(content) {
+  if (typeof content !== 'string' || !content.startsWith(SHARED_ITEM_PREFIX)) return null
+  try {
+    return JSON.parse(content.slice(SHARED_ITEM_PREFIX.length))
+  } catch {
+    return null
+  }
+}
+function openSharedItem(item) {
+  if (item) sharedItem.value = item
+}
+function closeSharedItem() {
+  sharedItem.value = null
+}
+function formatAttrLabel(value) {
+  return String(value || '').split('_').filter(Boolean).map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')
+}
+async function shareInventoryItem(entry) {
+  const item = entry?.item
+  if (!item) return
+  if (!game.value?.enable_chat) {
+    notify.warning({ title: 'Chat is disabled', message: 'Enable chat in game settings to share items.' })
+    return
+  }
+
+  const payload = {
+    name: item.name,
+    rarity: item.rarity,
+    category: item.category,
+    description: String(item.description || '').slice(0, 200),
+    grid_width: item.grid_width,
+    grid_height: item.grid_height,
+    equip_slot: item.equip_slot || null,
+    image_id: item.image_id || null,
+    required_attributes: (item.required_attributes || []).map((requirement) => ({
+      attribute_name: requirement.attribute_name,
+      min_value: requirement.min_value,
+    })),
+    attribute_modifiers: (item.attribute_modifiers || []).map((modifier) => ({
+      attribute_name: modifier.attribute_name,
+      modifier_value: modifier.modifier_value,
+      is_percentage: modifier.is_percentage,
+    })),
+    quantity: entry.quantity,
+    durability: entry.durability,
+    max_durability: entry.max_durability,
+    enchantment: entry.enchantment,
+    owner: characterSnapshot.value?.name || '',
+  }
+
+  const content = `${SHARED_ITEM_PREFIX}${JSON.stringify(payload)}`
+  if (content.length > 2000) {
+    notify.error({ title: 'Cannot share item', message: 'This item has too much data to share in chat.' })
+    return
+  }
+
+  try {
+    const data = await auth.sendGameChatMessage(gameId.value, content)
+    if (session.value) {
+      session.value = {
+        ...session.value,
+        messages: [...chatMessages.value, data.message].slice(-CHAT_MESSAGE_LIMIT),
+      }
+    }
+    notify.success({ title: 'Item shared', message: 'The item was posted in chat.' })
+    scrollChatToBottom()
+  } catch (err) {
+    notify.error({ title: 'Failed to share item', message: err.response?.data?.error || 'Failed to share item' })
+  }
+}
 const inventoryWidth = computed(() => characterSnapshot.value?.inventory_width ?? 0)
 const inventoryHeight = computed(() => characterSnapshot.value?.inventory_height ?? 0)
 const inventoryCapacity = computed(() => inventoryWidth.value * inventoryHeight.value)
@@ -1512,6 +1584,7 @@ onBeforeUnmount(() => {
               @persist="persistInventoryLayout"
               @update-item="handleInventoryItemUpdate"
               @delete-item="handleInventoryItemDelete"
+              @share="shareInventoryItem"
             />
           </section>
 
@@ -1757,6 +1830,12 @@ onBeforeUnmount(() => {
                         >
                           Configure
                         </button>
+                        <button
+                          @click="requestCharacterDeletion(character)"
+                          class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </article>
                   </div>
@@ -1798,6 +1877,65 @@ onBeforeUnmount(() => {
               <button type="button" @click="confirmCharacterDeletion" :disabled="deletingCharacter" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[linear-gradient(135deg,rgba(248,113,113,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
                 {{ deletingCharacter ? 'Deleting...' : 'Delete Character' }}
               </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="sharedItem" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeSharedItem"></div>
+          <div class="relative flex max-h-full w-full max-w-[34rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <button type="button" @click="closeSharedItem" class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+              <span class="text-[18px] leading-none">×</span>
+            </button>
+            <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+              <div class="flex gap-4">
+                <div class="h-24 w-24 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
+                  <img v-if="avatarUrl(sharedItem.image_id)" :src="avatarUrl(sharedItem.image_id)" :alt="sharedItem.name" class="h-full w-full object-cover" />
+                  <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[28px] font-bold text-[#7ec8e3]/40">{{ (sharedItem.name || '?').charAt(0).toUpperCase() }}</div>
+                </div>
+                <div class="min-w-0 flex-1 pr-8">
+                  <h3 class="break-words text-[20px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ sharedItem.name || 'Unnamed item' }}</h3>
+                  <div class="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span class="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" :class="rarityClasses(sharedItem.rarity)">{{ sharedItem.rarity || 'common' }}</span>
+                    <span class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">{{ formatAttrLabel(sharedItem.category || 'other') }}</span>
+                    <span class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">{{ sharedItem.grid_width || 1 }}x{{ sharedItem.grid_height || 1 }}</span>
+                  </div>
+                  <p v-if="sharedItem.owner" class="mt-1 text-[12px] text-[#d8dce7]/60">Shared by {{ sharedItem.owner }}</p>
+                </div>
+              </div>
+
+              <div class="mt-4">
+                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Description</p>
+                <p class="mt-1 break-words whitespace-pre-line text-[13px] leading-relaxed text-[#d8dce7]/72 [overflow-wrap:anywhere]">{{ sharedItem.description?.trim() || 'No description provided.' }}</p>
+              </div>
+
+              <div v-if="sharedItem.required_attributes?.length" class="mt-4">
+                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Requirements</p>
+                <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
+                  <li v-for="(requirement, index) in sharedItem.required_attributes" :key="`sreq-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.05)] px-3 py-1.5 text-[12px] text-[#d8dce7]/82">
+                    <span>{{ formatAttrLabel(requirement.attribute_name) }}</span>
+                    <span class="font-semibold text-[#f6f7fb]">{{ requirement.min_value }}</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div v-if="sharedItem.attribute_modifiers?.length" class="mt-4">
+                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Grants</p>
+                <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
+                  <li v-for="(modifier, index) in sharedItem.attribute_modifiers" :key="`smod-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.05)] px-3 py-1.5 text-[12px] text-[#d8dce7]/82">
+                    <span>{{ formatAttrLabel(modifier.attribute_name) }}</span>
+                    <span class="font-semibold" :class="modifier.modifier_value >= 0 ? 'text-[#8fd7ef]' : 'text-[#fca5a5]'">{{ modifier.modifier_value >= 0 ? '+' : '' }}{{ modifier.modifier_value }}{{ modifier.is_percentage ? '%' : '' }}</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="mt-4 flex flex-wrap gap-3 text-[12px] text-[#d8dce7]/70">
+                <span>Quantity: <span class="font-semibold text-[#f6f7fb]">{{ sharedItem.quantity || 1 }}</span></span>
+                <span v-if="sharedItem.enchantment">Enchantment: <span class="font-semibold text-[#8fd7ef]">+{{ sharedItem.enchantment }}</span></span>
+                <span v-if="sharedItem.max_durability != null">Durability: <span class="font-semibold text-[#f6f7fb]">{{ sharedItem.durability ?? sharedItem.max_durability }} / {{ sharedItem.max_durability }}</span></span>
+              </div>
             </div>
           </div>
         </div>
@@ -1898,7 +2036,19 @@ onBeforeUnmount(() => {
                       <p class="truncate text-[13px] font-semibold text-[#f6f7fb]">{{ message.user?.username || 'Unknown user' }}</p>
                       <span class="text-[11px] text-[#d8dce7]/45">{{ formatDateTime(message.created_at) }}</span>
                     </div>
-                    <p class="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#e8e8f0]/78">{{ message.content }}</p>
+                    <button
+                      v-if="parseSharedItem(message.content)"
+                      type="button"
+                      @click="openSharedItem(parseSharedItem(message.content))"
+                      class="mt-2 inline-flex max-w-full cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.22)] bg-[rgba(126,200,227,0.08)] px-3 py-2 text-left transition-all duration-200 hover:border-[rgba(233,69,96,0.4)] hover:bg-[rgba(233,69,96,0.1)]"
+                    >
+                      <PackageIcon class="h-4 w-4 shrink-0 text-[#8fd7ef]" :stroke-width="2" />
+                      <span class="min-w-0">
+                        <span class="block truncate text-[13px] font-semibold text-[#f6f7fb]">{{ parseSharedItem(message.content).name || 'Item' }}</span>
+                        <span class="block text-[11px] uppercase tracking-[0.14em] text-[#8fd7ef]/70">Shared item · view</span>
+                      </span>
+                    </button>
+                    <p v-else class="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#e8e8f0]/78">{{ message.content }}</p>
                   </div>
                 </div>
               </article>

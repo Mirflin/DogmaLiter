@@ -22,6 +22,7 @@ import (
 var errGameAccessDenied = errors.New("game access denied")
 
 const nonGMCharacterLimit = 5
+const gameCharacterLimit = 5
 const gameChatMessageLimit = 40
 const defaultGameItemPage = 1
 const defaultGameItemPerPage = 18
@@ -204,6 +205,16 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil && !errors.Is(err, io.EOF) {
 		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	gameCharacterCount, err := h.service.repo.CountGameCharacters(gameID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to check character limit"})
+		return
+	}
+	if gameCharacterCount >= gameCharacterLimit {
+		respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("This game has reached its character limit (%d)", gameCharacterLimit)})
 		return
 	}
 

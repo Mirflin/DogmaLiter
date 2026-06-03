@@ -1,16 +1,38 @@
 <script setup>
 import HomeLayout from '@/layouts/HomeLayout.vue'
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import api from '@/api'
+import { computed, onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import api, { API_URL } from '@/api'
 import { notify } from '@/notify'
 
 const router = useRouter()
+const route = useRoute()
+const editId = ref(route.query.edit || '')
+const isEditing = computed(() => Boolean(editId.value))
 const title = ref('')
 const sections = ref([{ subtitle: '', text: '' }])
 const imageFile = ref(null)
 const imagePreview = ref(null)
 const submitting = ref(false)
+
+onMounted(async () => {
+  if (!editId.value) return
+  try {
+    const { data } = await api.get(`/news/${editId.value}`)
+    title.value = data.title || ''
+    try {
+      const parsed = JSON.parse(data.content)
+      if (Array.isArray(parsed) && parsed.length) {
+        sections.value = parsed.map(s => ({ subtitle: s.subtitle || '', text: s.text || '' }))
+      }
+    } catch {
+      sections.value = [{ subtitle: '', text: data.content || '' }]
+    }
+    if (data.image_id) imagePreview.value = `${API_URL}/api/uploads/${data.image_id}`
+  } catch {
+    notify.error('Failed to load the news post')
+  }
+})
 
 function addSection() {
   sections.value.push({ subtitle: '', text: '' })
@@ -47,6 +69,17 @@ async function submit() {
   submitting.value = true
 
   try {
+    if (isEditing.value) {
+      const content = JSON.stringify(sections.value.map(s => ({
+        subtitle: s.subtitle.trim(),
+        text: s.text.trim(),
+      })).filter(s => s.text))
+      await api.patch(`/news/${editId.value}`, { title: title.value.trim(), content })
+      notify.success({ title: 'News updated', message: 'The changes were saved.' })
+      router.push(`/news/${editId.value}`)
+      return
+    }
+
     const formData = new FormData()
     formData.append('title', title.value.trim())
     formData.append('content', JSON.stringify(sections.value.map(s => ({
@@ -77,7 +110,7 @@ async function submit() {
 <template>
   <HomeLayout>
     <div class="max-w-[800px] mx-auto px-6 py-8">
-      <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-8">Create News Post</h1>
+      <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-8">{{ isEditing ? 'Edit News Post' : 'Create News Post' }}</h1>
 
       <div class="space-y-6">
         <div>
@@ -164,7 +197,7 @@ async function submit() {
             :disabled="submitting"
             class="px-6 py-3 bg-linear-to-br from-[#e94560] to-[#c23152] text-white text-[14px] font-semibold rounded-lg border-none cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            {{ submitting ? 'Publishing...' : 'Publish' }}
+            {{ submitting ? 'Saving...' : (isEditing ? 'Save Changes' : 'Publish') }}
           </button>
           <button
             @click="router.push('/dashboard')"

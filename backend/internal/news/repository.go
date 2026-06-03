@@ -24,6 +24,14 @@ func (r *Repository) GetByID(id string) (*models.NewsPost, error) {
 	return &post, err
 }
 
+func (r *Repository) Update(post *models.NewsPost) error {
+	return r.db.Save(post).Error
+}
+
+func (r *Repository) Delete(id string) error {
+	return r.db.Where("id = ?", id).Delete(&models.NewsPost{}).Error
+}
+
 func (r *Repository) ListPublished(limit, offset int) ([]models.NewsPost, error) {
 	var posts []models.NewsPost
 	err := r.db.Where("is_published = ?", true).

@@ -4,6 +4,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import api, { API_URL } from '@/api'
+import { notify } from '@/notify'
 
 const auth = useAuthStore()
 
@@ -34,6 +35,29 @@ function goToPage(p) {
   page.value = p
   loadNews()
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+const isAdmin = computed(() => auth.user?.role === 'admin')
+const confirmDeleteId = ref('')
+const deleting = ref(false)
+function editPost(post) {
+  router.push(`/news/create?edit=${post.id}`)
+}
+function requestDelete(post) {
+  confirmDeleteId.value = confirmDeleteId.value === post.id ? '' : post.id
+}
+async function deletePost(post) {
+  if (deleting.value) return
+  deleting.value = true
+  try {
+    await api.delete(`/news/${post.id}`)
+    confirmDeleteId.value = ''
+    await loadNews()
+  } catch (err) {
+    notify.error(err, 'Failed to delete the news post')
+  } finally {
+    deleting.value = false
+  }
 }
 
 function imageUrl(post) {
@@ -98,6 +122,29 @@ function getPreviewText(content) {
             <p class="text-[#7ec8e3]/40 text-[11px] mb-2">{{ formatDate(post.published_at) }}</p>
             <h3 class="text-[#e8e8f0] text-[15px] font-semibold mb-2 line-clamp-2">{{ post.title }}</h3>
             <p class="text-[#e8e8f0]/50 text-[13px] leading-relaxed line-clamp-3">{{ truncate(getPreviewText(post.content), 150) }}</p>
+
+            <div v-if="isAdmin" class="mt-4 flex flex-wrap gap-2" @click.stop>
+              <button
+                @click="editPost(post)"
+                class="px-3 py-1.5 bg-[rgba(126,200,227,0.08)] text-[#8fd7ef] text-[12px] font-semibold rounded-lg border border-[rgba(126,200,227,0.2)] cursor-pointer hover:border-[rgba(126,200,227,0.4)] transition-all duration-200"
+              >
+                Edit
+              </button>
+              <button
+                @click="confirmDeleteId === post.id ? deletePost(post) : requestDelete(post)"
+                :disabled="deleting"
+                class="px-3 py-1.5 bg-[rgba(248,113,113,0.12)] text-[#fecaca] text-[12px] font-semibold rounded-lg border border-[rgba(248,113,113,0.24)] cursor-pointer hover:border-[rgba(248,113,113,0.45)] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {{ confirmDeleteId === post.id ? 'Confirm delete' : 'Delete' }}
+              </button>
+              <button
+                v-if="confirmDeleteId === post.id"
+                @click="confirmDeleteId = ''"
+                class="px-3 py-1.5 bg-transparent text-[#e8e8f0]/60 text-[12px] font-semibold rounded-lg border border-[rgba(126,200,227,0.15)] cursor-pointer hover:text-[#e8e8f0] transition-all duration-200"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       </div>

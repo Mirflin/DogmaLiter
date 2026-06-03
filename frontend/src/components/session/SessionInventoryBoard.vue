@@ -3,7 +3,7 @@ import interact from 'interactjs'
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { API_URL } from '@/api'
 import { notify } from '@/notify'
-import { Trash2, X } from '@lucide/vue'
+import { Send, Trash2, X } from '@lucide/vue'
 import SessionInventoryDraggableItem from './SessionInventoryDraggableItem.vue'
 import weaponImg from '@/assets/weapon.png'
 import offHandImg from '@/assets/lamp.png'
@@ -55,7 +55,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['persist', 'update-item', 'delete-item'])
+const emit = defineEmits(['persist', 'update-item', 'delete-item', 'share'])
 
 provide('inventoryCharacterAttributes', computed(() => props.characterAttributes))
 
@@ -491,6 +491,12 @@ function deleteItemDetail() {
   closeItemDetail()
 }
 
+function shareItemDetail() {
+  const entry = detailEntry.value
+  if (entry) emit('share', entry)
+  closeItemDetail()
+}
+
 function meetsItemRequirements(entry) {
   const requirements = entry?.item?.required_attributes ?? []
   return requirements.every((requirement) => {
@@ -902,16 +908,27 @@ function equipmentEntry(slot) {
           </div>
         </div>
 
-        <div v-if="canEdit" class="flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
-          <button
-            type="button"
-            @click="deleteItemDetail"
-            class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]"
-          >
-            <Trash2 class="h-4 w-4" :stroke-width="2" />
-            {{ detailConfirmDelete ? 'Confirm delete' : 'Delete item' }}
-          </button>
-          <div class="flex gap-3">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
+          <div class="flex flex-wrap gap-3">
+            <button
+              type="button"
+              @click="shareItemDetail"
+              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+            >
+              <Send class="h-4 w-4" :stroke-width="2" />
+              Share to chat
+            </button>
+            <button
+              v-if="canEdit"
+              type="button"
+              @click="deleteItemDetail"
+              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]"
+            >
+              <Trash2 class="h-4 w-4" :stroke-width="2" />
+              {{ detailConfirmDelete ? 'Confirm delete' : 'Delete item' }}
+            </button>
+          </div>
+          <div v-if="canEdit" class="flex gap-3">
             <button type="button" @click="closeItemDetail" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]">
               Cancel
             </button>
