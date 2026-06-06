@@ -45,6 +45,8 @@ func (h *Handler) Routes() chi.Router {
 	r.Get("/{gameID}", h.GetGame)
 	r.Put("/{gameID}", h.UpdateGame)
 	r.Post("/{gameID}/leave", h.LeaveGame)
+	r.Patch("/{gameID}/members/{userID}", h.UpdateMemberRole)
+	r.Delete("/{gameID}/members/{userID}", h.RemoveMember)
 	r.Delete("/{gameID}", h.DeleteGame)
 	r.Post("/{gameID}/cover", h.UploadCoverImage)
 	return r
@@ -341,6 +343,38 @@ func (h *Handler) LeaveGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, 200, map[string]string{"message": "Left game"})
+}
+
+func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	targetUserID := chi.URLParam(r, "userID")
+
+	var req struct {
+		Role string `json:"role"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+		return
+	}
+
+	if err := h.service.UpdateMemberRole(userID, gameID, targetUserID, req.Role); err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+	respondJSON(w, 200, map[string]interface{}{"success": true, "user_id": targetUserID, "role": req.Role})
+}
+
+func (h *Handler) RemoveMember(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	targetUserID := chi.URLParam(r, "userID")
+
+	if err := h.service.RemoveMember(userID, gameID, targetUserID); err != nil {
+		respondJSON(w, 400, map[string]string{"error": err.Error()})
+		return
+	}
+	respondJSON(w, 200, map[string]interface{}{"success": true, "user_id": targetUserID})
 }
 
 func (h *Handler) DeleteGame(w http.ResponseWriter, r *http.Request) {

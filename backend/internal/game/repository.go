@@ -633,6 +633,36 @@ func (r *Repository) RemoveMember(gameID, userID string) error {
 	return r.db.Where("game_id = ? AND user_id = ?", gameID, userID).Delete(&models.GameMember{}).Error
 }
 
+func (r *Repository) UpdateMemberRole(gameID, userID, role string) error {
+	return r.db.Model(&models.GameMember{}).
+		Where("game_id = ? AND user_id = ?", gameID, userID).
+		Update("role", role).Error
+}
+
+func (r *Repository) RemoveMemberAndCharacters(gameID, userID string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var characterIDs []string
+		if err := tx.Model(&models.Character{}).Where("game_id = ? AND user_id = ?", gameID, userID).Pluck("id", &characterIDs).Error; err != nil {
+			return err
+		}
+		if len(characterIDs) > 0 {
+			if err := tx.Where("character_id IN ?", characterIDs).Delete(&models.CharacterEquipment{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("character_id IN ?", characterIDs).Delete(&models.CharacterInventory{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("character_id IN ?", characterIDs).Delete(&models.CharacterCustomAttribute{}).Error; err != nil {
+				return err
+			}
+			if err := tx.Where("game_id = ? AND user_id = ?", gameID, userID).Delete(&models.Character{}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Where("game_id = ? AND user_id = ?", gameID, userID).Delete(&models.GameMember{}).Error
+	})
+}
+
 func (r *Repository) DeleteGame(gameID string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var characterIDs []string

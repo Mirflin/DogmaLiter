@@ -221,6 +221,16 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function removeGameMember(gameID, userID) {
+    const { data } = await api.delete(`/games/${gameID}/members/${userID}`)
+    return data
+  }
+
+  async function updateGameMemberRole(gameID, userID, role) {
+    const { data } = await api.patch(`/games/${gameID}/members/${userID}`, { role })
+    return data
+  }
+
   async function leaveGame(gameID) {
     const { data } = await api.post(`/games/${gameID}/leave`)
     return data
@@ -379,6 +389,8 @@ export const useAuthStore = defineStore('auth', () => {
     joinGameByCode,
     getInviteInfo,
     leaveGame,
+    removeGameMember,
+    updateGameMemberRole,
     deleteGame,
     uploadCoverImage,
     getGame,

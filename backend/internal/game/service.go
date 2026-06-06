@@ -155,6 +155,59 @@ func (s *Service) RegenerateInviteCode(userID, gameID string) (string, time.Time
 	return newCode, expiresAt, nil
 }
 
+func (s *Service) UpdateMemberRole(actorID, gameID, targetUserID, role string) error {
+	game, err := s.repo.GetGameByID(gameID)
+	if err != nil {
+		return errors.New("game not found")
+	}
+	if game.OwnerID != actorID {
+		return errors.New("only the main GM can change roles")
+	}
+	if targetUserID == game.OwnerID {
+		return errors.New("the game owner's role cannot be changed")
+	}
+	if role != "player" && role != "assistant_gm" {
+		return errors.New("role must be 'player' or 'assistant_gm'")
+	}
+
+	isMember, _ := s.repo.IsMember(gameID, targetUserID)
+	if !isMember {
+		return errors.New("user is not a member of this game")
+	}
+
+	return s.repo.UpdateMemberRole(gameID, targetUserID, role)
+}
+
+func (s *Service) RemoveMember(actorID, gameID, targetUserID string) error {
+	game, err := s.repo.GetGameByID(gameID)
+	if err != nil {
+		return errors.New("game not found")
+	}
+
+	isGM := game.OwnerID == actorID
+	if !isGM {
+		for _, member := range game.Members {
+			if member.UserID == actorID && (member.Role == "gm" || member.Role == "assistant_gm") {
+				isGM = true
+				break
+			}
+		}
+	}
+	if !isGM {
+		return errors.New("only the GM can remove players")
+	}
+	if targetUserID == game.OwnerID {
+		return errors.New("the game owner cannot be removed")
+	}
+
+	isMember, _ := s.repo.IsMember(gameID, targetUserID)
+	if !isMember {
+		return errors.New("user is not a member of this game")
+	}
+
+	return s.repo.RemoveMemberAndCharacters(gameID, targetUserID)
+}
+
 func (s *Service) LeaveGame(userID, gameID string) error {
 	game, err := s.repo.GetGameByID(gameID)
 	if err != nil {

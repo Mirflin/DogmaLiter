@@ -7,6 +7,7 @@ import {
   MessageSquareText as MessageSquareTextIcon,
   Package as PackageIcon,
   RefreshCw as RefreshCwIcon,
+  Settings as SettingsIcon,
   TriangleAlert as TriangleAlertIcon,
   UserRound as UserRoundIcon,
   Users as UsersIcon,
@@ -17,6 +18,7 @@ import SessionGMCharacterCreateModal from '@/components/session/SessionGMCharact
 import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemCompendium from '@/components/session/SessionItemCompendium.vue'
+import GameSettingsModal from '@/components/GameSettingsModal.vue'
 import { getErrorMessage, notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -33,6 +35,7 @@ const tabIcons = {
   characters: ContactRoundIcon,
   players: UsersIcon,
   items: FolderOpenIcon,
+  manage: SettingsIcon,
 }
 
 const auth = useAuthStore()
@@ -493,12 +496,173 @@ const tabs = computed(() => {
     baseTabs.push(
       { id: 'players', label: 'Players', icon: 'players', description: 'GM roster view for members and their accessible characters.' },
       { id: 'items', label: 'Items', icon: 'items', description: 'Campaign compendium for item browsing, tagging, and creation.' },
+      { id: 'manage', label: 'Manage', icon: 'manage', description: 'GM control panel: chat history, player roster, and game settings.' },
     )
   }
 
   return baseTabs
 })
 const activeTabMeta = computed(() => tabs.value.find(tab => tab.id === activeTab.value) ?? tabs.value[0] ?? null)
+
+const showGameSettings = ref(false)
+const managePanel = ref('players')
+const isGameOwner = computed(() => (game.value?.members ?? []).some(member => member.user_id === viewer.value?.user_id && member.role === 'gm'))
+const PLAYERS_PER_PAGE = 8
+const CHAT_ROWS_PER_PAGE = 15
+const playersPage = ref(1)
+const chatPage = ref(1)
+const managePlayers = computed(() => (game.value?.members ?? []).map(member => ({
+  ...member,
+  characterCount: characters.value.filter(character => character.user_id === member.user_id).length,
+})))
+const totalPlayerPages = computed(() => Math.max(1, Math.ceil(managePlayers.value.length / PLAYERS_PER_PAGE)))
+const paginatedPlayers = computed(() => {
+  const start = (playersPage.value - 1) * PLAYERS_PER_PAGE
+  return managePlayers.value.slice(start, start + PLAYERS_PER_PAGE)
+})
+const manageChatMessages = ref([])
+const manageChatLoading = ref(false)
+const manageChatLoaded = ref(false)
+const quickViewMember = ref(null)
+const memberPendingRemoval = ref(null)
+const removingMember = ref(false)
+const chatHistoryRows = computed(() => (manageChatMessages.value ?? []).map((message) => {
+  const shared = parseSharedItem(message.content)
+  return {
+    id: message.id,
+    time: formatDateTime(message.created_at),
+    author: message.user?.username || 'Unknown user',
+    isItem: Boolean(shared),
+    text: shared ? (shared.name || 'Shared item') : message.content,
+  }
+}))
+const totalChatPages = computed(() => Math.max(1, Math.ceil(chatHistoryRows.value.length / CHAT_ROWS_PER_PAGE)))
+const paginatedChatRows = computed(() => {
+  const start = (chatPage.value - 1) * CHAT_ROWS_PER_PAGE
+  return chatHistoryRows.value.slice(start, start + CHAT_ROWS_PER_PAGE)
+})
+const quickViewData = computed(() => {
+  const member = quickViewMember.value
+  if (!member) return null
+  const memberCharacters = characters.value.filter(character => character.user_id === member.user_id)
+  const source = manageChatMessages.value.length ? manageChatMessages.value : chatMessages.value
+  const memberMessages = source.filter(message => (message.user_id || message.user?.id) === member.user_id)
+  const lastMessage = memberMessages.length ? memberMessages[memberMessages.length - 1] : null
+  return {
+    member,
+    characters: memberCharacters,
+    messageCount: memberMessages.length,
+    lastMessageAt: lastMessage ? formatDateTime(lastMessage.created_at) : '—',
+  }
+})
+
+function canRemoveMember(member) {
+  return member?.role !== 'gm' && member?.user_id !== viewer.value?.user_id
+}
+
+async function loadManageChat() {
+  manageChatLoading.value = true
+  try {
+    const data = await auth.getGameChatMessages(gameId.value)
+    manageChatMessages.value = data.messages || []
+    manageChatLoaded.value = true
+    chatPage.value = 1
+  } catch (err) {
+    notify.error(err, 'Failed to load chat history')
+  } finally {
+    manageChatLoading.value = false
+  }
+}
+
+function openQuickView(member) {
+  quickViewMember.value = member
+}
+
+function closeQuickView() {
+  quickViewMember.value = null
+}
+
+function requestRemoveMember(member) {
+  if (!canRemoveMember(member)) return
+  memberPendingRemoval.value = member
+}
+
+function cancelRemoveMember() {
+  if (removingMember.value) return
+  memberPendingRemoval.value = null
+}
+
+async function confirmRemoveMember() {
+  const member = memberPendingRemoval.value
+  if (!member || removingMember.value) return
+  removingMember.value = true
+  try {
+    await auth.removeGameMember(gameId.value, member.user_id)
+    if (session.value) {
+      const nextMembers = (session.value.game?.members ?? []).filter(entry => entry.user_id !== member.user_id)
+      const nextCharacters = (session.value.characters ?? []).filter(character => character.user_id !== member.user_id)
+      session.value = {
+        ...session.value,
+        game: { ...session.value.game, members: nextMembers },
+        characters: nextCharacters,
+      }
+    }
+    if (activeCharacter.value && activeCharacter.value.user_id === member.user_id) {
+      clearActiveCharacter()
+    }
+    if (quickViewMember.value?.user_id === member.user_id) {
+      quickViewMember.value = null
+    }
+    notify.success({ title: 'Player removed', message: `${member.username} was removed from the game.` })
+    memberPendingRemoval.value = null
+  } catch (err) {
+    notify.error(err, 'Failed to remove player')
+  } finally {
+    removingMember.value = false
+  }
+}
+
+watch(managePanel, (panel) => {
+  if (panel === 'chat' && !manageChatLoaded.value && !manageChatLoading.value) {
+    loadManageChat()
+  }
+})
+
+function openGameSettings() {
+  showGameSettings.value = true
+}
+
+function handleGameSettingsUpdated() {
+  loadSession({ preserveCharacter: true, promptSelection: false })
+}
+
+function handleGameDeleted() {
+  router.push('/games')
+}
+
+async function updateMemberRole(member, role) {
+  if (!isGameOwner.value || !member) return
+  try {
+    await auth.updateGameMemberRole(gameId.value, member.user_id, role)
+    if (session.value) {
+      const nextMembers = (session.value.game?.members ?? []).map(entry => (entry.user_id === member.user_id ? { ...entry, role } : entry))
+      session.value = { ...session.value, game: { ...session.value.game, members: nextMembers } }
+    }
+    if (quickViewMember.value?.user_id === member.user_id) {
+      quickViewMember.value = { ...quickViewMember.value, role }
+    }
+    notify.success({ title: 'Role updated', message: `${member.username} is now ${role === 'assistant_gm' ? 'a GM' : 'a player'}.` })
+  } catch (err) {
+    notify.error(err, 'Failed to update role')
+  }
+}
+
+watch(totalPlayerPages, (total) => {
+  if (playersPage.value > total) playersPage.value = total
+})
+watch(totalChatPages, (total) => {
+  if (chatPage.value > total) chatPage.value = total
+})
 
 function avatarUrl(uploadId) {
   if (!uploadId) return null
@@ -1932,8 +2096,221 @@ onBeforeUnmount(() => {
           </section>
 
           <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
+
+          <section v-else-if="activeTab === 'manage' && isGM" class="space-y-6">
+            <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+              <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">GM Control Panel</p>
+              <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">Manage Game</h3>
+
+              <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
+                <div class="inline-flex flex-wrap gap-1.5 rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.6)] p-1.5">
+                  <button
+                    v-for="panel in [{ id: 'players', label: 'Players' }, { id: 'chat', label: 'Chat History' }]"
+                    :key="panel.id"
+                    type="button"
+                    @click="managePanel = panel.id"
+                    class="cursor-pointer rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-200"
+                    :class="managePanel === panel.id
+                      ? 'bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] text-white shadow-[0_8px_20px_rgba(233,69,96,0.25)]'
+                      : 'text-[#d8dce7]/70 hover:text-[#f6f7fb]'"
+                  >
+                    {{ panel.label }}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  @click="openGameSettings"
+                  class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+                >
+                  <SettingsIcon class="h-4 w-4" :stroke-width="2" />
+                  Game Settings
+                </button>
+              </div>
+            </article>
+
+            <!-- Players table -->
+            <article v-show="managePanel === 'players'" class="overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]">
+              <div class="flex items-center justify-between border-b border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
+                <h4 class="text-[15px] font-semibold text-[#e8e8f0]">Players</h4>
+                <span class="text-[12px] text-[#7ec8e3]/45">{{ managePlayers.length }} members</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[640px] text-left text-[13px]">
+                  <thead>
+                    <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">
+                      <th class="px-5 py-3 font-medium">Player</th>
+                      <th class="px-5 py-3 font-medium">Role</th>
+                      <th class="px-5 py-3 font-medium">Joined</th>
+                      <th class="px-5 py-3 font-medium text-right">Characters</th>
+                      <th class="px-5 py-3 font-medium text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="member in paginatedPlayers" :key="member.user_id" class="border-t border-[rgba(126,200,227,0.06)] text-[#e8e8f0]/80 hover:bg-[rgba(126,200,227,0.04)]">
+                      <td class="px-5 py-3 font-semibold text-[#f6f7fb]">{{ member.username }}</td>
+                      <td class="px-5 py-3 text-[#d8dce7]/70">{{ formatRole(member.role) }}</td>
+                      <td class="px-5 py-3 text-[#7ec8e3]/45">{{ formatDateTime(member.joined_at) }}</td>
+                      <td class="px-5 py-3 text-right text-[#f6f7fb]">{{ member.characterCount }}</td>
+                      <td class="px-5 py-3">
+                        <div class="flex flex-wrap justify-end gap-2">
+                          <button type="button" @click="openQuickView(member)" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                            View
+                          </button>
+                          <button v-if="isGameOwner && member.role === 'player'" type="button" @click="updateMemberRole(member, 'assistant_gm')" class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.28)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.45)]">
+                            Make GM
+                          </button>
+                          <button v-else-if="isGameOwner && member.role === 'assistant_gm'" type="button" @click="updateMemberRole(member, 'player')" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#d8dce7]/80 transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                            Revoke GM
+                          </button>
+                          <button v-if="canRemoveMember(member)" type="button" @click="requestRemoveMember(member)" class="cursor-pointer rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]">
+                            Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    <tr v-if="!managePlayers.length">
+                      <td colspan="5" class="px-5 py-8 text-center text-[#7ec8e3]/40">No members yet</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-if="totalPlayerPages > 1" class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3 sm:px-6">
+                <span class="text-[12px] text-[#7ec8e3]/45">Page {{ playersPage }} / {{ totalPlayerPages }}</span>
+                <div class="flex gap-2">
+                  <button type="button" @click="playersPage = Math.max(1, playersPage - 1)" :disabled="playersPage <= 1" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+                  <button type="button" @click="playersPage = Math.min(totalPlayerPages, playersPage + 1)" :disabled="playersPage >= totalPlayerPages" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+                </div>
+              </div>
+            </article>
+
+            <!-- Chat history table -->
+            <article v-show="managePanel === 'chat'" class="overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]">
+              <div class="flex items-center justify-between border-b border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
+                <h4 class="text-[15px] font-semibold text-[#e8e8f0]">Chat History</h4>
+                <span class="text-[12px] text-[#7ec8e3]/45">{{ manageChatLoading ? 'loading...' : `${chatHistoryRows.length} messages` }}</span>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[560px] text-left text-[13px]">
+                  <thead>
+                    <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">
+                      <th class="px-5 py-3 font-medium">Time</th>
+                      <th class="px-5 py-3 font-medium">Author</th>
+                      <th class="px-5 py-3 font-medium">Message</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in paginatedChatRows" :key="row.id" class="border-t border-[rgba(126,200,227,0.06)] text-[#e8e8f0]/80 align-top hover:bg-[rgba(126,200,227,0.04)]">
+                      <td class="whitespace-nowrap px-5 py-3 text-[#7ec8e3]/45">{{ row.time }}</td>
+                      <td class="whitespace-nowrap px-5 py-3 font-semibold text-[#f6f7fb]">{{ row.author }}</td>
+                      <td class="px-5 py-3">
+                        <span v-if="row.isItem" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-2 py-1 text-[12px] text-[#8fd7ef]">
+                          <PackageIcon class="h-3.5 w-3.5" :stroke-width="2" /> Shared item: {{ row.text }}
+                        </span>
+                        <span v-else class="whitespace-pre-wrap break-words text-[#e8e8f0]/78">{{ row.text }}</span>
+                      </td>
+                    </tr>
+                    <tr v-if="!chatHistoryRows.length">
+                      <td colspan="3" class="px-5 py-8 text-center text-[#7ec8e3]/40">{{ manageChatLoading ? 'Loading...' : 'No chat messages yet' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-if="totalChatPages > 1" class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3 sm:px-6">
+                <span class="text-[12px] text-[#7ec8e3]/45">Page {{ chatPage }} / {{ totalChatPages }}</span>
+                <div class="flex gap-2">
+                  <button type="button" @click="chatPage = Math.max(1, chatPage - 1)" :disabled="chatPage <= 1" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+                  <button type="button" @click="chatPage = Math.min(totalChatPages, chatPage + 1)" :disabled="chatPage >= totalChatPages" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+                </div>
+              </div>
+            </article>
+          </section>
         </main>
       </div>
+
+      <Teleport to="body">
+        <div v-if="quickViewData" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeQuickView"></div>
+          <div class="relative flex max-h-full w-full max-w-[32rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <div class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.1)] px-6 py-5">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                <img v-if="avatarUrl(quickViewData.member.avatar_id)" :src="avatarUrl(quickViewData.member.avatar_id)" :alt="quickViewData.member.username" class="h-full w-full object-cover" />
+                <span v-else class="font-[Cinzel] text-[18px] font-bold text-[#8fd7ef]">{{ initials(quickViewData.member.username) }}</span>
+              </div>
+              <div class="min-w-0">
+                <h3 class="truncate font-[Cinzel] text-[20px] font-bold text-[#f6f7fb]">{{ quickViewData.member.username }}</h3>
+                <p class="mt-0.5 text-[12px] text-[#7ec8e3]/58">{{ formatRole(quickViewData.member.role) }} · joined {{ formatDateTime(quickViewData.member.joined_at) }}</p>
+              </div>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-y-auto p-6">
+              <div class="grid grid-cols-3 gap-3">
+                <div class="rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-3 py-3 text-center">
+                  <p class="text-[22px] font-bold text-[#f6f7fb]">{{ quickViewData.characters.length }}</p>
+                  <p class="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Characters</p>
+                </div>
+                <div class="rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-3 py-3 text-center">
+                  <p class="text-[22px] font-bold text-[#f6f7fb]">{{ quickViewData.messageCount }}</p>
+                  <p class="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Messages</p>
+                </div>
+                <div class="rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-3 py-3 text-center">
+                  <p class="truncate text-[13px] font-bold text-[#f6f7fb]">{{ quickViewData.lastMessageAt }}</p>
+                  <p class="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Last Active</p>
+                </div>
+              </div>
+
+              <div class="mt-5">
+                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Characters</p>
+                <ul v-if="quickViewData.characters.length" class="mt-2 space-y-2">
+                  <li v-for="character in quickViewData.characters" :key="character.id" class="flex items-center justify-between gap-3 rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-2.5">
+                    <span class="min-w-0 truncate text-[14px] font-semibold text-[#f6f7fb]">{{ character.name }}</span>
+                    <span class="shrink-0 text-[11px] text-[#7ec8e3]/45">{{ character.inventory_width }}x{{ character.inventory_height }}</span>
+                  </li>
+                </ul>
+                <p v-else class="mt-2 text-[13px] text-[#d8dce7]/52">No characters in this game.</p>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-6 py-4">
+              <button v-if="canRemoveMember(quickViewData.member)" type="button" @click="requestRemoveMember(quickViewData.member)" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]">
+                Remove from game
+              </button>
+              <span v-else></span>
+              <button type="button" @click="closeQuickView" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="memberPendingRemoval" class="fixed inset-0 z-[12560] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="cancelRemoveMember"></div>
+          <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-[rgba(248,113,113,0.24)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-[#fca5a5]/70">Remove Player</p>
+            <h3 class="mt-2 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ memberPendingRemoval.username }}</h3>
+            <p class="mt-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
+              This removes the player from the game and deletes their characters here (with inventory and equipment). This action cannot be undone.
+            </p>
+            <div class="mt-6 flex flex-wrap justify-end gap-3">
+              <button type="button" @click="cancelRemoveMember" :disabled="removingMember" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                Cancel
+              </button>
+              <button type="button" @click="confirmRemoveMember" :disabled="removingMember" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[linear-gradient(135deg,rgba(248,113,113,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+                {{ removingMember ? 'Removing...' : 'Remove Player' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <GameSettingsModal
+        :visible="showGameSettings"
+        :game-id="gameId"
+        @close="showGameSettings = false"
+        @updated="handleGameSettingsUpdated"
+        @deleted="handleGameDeleted"
+      />
 
       <Teleport to="body">
         <div v-if="characterPendingDeletion" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
