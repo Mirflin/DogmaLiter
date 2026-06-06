@@ -326,6 +326,28 @@ function parseSharedItem(content) {
 function openSharedItem(item) {
   if (item) sharedItem.value = item
 }
+
+function viewEquipmentItem(entry) {
+  const item = entry?.item
+  if (!item) return
+  openSharedItem({
+    name: item.name,
+    rarity: item.rarity,
+    category: item.category,
+    description: item.description,
+    grid_width: item.grid_width,
+    grid_height: item.grid_height,
+    equip_slot: item.equip_slot || null,
+    image_id: item.image_id || null,
+    required_attributes: item.required_attributes || [],
+    attribute_modifiers: item.attribute_modifiers || [],
+    quantity: entry.quantity,
+    durability: entry.durability,
+    max_durability: entry.max_durability,
+    enchantment: entry.enchantment,
+    owner: '',
+  })
+}
 function closeSharedItem() {
   sharedItem.value = null
 }
@@ -523,7 +545,6 @@ const paginatedPlayers = computed(() => {
 const manageChatMessages = ref([])
 const manageChatLoading = ref(false)
 const manageChatLoaded = ref(false)
-const quickViewMember = ref(null)
 const memberPendingRemoval = ref(null)
 const removingMember = ref(false)
 const chatHistoryRows = computed(() => (manageChatMessages.value ?? []).map((message) => {
@@ -541,21 +562,6 @@ const paginatedChatRows = computed(() => {
   const start = (chatPage.value - 1) * CHAT_ROWS_PER_PAGE
   return chatHistoryRows.value.slice(start, start + CHAT_ROWS_PER_PAGE)
 })
-const quickViewData = computed(() => {
-  const member = quickViewMember.value
-  if (!member) return null
-  const memberCharacters = characters.value.filter(character => character.user_id === member.user_id)
-  const source = manageChatMessages.value.length ? manageChatMessages.value : chatMessages.value
-  const memberMessages = source.filter(message => (message.user_id || message.user?.id) === member.user_id)
-  const lastMessage = memberMessages.length ? memberMessages[memberMessages.length - 1] : null
-  return {
-    member,
-    characters: memberCharacters,
-    messageCount: memberMessages.length,
-    lastMessageAt: lastMessage ? formatDateTime(lastMessage.created_at) : '—',
-  }
-})
-
 function canRemoveMember(member) {
   return member?.role !== 'gm' && member?.user_id !== viewer.value?.user_id
 }
@@ -572,14 +578,6 @@ async function loadManageChat() {
   } finally {
     manageChatLoading.value = false
   }
-}
-
-function openQuickView(member) {
-  quickViewMember.value = member
-}
-
-function closeQuickView() {
-  quickViewMember.value = null
 }
 
 function requestRemoveMember(member) {
@@ -609,9 +607,6 @@ async function confirmRemoveMember() {
     }
     if (activeCharacter.value && activeCharacter.value.user_id === member.user_id) {
       clearActiveCharacter()
-    }
-    if (quickViewMember.value?.user_id === member.user_id) {
-      quickViewMember.value = null
     }
     notify.success({ title: 'Player removed', message: `${member.username} was removed from the game.` })
     memberPendingRemoval.value = null
@@ -647,9 +642,6 @@ async function updateMemberRole(member, role) {
     if (session.value) {
       const nextMembers = (session.value.game?.members ?? []).map(entry => (entry.user_id === member.user_id ? { ...entry, role } : entry))
       session.value = { ...session.value, game: { ...session.value.game, members: nextMembers } }
-    }
-    if (quickViewMember.value?.user_id === member.user_id) {
-      quickViewMember.value = { ...quickViewMember.value, role }
     }
     notify.success({ title: 'Role updated', message: `${member.username} is now ${role === 'assistant_gm' ? 'a GM' : 'a player'}.` })
   } catch (err) {
@@ -1772,11 +1764,12 @@ onBeforeUnmount(() => {
                       <span class="text-[12px] text-[#e8e8f0]/45">{{ equipment.length }} slots filled</span>
                     </div>
 
-                    <div v-if="equipment.length" class="mt-4 space-y-3">
+                    <div v-if="equipment.length" class="mt-4 max-h-[20rem] space-y-3 overflow-y-auto pr-1">
                       <div
                         v-for="slot in equipment"
                         :key="`${slot.slot}-${slot.inventory_item_id}`"
-                        class="rounded-2xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3"
+                        @click="viewEquipmentItem(slot.inventory_item)"
+                        class="cursor-pointer rounded-2xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3 transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] hover:bg-[rgba(126,200,227,0.1)]"
                       >
                         <div class="flex items-start justify-between gap-3">
                           <div>
@@ -2153,9 +2146,6 @@ onBeforeUnmount(() => {
                       <td class="px-5 py-3 text-right text-[#f6f7fb]">{{ member.characterCount }}</td>
                       <td class="px-5 py-3">
                         <div class="flex flex-wrap justify-end gap-2">
-                          <button type="button" @click="openQuickView(member)" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
-                            View
-                          </button>
                           <button v-if="isGameOwner && member.role === 'player'" type="button" @click="updateMemberRole(member, 'assistant_gm')" class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.28)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.45)]">
                             Make GM
                           </button>
@@ -2189,7 +2179,7 @@ onBeforeUnmount(() => {
                 <h4 class="text-[15px] font-semibold text-[#e8e8f0]">Chat History</h4>
                 <span class="text-[12px] text-[#7ec8e3]/45">{{ manageChatLoading ? 'loading...' : `${chatHistoryRows.length} messages` }}</span>
               </div>
-              <div class="overflow-x-auto">
+              <div class="min-h-[18rem] overflow-x-auto">
                 <table class="w-full min-w-[560px] text-left text-[13px]">
                   <thead>
                     <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">
@@ -2226,62 +2216,6 @@ onBeforeUnmount(() => {
           </section>
         </main>
       </div>
-
-      <Teleport to="body">
-        <div v-if="quickViewData" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeQuickView"></div>
-          <div class="relative flex max-h-full w-full max-w-[32rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <div class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.1)] px-6 py-5">
-              <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                <img v-if="avatarUrl(quickViewData.member.avatar_id)" :src="avatarUrl(quickViewData.member.avatar_id)" :alt="quickViewData.member.username" class="h-full w-full object-cover" />
-                <span v-else class="font-[Cinzel] text-[18px] font-bold text-[#8fd7ef]">{{ initials(quickViewData.member.username) }}</span>
-              </div>
-              <div class="min-w-0">
-                <h3 class="truncate font-[Cinzel] text-[20px] font-bold text-[#f6f7fb]">{{ quickViewData.member.username }}</h3>
-                <p class="mt-0.5 text-[12px] text-[#7ec8e3]/58">{{ formatRole(quickViewData.member.role) }} · joined {{ formatDateTime(quickViewData.member.joined_at) }}</p>
-              </div>
-            </div>
-
-            <div class="min-h-0 flex-1 overflow-y-auto p-6">
-              <div class="grid grid-cols-3 gap-3">
-                <div class="rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-3 py-3 text-center">
-                  <p class="text-[22px] font-bold text-[#f6f7fb]">{{ quickViewData.characters.length }}</p>
-                  <p class="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Characters</p>
-                </div>
-                <div class="rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-3 py-3 text-center">
-                  <p class="text-[22px] font-bold text-[#f6f7fb]">{{ quickViewData.messageCount }}</p>
-                  <p class="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Messages</p>
-                </div>
-                <div class="rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-3 py-3 text-center">
-                  <p class="truncate text-[13px] font-bold text-[#f6f7fb]">{{ quickViewData.lastMessageAt }}</p>
-                  <p class="mt-1 text-[10px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Last Active</p>
-                </div>
-              </div>
-
-              <div class="mt-5">
-                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Characters</p>
-                <ul v-if="quickViewData.characters.length" class="mt-2 space-y-2">
-                  <li v-for="character in quickViewData.characters" :key="character.id" class="flex items-center justify-between gap-3 rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-2.5">
-                    <span class="min-w-0 truncate text-[14px] font-semibold text-[#f6f7fb]">{{ character.name }}</span>
-                    <span class="shrink-0 text-[11px] text-[#7ec8e3]/45">{{ character.inventory_width }}x{{ character.inventory_height }}</span>
-                  </li>
-                </ul>
-                <p v-else class="mt-2 text-[13px] text-[#d8dce7]/52">No characters in this game.</p>
-              </div>
-            </div>
-
-            <div class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-6 py-4">
-              <button v-if="canRemoveMember(quickViewData.member)" type="button" @click="requestRemoveMember(quickViewData.member)" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]">
-                Remove from game
-              </button>
-              <span v-else></span>
-              <button type="button" @click="closeQuickView" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      </Teleport>
 
       <Teleport to="body">
         <div v-if="memberPendingRemoval" class="fixed inset-0 z-[12560] flex items-center justify-center p-4">
