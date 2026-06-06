@@ -257,6 +257,23 @@ async function handleInventoryItemUpdate(payload) {
     })
   }
 }
+async function handleInventoryItemSplit(inventoryItemId) {
+  const characterId = activeCharacterId.value
+  if (!characterId || !gameId.value || !inventoryItemId) return
+
+  try {
+    const data = await auth.splitInventoryItem(gameId.value, characterId, inventoryItemId)
+    if (data?.character && activeCharacter.value?.id === data.character.id) {
+      activeCharacter.value = data.character
+    }
+  } catch (error) {
+    notify.error({
+      title: 'Could not unstack',
+      message: getErrorMessage(error, 'Failed to unstack item'),
+    })
+  }
+}
+
 async function handleInventoryItemDelete(inventoryItemId) {
   const characterId = activeCharacterId.value
   if (!characterId || !gameId.value || !inventoryItemId) return
@@ -1764,7 +1781,7 @@ onBeforeUnmount(() => {
                       <span class="text-[12px] text-[#e8e8f0]/45">{{ equipment.length }} slots filled</span>
                     </div>
 
-                    <div v-if="equipment.length" class="mt-4 max-h-[20rem] space-y-3 overflow-y-auto pr-1">
+                    <div v-if="equipment.length" class="mt-4 max-h-[12rem] space-y-3 overflow-y-auto pr-1">
                       <div
                         v-for="slot in equipment"
                         :key="`${slot.slot}-${slot.inventory_item_id}`"
@@ -1816,6 +1833,7 @@ onBeforeUnmount(() => {
               @update-item="handleInventoryItemUpdate"
               @delete-item="handleInventoryItemDelete"
               @share="shareInventoryItem"
+              @split="handleInventoryItemSplit"
             />
           </section>
 

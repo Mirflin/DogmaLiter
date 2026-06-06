@@ -1109,6 +1109,99 @@ func (h *Handler) UpdateInventoryItem(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *Handler) SplitInventoryItem(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+	characterID := chi.URLParam(r, "characterID")
+	inventoryItemID := chi.URLParam(r, "inventoryItemID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+
+	character, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Character %s not found", characterID)})
+		return
+	}
+	if !isGM && character.UserID != userID {
+		respondJSON(w, 403, map[string]string{"error": "You do not have access to update this character"})
+		return
+	}
+
+	var target *models.CharacterInventory
+	for i := range character.Inventory {
+		if character.Inventory[i].ID == inventoryItemID {
+			target = &character.Inventory[i]
+			break
+		}
+	}
+	if target == nil {
+		respondJSON(w, 404, map[string]string{"error": "Inventory item not found"})
+		return
+	}
+	if target.Quantity <= 1 {
+		respondJSON(w, 400, map[string]string{"error": "This item cannot be unstacked"})
+		return
+	}
+
+	occupied := make([][]bool, character.InventoryHeight)
+	for y := range occupied {
+		occupied[y] = make([]bool, character.InventoryWidth)
+	}
+	markInventoryOccupancy(occupied, character.Inventory)
+
+	width := target.Item.GridWidth
+	height := target.Item.GridHeight
+	if target.IsRotated {
+		width, height = height, width
+	}
+
+	gridX, gridY, placed := findFreeInventorySlot(occupied, character.InventoryWidth, character.InventoryHeight, width, height)
+	if !placed {
+		respondJSON(w, 400, map[string]string{"error": "No free inventory space to unstack this item"})
+		return
+	}
+
+	newEntry := models.CharacterInventory{
+		ID:            uuid.New().String(),
+		CharacterID:   character.ID,
+		ItemID:        target.ItemID,
+		Quantity:      1,
+		Durability:    copyIntPointer(target.Durability),
+		MaxDurability: copyIntPointer(target.MaxDurability),
+		Enchantment:   target.Enchantment,
+		GridX:         gridX,
+		GridY:         gridY,
+		IsRotated:     target.IsRotated,
+	}
+
+	if err := h.service.repo.SplitInventoryItem(target.ID, target.Quantity-1, newEntry); err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to unstack item"})
+		return
+	}
+
+	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Item was unstacked but the character could not be reloaded"})
+		return
+	}
+
+	respondJSON(w, 200, map[string]interface{}{
+		"character": serializeCharacterDetail(updated),
+	})
+}
+
+func copyIntPointer(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
+}
+
 func (h *Handler) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")

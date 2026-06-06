@@ -243,6 +243,17 @@ func (r *Repository) UpdateInventoryEntry(characterID, inventoryItemID string, u
 	return result.RowsAffected, result.Error
 }
 
+func (r *Repository) SplitInventoryItem(originalID string, newQuantity int, newEntry models.CharacterInventory) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.CharacterInventory{}).
+			Where("id = ?", originalID).
+			Updates(map[string]interface{}{"quantity": newQuantity, "updated_at": time.Now()}).Error; err != nil {
+			return err
+		}
+		return tx.Create(&newEntry).Error
+	})
+}
+
 func (r *Repository) DeleteInventoryEntry(characterID, inventoryItemID string) (int64, error) {
 	var affected int64
 	err := r.db.Transaction(func(tx *gorm.DB) error {

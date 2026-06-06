@@ -55,7 +55,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['persist', 'update-item', 'delete-item', 'share'])
+const emit = defineEmits(['persist', 'update-item', 'delete-item', 'share', 'split'])
 
 provide('inventoryCharacterAttributes', computed(() => props.characterAttributes))
 
@@ -497,6 +497,13 @@ function shareItemDetail() {
   closeItemDetail()
 }
 
+function splitItemDetail() {
+  const entry = detailEntry.value
+  if (!entry || (entry.quantity || 1) <= 1) return
+  emit('split', entry.id)
+  closeItemDetail()
+}
+
 function meetsItemRequirements(entry) {
   const requirements = entry?.item?.required_attributes ?? []
   return requirements.every((requirement) => {
@@ -624,7 +631,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="main_hand"
               class="h-[var(--inv-weapon-h)] w-full relative rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('main_hand')]"
+              :class="['overflow-hidden', slotStateClasses('main_hand')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('main_hand')" :entry="equipmentEntry('main_hand')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -639,7 +646,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="gloves"
               class="h-[var(--inv-glove-h)] w-full relative rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('gloves')]"
+              :class="['overflow-hidden', slotStateClasses('gloves')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('gloves')" :entry="equipmentEntry('gloves')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -657,7 +664,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="ring_1"
               class="aspect-square min-h-[var(--inv-ring)] max-w-[var(--inv-ring)] relative rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('ring_1')]"
+              :class="['overflow-hidden', slotStateClasses('ring_1')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('ring_1')" :entry="equipmentEntry('ring_1')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -675,7 +682,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="head"
               class="h-[var(--inv-head)] w-full relative rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('head')]"
+              :class="['overflow-hidden', slotStateClasses('head')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('head')" :entry="equipmentEntry('head')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -690,7 +697,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="chest"
               class="h-[var(--inv-chest-h)] w-full relative rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('chest')]"
+              :class="['overflow-hidden', slotStateClasses('chest')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('chest')" :entry="equipmentEntry('chest')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -706,7 +713,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="belt"
               class="h-[var(--inv-belt-h)] w-full relative rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('belt')]"
+              :class="['overflow-hidden', slotStateClasses('belt')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('belt')" :entry="equipmentEntry('belt')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -724,7 +731,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="amulet"
               class="aspect-square min-h-[var(--inv-amulet)] max-w-[var(--inv-amulet)] relative rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('amulet')]"
+              :class="['overflow-hidden', slotStateClasses('amulet')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('amulet')" :entry="equipmentEntry('amulet')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -740,7 +747,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="ring_2"
               class="aspect-square min-h-[var(--inv-ring)] max-w-[var(--inv-ring)] relative rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('ring_2')]"
+              :class="['overflow-hidden', slotStateClasses('ring_2')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('ring_2')" :entry="equipmentEntry('ring_2')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -758,7 +765,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="off_hand"
               class="h-[var(--inv-weapon-h)] w-full relative rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('off_hand')]"
+              :class="['overflow-hidden', slotStateClasses('off_hand')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('off_hand')" :entry="equipmentEntry('off_hand')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -774,7 +781,7 @@ function equipmentEntry(slot) {
             <div
               data-slot="boots"
               class="h-[var(--inv-glove-h)] w-full relative rounded-[clamp(0.12rem,0.3vw,0.24rem)] border transition-[border-color,box-shadow,background-color] duration-150"
-              :class="[dragging ? 'overflow-visible' : 'overflow-hidden', slotStateClasses('boots')]"
+              :class="['overflow-hidden', slotStateClasses('boots')]"
             >
               <SessionInventoryDraggableItem v-if="equipmentEntry('boots')" :entry="equipmentEntry('boots')" variant="equipment" class="relative z-[1]" />
               <div :style="{
@@ -917,6 +924,14 @@ function equipmentEntry(slot) {
             >
               <Send class="h-4 w-4" :stroke-width="2" />
               Share to chat
+            </button>
+            <button
+              v-if="canEdit && (detailEntry.quantity || 1) > 1"
+              type="button"
+              @click="splitItemDetail"
+              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+            >
+              Unstack
             </button>
             <button
               v-if="canEdit"

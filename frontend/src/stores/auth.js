@@ -329,6 +329,11 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function splitInventoryItem(gameID, characterID, inventoryItemID) {
+    const { data } = await api.post(`/games/${gameID}/characters/${characterID}/inventory/${inventoryItemID}/split`)
+    return data
+  }
+
   async function uploadCharacterPortrait(gameID, characterID, file) {
     const formData = new FormData()
     formData.append('portrait', file)
@@ -408,6 +413,7 @@ export const useAuthStore = defineStore('auth', () => {
     updateCharacterInventory,
     updateInventoryItem,
     deleteInventoryItem,
+    splitInventoryItem,
     uploadCharacterPortrait,
     getGameChatMessages,
     sendGameChatMessage,

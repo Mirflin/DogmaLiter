@@ -130,7 +130,6 @@ onBeforeUnmount(() => {
     class="session-inventory-item group relative h-full w-full cursor-grab touch-none select-none outline-none transition-transform duration-150 ease-out hover:scale-[1.05]"
     :data-entry-id="entry.id"
     tabindex="0"
-    :title="item.name || 'Unnamed item'"
     @mouseenter="onEnter"
     @mouseleave="onLeave"
     @pointerdown="resetHover"
