@@ -45,6 +45,10 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  attributesEnabled: {
+    type: Boolean,
+    default: true,
+  },
   characterId: {
     type: String,
     default: '',
@@ -58,6 +62,7 @@ const props = defineProps({
 const emit = defineEmits(['persist', 'update-item', 'delete-item', 'share', 'split'])
 
 provide('inventoryCharacterAttributes', computed(() => props.characterAttributes))
+provide('inventoryAttributesEnabled', computed(() => props.attributesEnabled))
 
 const SLOT_DEFAULT = 'border-[rgba(126,200,227,0.34)] bg-[linear-gradient(180deg,rgba(30,49,96,0.96),rgba(15,25,49,0.98))] shadow-[inset_0_0_0_1px_rgba(126,200,227,0.06)]'
 const SLOT_ACTIVE = 'border-[rgba(74,222,128,0.85)] bg-[linear-gradient(180deg,rgba(21,128,61,0.5),rgba(13,70,38,0.72))] shadow-[inset_0_0_0_1px_rgba(74,222,128,0.2),0_0_0_1px_rgba(74,222,128,0.12)]'
@@ -423,13 +428,16 @@ const detailMaxDurability = ref(100)
 const detailConfirmDelete = ref(false)
 const detailEntry = computed(() => allEntriesById.value[detailEntryId.value] ?? null)
 const detailImageUrl = computed(() => detailEntry.value?.item?.image_id ? `${API_URL}/api/uploads/${detailEntry.value.item.image_id}` : '')
-const detailRequirements = computed(() => (detailEntry.value?.item?.required_attributes ?? []).map((requirement) => {
-  const name = String(requirement?.attribute_name || '')
-  const current = Number(props.characterAttributes?.[name] ?? 0)
-  const required = Number(requirement?.min_value ?? 0)
-  return { label: formatLabel(name), required, current, met: current >= required }
-}))
-const detailModifiers = computed(() => (detailEntry.value?.item?.attribute_modifiers ?? []).map((modifier) => ({
+const detailRequirements = computed(() => {
+  if (!props.attributesEnabled) return []
+  return (detailEntry.value?.item?.required_attributes ?? []).map((requirement) => {
+    const name = String(requirement?.attribute_name || '')
+    const current = Number(props.characterAttributes?.[name] ?? 0)
+    const required = Number(requirement?.min_value ?? 0)
+    return { label: formatLabel(name), required, current, met: current >= required }
+  })
+})
+const detailModifiers = computed(() => (props.attributesEnabled ? (detailEntry.value?.item?.attribute_modifiers ?? []) : []).map((modifier) => ({
   label: formatLabel(modifier?.attribute_name),
   value: Number(modifier?.modifier_value) || 0,
   percent: Boolean(modifier?.is_percentage),
@@ -505,9 +513,11 @@ function splitItemDetail() {
 }
 
 function meetsItemRequirements(entry) {
+  if (!props.attributesEnabled) return true
   const requirements = entry?.item?.required_attributes ?? []
   return requirements.every((requirement) => {
-    const current = Number(props.characterAttributes?.[requirement?.attribute_name] ?? 0)
+    const name = String(requirement?.attribute_name || '')
+    const current = Number(props.characterAttributes?.[name] ?? 0)
     return current >= Number(requirement?.min_value ?? 0)
   })
 }

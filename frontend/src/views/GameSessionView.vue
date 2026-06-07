@@ -19,6 +19,7 @@ import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharact
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemCompendium from '@/components/session/SessionItemCompendium.vue'
 import GameSettingsModal from '@/components/GameSettingsModal.vue'
+import DataTable from '@/components/DataTable.vue'
 import { getErrorMessage, notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
@@ -108,8 +109,10 @@ const canEditCharacter = computed(() => {
   if (!characterSnapshot.value) return false
   return isGM.value || characterSnapshot.value.user_id === viewer.value?.user_id
 })
+const STANDARD_ATTRS = new Set(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'])
+const attributesEnabled = computed(() => game.value?.show_standard_attrs !== false)
 const attributeCards = computed(() => {
-  if (!characterSnapshot.value?.base_attributes) return []
+  if (!attributesEnabled.value || !characterSnapshot.value?.base_attributes) return []
 
   const definitions = [
     { key: 'strength', label: 'Strength' },
@@ -140,7 +143,9 @@ const baseAttributeMap = computed(() => {
   const base = characterSnapshot.value?.base_attributes
   if (base) {
     for (const [key, value] of Object.entries(base)) {
-      map[normalizeAttributeName(key)] = Number(value) || 0
+      const name = normalizeAttributeName(key)
+      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
+      map[name] = Number(value) || 0
     }
   }
   for (const attribute of customAttributes.value) {
@@ -158,6 +163,7 @@ const equipmentModifiers = computed(() => {
     for (const modifier of modifiers) {
       const name = normalizeAttributeName(modifier?.attribute_name)
       if (!name) continue
+      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
       if (!acc[name]) acc[name] = { flat: 0, percent: 0 }
       if (modifier?.is_percentage) acc[name].percent += Number(modifier?.modifier_value) || 0
       else acc[name].flat += Number(modifier?.modifier_value) || 0
@@ -209,6 +215,7 @@ const attributeContributions = computed(() => {
     for (const modifier of modifiers) {
       const name = normalizeAttributeName(modifier?.attribute_name)
       if (!name) continue
+      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
       if (!map[name]) map[name] = []
       map[name].push({ source: itemName, value: Number(modifier?.modifier_value) || 0, percent: Boolean(modifier?.is_percentage) })
     }
@@ -546,19 +553,22 @@ const activeTabMeta = computed(() => tabs.value.find(tab => tab.id === activeTab
 const showGameSettings = ref(false)
 const managePanel = ref('players')
 const isGameOwner = computed(() => (game.value?.members ?? []).some(member => member.user_id === viewer.value?.user_id && member.role === 'gm'))
-const PLAYERS_PER_PAGE = 8
-const CHAT_ROWS_PER_PAGE = 15
-const playersPage = ref(1)
-const chatPage = ref(1)
+const playerColumns = [
+  { key: 'username', label: 'Player' },
+  { key: 'role', label: 'Role', filterable: true, filterOptions: [{ value: 'gm', label: 'GM' }, { value: 'assistant_gm', label: 'Assistant GM' }, { value: 'player', label: 'Player' }] },
+  { key: 'joined_at', label: 'Joined' },
+  { key: 'characterCount', label: 'Characters', align: 'right', sortable: true },
+  { key: 'actions', label: 'Actions', align: 'right' },
+]
+const chatColumns = [
+  { key: 'time', label: 'Time' },
+  { key: 'author', label: 'Author', filterable: true },
+  { key: 'text', label: 'Message' },
+]
 const managePlayers = computed(() => (game.value?.members ?? []).map(member => ({
   ...member,
   characterCount: characters.value.filter(character => character.user_id === member.user_id).length,
 })))
-const totalPlayerPages = computed(() => Math.max(1, Math.ceil(managePlayers.value.length / PLAYERS_PER_PAGE)))
-const paginatedPlayers = computed(() => {
-  const start = (playersPage.value - 1) * PLAYERS_PER_PAGE
-  return managePlayers.value.slice(start, start + PLAYERS_PER_PAGE)
-})
 const manageChatMessages = ref([])
 const manageChatLoading = ref(false)
 const manageChatLoaded = ref(false)
@@ -574,11 +584,6 @@ const chatHistoryRows = computed(() => (manageChatMessages.value ?? []).map((mes
     text: shared ? (shared.name || 'Shared item') : message.content,
   }
 }))
-const totalChatPages = computed(() => Math.max(1, Math.ceil(chatHistoryRows.value.length / CHAT_ROWS_PER_PAGE)))
-const paginatedChatRows = computed(() => {
-  const start = (chatPage.value - 1) * CHAT_ROWS_PER_PAGE
-  return chatHistoryRows.value.slice(start, start + CHAT_ROWS_PER_PAGE)
-})
 function canRemoveMember(member) {
   return member?.role !== 'gm' && member?.user_id !== viewer.value?.user_id
 }
@@ -589,7 +594,6 @@ async function loadManageChat() {
     const data = await auth.getGameChatMessages(gameId.value)
     manageChatMessages.value = data.messages || []
     manageChatLoaded.value = true
-    chatPage.value = 1
   } catch (err) {
     notify.error(err, 'Failed to load chat history')
   } finally {
@@ -665,13 +669,6 @@ async function updateMemberRole(member, role) {
     notify.error(err, 'Failed to update role')
   }
 }
-
-watch(totalPlayerPages, (total) => {
-  if (playersPage.value > total) playersPage.value = total
-})
-watch(totalChatPages, (total) => {
-  if (chatPage.value > total) chatPage.value = total
-})
 
 function avatarUrl(uploadId) {
   if (!uploadId) return null
@@ -1473,7 +1470,7 @@ onBeforeUnmount(() => {
         </button>
       </nav>
 
-      <div class="mx-auto max-w-[1920px] session-content-shell" :class="{ 'chat-collapsed': chatCollapsed }">
+      <div class="mx-auto max-w-[1920px] session-content-shell" :class="{ 'chat-collapsed': chatCollapsed || !game?.enable_chat }">
         <main class="min-w-0">
           <article class="session-command-deck mb-6 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] px-4 py-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:px-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
@@ -1720,7 +1717,7 @@ onBeforeUnmount(() => {
                         </div>
                       </div>
 
-                      <div class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+                      <div v-if="attributesEnabled" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
                         <div class="flex items-center justify-between gap-4">
                           <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Base Attributes</p>
                           <span class="text-[12px] text-[#d8dce7]/45">Read-only</span>
@@ -1827,6 +1824,7 @@ onBeforeUnmount(() => {
               :inventory-width="inventoryWidth"
               :inventory-height="inventoryHeight"
               :character-attributes="effectiveAttributeMap"
+              :attributes-enabled="attributesEnabled"
               :character-id="activeCharacterId"
               :can-edit="canEditCharacter"
               @persist="persistInventoryLayout"
@@ -2140,97 +2138,59 @@ onBeforeUnmount(() => {
             </article>
 
             <!-- Players table -->
-            <article v-show="managePanel === 'players'" class="overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]">
-              <div class="flex items-center justify-between border-b border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
-                <h4 class="text-[15px] font-semibold text-[#e8e8f0]">Players</h4>
-                <span class="text-[12px] text-[#7ec8e3]/45">{{ managePlayers.length }} members</span>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[640px] text-left text-[13px]">
-                  <thead>
-                    <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">
-                      <th class="px-5 py-3 font-medium">Player</th>
-                      <th class="px-5 py-3 font-medium">Role</th>
-                      <th class="px-5 py-3 font-medium">Joined</th>
-                      <th class="px-5 py-3 font-medium text-right">Characters</th>
-                      <th class="px-5 py-3 font-medium text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="member in paginatedPlayers" :key="member.user_id" class="border-t border-[rgba(126,200,227,0.06)] text-[#e8e8f0]/80 hover:bg-[rgba(126,200,227,0.04)]">
-                      <td class="px-5 py-3 font-semibold text-[#f6f7fb]">{{ member.username }}</td>
-                      <td class="px-5 py-3 text-[#d8dce7]/70">{{ formatRole(member.role) }}</td>
-                      <td class="px-5 py-3 text-[#7ec8e3]/45">{{ formatDateTime(member.joined_at) }}</td>
-                      <td class="px-5 py-3 text-right text-[#f6f7fb]">{{ member.characterCount }}</td>
-                      <td class="px-5 py-3">
-                        <div class="flex flex-wrap justify-end gap-2">
-                          <button v-if="isGameOwner && member.role === 'player'" type="button" @click="updateMemberRole(member, 'assistant_gm')" class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.28)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.45)]">
-                            Make GM
-                          </button>
-                          <button v-else-if="isGameOwner && member.role === 'assistant_gm'" type="button" @click="updateMemberRole(member, 'player')" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#d8dce7]/80 transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
-                            Revoke GM
-                          </button>
-                          <button v-if="canRemoveMember(member)" type="button" @click="requestRemoveMember(member)" class="cursor-pointer rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]">
-                            Remove
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    <tr v-if="!managePlayers.length">
-                      <td colspan="5" class="px-5 py-8 text-center text-[#7ec8e3]/40">No members yet</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div v-if="totalPlayerPages > 1" class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3 sm:px-6">
-                <span class="text-[12px] text-[#7ec8e3]/45">Page {{ playersPage }} / {{ totalPlayerPages }}</span>
-                <div class="flex gap-2">
-                  <button type="button" @click="playersPage = Math.max(1, playersPage - 1)" :disabled="playersPage <= 1" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
-                  <button type="button" @click="playersPage = Math.min(totalPlayerPages, playersPage + 1)" :disabled="playersPage >= totalPlayerPages" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Next</button>
-                </div>
-              </div>
-            </article>
+            <div v-show="managePanel === 'players'">
+              <DataTable
+                :columns="playerColumns"
+                :rows="managePlayers"
+                row-key="user_id"
+                :search-keys="['username', 'role']"
+                search-placeholder="Search players"
+                :page-size="8"
+                min-width="640px"
+                empty-text="No members yet"
+              >
+                <template #cell-username="{ row }"><span class="font-semibold text-[#f6f7fb]">{{ row.username }}</span></template>
+                <template #cell-role="{ row }"><span class="text-[#d8dce7]/70">{{ formatRole(row.role) }}</span></template>
+                <template #cell-joined_at="{ row }"><span class="text-[#7ec8e3]/45">{{ formatDateTime(row.joined_at) }}</span></template>
+                <template #cell-characterCount="{ row }"><span class="text-[#f6f7fb]">{{ row.characterCount }}</span></template>
+                <template #cell-actions="{ row }">
+                  <div class="flex flex-wrap justify-end gap-2">
+                    <button v-if="isGameOwner && row.role === 'player'" type="button" @click="updateMemberRole(row, 'assistant_gm')" class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.28)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.45)]">
+                      Make GM
+                    </button>
+                    <button v-else-if="isGameOwner && row.role === 'assistant_gm'" type="button" @click="updateMemberRole(row, 'player')" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#d8dce7]/80 transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                      Revoke GM
+                    </button>
+                    <button v-if="canRemoveMember(row)" type="button" @click="requestRemoveMember(row)" class="cursor-pointer rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]">
+                      Remove
+                    </button>
+                  </div>
+                </template>
+              </DataTable>
+            </div>
 
             <!-- Chat history table -->
-            <article v-show="managePanel === 'chat'" class="overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]">
-              <div class="flex items-center justify-between border-b border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
-                <h4 class="text-[15px] font-semibold text-[#e8e8f0]">Chat History</h4>
-                <span class="text-[12px] text-[#7ec8e3]/45">{{ manageChatLoading ? 'loading...' : `${chatHistoryRows.length} messages` }}</span>
-              </div>
-              <div class="min-h-[18rem] overflow-x-auto">
-                <table class="w-full min-w-[560px] text-left text-[13px]">
-                  <thead>
-                    <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">
-                      <th class="px-5 py-3 font-medium">Time</th>
-                      <th class="px-5 py-3 font-medium">Author</th>
-                      <th class="px-5 py-3 font-medium">Message</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="row in paginatedChatRows" :key="row.id" class="border-t border-[rgba(126,200,227,0.06)] text-[#e8e8f0]/80 align-top hover:bg-[rgba(126,200,227,0.04)]">
-                      <td class="whitespace-nowrap px-5 py-3 text-[#7ec8e3]/45">{{ row.time }}</td>
-                      <td class="whitespace-nowrap px-5 py-3 font-semibold text-[#f6f7fb]">{{ row.author }}</td>
-                      <td class="px-5 py-3">
-                        <span v-if="row.isItem" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-2 py-1 text-[12px] text-[#8fd7ef]">
-                          <PackageIcon class="h-3.5 w-3.5" :stroke-width="2" /> Shared item: {{ row.text }}
-                        </span>
-                        <span v-else class="whitespace-pre-wrap break-words text-[#e8e8f0]/78">{{ row.text }}</span>
-                      </td>
-                    </tr>
-                    <tr v-if="!chatHistoryRows.length">
-                      <td colspan="3" class="px-5 py-8 text-center text-[#7ec8e3]/40">{{ manageChatLoading ? 'Loading...' : 'No chat messages yet' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div v-if="totalChatPages > 1" class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3 sm:px-6">
-                <span class="text-[12px] text-[#7ec8e3]/45">Page {{ chatPage }} / {{ totalChatPages }}</span>
-                <div class="flex gap-2">
-                  <button type="button" @click="chatPage = Math.max(1, chatPage - 1)" :disabled="chatPage <= 1" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
-                  <button type="button" @click="chatPage = Math.min(totalChatPages, chatPage + 1)" :disabled="chatPage >= totalChatPages" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Next</button>
-                </div>
-              </div>
-            </article>
+            <div v-show="managePanel === 'chat'">
+              <DataTable
+                :columns="chatColumns"
+                :rows="chatHistoryRows"
+                :search-keys="['author', 'text']"
+                search-placeholder="Search chat history"
+                :page-size="12"
+                min-width="560px"
+                min-height="18rem"
+                :empty-text="manageChatLoading ? 'Loading...' : 'No chat messages yet'"
+              >
+                <template #cell-time="{ row }"><span class="whitespace-nowrap text-[#7ec8e3]/45">{{ row.time }}</span></template>
+                <template #cell-author="{ row }"><span class="whitespace-nowrap font-semibold text-[#f6f7fb]">{{ row.author }}</span></template>
+                <template #cell-text="{ row }">
+                  <span v-if="row.isItem" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-2 py-1 text-[12px] text-[#8fd7ef]">
+                    <PackageIcon class="h-3.5 w-3.5" :stroke-width="2" /> Shared item: {{ row.text }}
+                  </span>
+                  <span v-else class="whitespace-pre-wrap break-words text-[#e8e8f0]/78">{{ row.text }}</span>
+                </template>
+              </DataTable>
+            </div>
           </section>
         </main>
       </div>
@@ -2314,7 +2274,7 @@ onBeforeUnmount(() => {
                 <p class="mt-1 break-words whitespace-pre-line text-[13px] leading-relaxed text-[#d8dce7]/72 [overflow-wrap:anywhere]">{{ sharedItem.description?.trim() || 'No description provided.' }}</p>
               </div>
 
-              <div v-if="sharedItem.required_attributes?.length" class="mt-4">
+              <div v-if="attributesEnabled && sharedItem.required_attributes?.length" class="mt-4">
                 <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Requirements</p>
                 <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
                   <li v-for="(requirement, index) in sharedItem.required_attributes" :key="`sreq-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.05)] px-3 py-1.5 text-[12px] text-[#d8dce7]/82">
@@ -2324,7 +2284,7 @@ onBeforeUnmount(() => {
                 </ul>
               </div>
 
-              <div v-if="sharedItem.attribute_modifiers?.length" class="mt-4">
+              <div v-if="attributesEnabled && sharedItem.attribute_modifiers?.length" class="mt-4">
                 <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Grants</p>
                 <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
                   <li v-for="(modifier, index) in sharedItem.attribute_modifiers" :key="`smod-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.05)] px-3 py-1.5 text-[12px] text-[#d8dce7]/82">
@@ -2371,19 +2331,16 @@ onBeforeUnmount(() => {
       </Teleport>
 
       <button
-        v-if="chatCollapsed"
+        v-if="game?.enable_chat && chatCollapsed"
         @click="focusChatInput"
-        class="session-chat-launcher"
-        :class="game.enable_chat
-          ? 'border-[rgba(197,138,56,0.24)] bg-[rgba(16,19,23,0.96)] text-[#f3ead9]'
-          : 'border-[rgba(143,79,51,0.34)] bg-[rgba(42,22,18,0.92)] text-[#f5d2c8]'"
+        class="session-chat-launcher border-[rgba(197,138,56,0.24)] bg-[rgba(16,19,23,0.96)] text-[#f3ead9]"
       >
         <MessageSquareTextIcon class="h-5 w-5" :stroke-width="1.8" />
         <span class="text-[11px] font-semibold uppercase tracking-[0.18em]">Chat</span>
         <span class="rounded-full border border-[rgba(126,200,227,0.14)] px-2 py-0.5 text-[10px] font-semibold">{{ chatMessages.length }}</span>
       </button>
 
-      <aside v-else class="session-chat-dock">
+      <aside v-else-if="game?.enable_chat" class="session-chat-dock">
         <div class="session-chat-dock__shell">
           <div class="flex items-center justify-between gap-4 border-b border-[rgba(126,200,227,0.08)] px-4 py-4">
             <div>

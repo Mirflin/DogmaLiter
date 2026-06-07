@@ -1,11 +1,22 @@
 <script setup>
 import HomeLayout from '@/layouts/HomeLayout.vue'
+import DataTable from '@/components/DataTable.vue'
 import { computed, onMounted, ref } from 'vue'
 import api from '@/api'
 import { notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
+
+const userColumns = [
+  { key: 'username', label: 'User' },
+  { key: 'email', label: 'Email' },
+  { key: 'role', label: 'Role', filterable: true, filterOptions: [{ value: 'user', label: 'user' }, { value: 'admin', label: 'admin' }] },
+  { key: 'plan_name', label: 'Plan', sortable: true },
+  { key: 'is_verified', label: 'Status' },
+  { key: 'created_at', label: 'Joined' },
+  { key: 'actions', label: 'Actions', align: 'right' },
+]
 const stats = ref(null)
 const users = ref([])
 const loading = ref(true)
@@ -138,79 +149,59 @@ async function confirmDeleteUser() {
           </div>
         </div>
 
-        <div class="mt-8 overflow-hidden rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(15,15,35,0.6)]">
-          <div class="flex items-center justify-between border-b border-[rgba(126,200,227,0.1)] px-5 py-4">
-            <h2 class="text-[15px] font-semibold text-[#e8e8f0]">User Management</h2>
-            <span class="text-[12px] text-[#7ec8e3]/45">{{ users.length }} shown</span>
-          </div>
-
-          <div class="overflow-x-auto">
-            <table class="w-full min-w-[760px] text-left text-[13px]">
-              <thead>
-                <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">
-                  <th class="px-5 py-3 font-medium">User</th>
-                  <th class="px-5 py-3 font-medium">Email</th>
-                  <th class="px-5 py-3 font-medium">Role</th>
-                  <th class="px-5 py-3 font-medium">Plan</th>
-                  <th class="px-5 py-3 font-medium">Status</th>
-                  <th class="px-5 py-3 font-medium">Joined</th>
-                  <th class="px-5 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="user in users"
-                  :key="user.id"
-                  class="border-t border-[rgba(126,200,227,0.06)] text-[#e8e8f0]/80 hover:bg-[rgba(126,200,227,0.04)]"
-                >
-                  <td class="px-5 py-3 font-semibold text-[#f6f7fb]">
-                    {{ user.username }}
-                    <span v-if="user.id === auth.user?.id" class="ml-1 text-[10px] font-normal text-[#7ec8e3]/45">(you)</span>
-                  </td>
-                  <td class="px-5 py-3 text-[#e8e8f0]/60">{{ user.email }}</td>
-                  <td class="px-5 py-3">
-                    <select
-                      :value="user.role"
-                      :disabled="busyUserId === user.id"
-                      @change="updateUserRole(user, $event)"
-                      class="rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.72)] px-2.5 py-1.5 text-[12px] text-[#f6f7fb] outline-none disabled:opacity-50"
-                    >
-                      <option value="user">user</option>
-                      <option value="admin">admin</option>
-                    </select>
-                  </td>
-                  <td class="px-5 py-3 text-[#e8e8f0]/60">{{ user.plan_name || '—' }}</td>
-                  <td class="px-5 py-3">
-                    <button
-                      type="button"
-                      :disabled="busyUserId === user.id"
-                      @click="toggleVerified(user)"
-                      class="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 disabled:opacity-50"
-                      :class="user.is_verified
-                        ? 'border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.12)] text-[#86efac] hover:border-[rgba(74,222,128,0.5)]'
-                        : 'border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.12)] text-[#fca5a5] hover:border-[rgba(248,113,113,0.5)]'"
-                    >
-                      {{ user.is_verified ? 'Verified' : 'Unverified' }}
-                    </button>
-                  </td>
-                  <td class="px-5 py-3 text-[#7ec8e3]/45">{{ user.created_at }}</td>
-                  <td class="px-5 py-3 text-right">
-                    <button
-                      type="button"
-                      :disabled="user.id === auth.user?.id"
-                      @click="requestDeleteUser(user)"
-                      class="rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)] disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-                <tr v-if="!users.length">
-                  <td colspan="7" class="px-5 py-8 text-center text-[#7ec8e3]/40">No users found</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div class="mt-8">
+          <h2 class="mb-3 text-[15px] font-semibold text-[#e8e8f0]">User Management</h2>
+          <DataTable
+            :columns="userColumns"
+            :rows="users"
+            :search-keys="['username', 'email']"
+            search-placeholder="Search users by name or email"
+            :page-size="10"
+            min-width="760px"
+            empty-text="No users found"
+          >
+            <template #cell-username="{ row }">
+              <span class="font-semibold text-[#f6f7fb]">{{ row.username }}</span>
+              <span v-if="row.id === auth.user?.id" class="ml-1 text-[10px] font-normal text-[#7ec8e3]/45">(you)</span>
+            </template>
+            <template #cell-email="{ row }"><span class="text-[#e8e8f0]/60">{{ row.email }}</span></template>
+            <template #cell-role="{ row }">
+              <select
+                :value="row.role"
+                :disabled="busyUserId === row.id"
+                @change="updateUserRole(row, $event)"
+                class="rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.72)] px-2.5 py-1.5 text-[12px] text-[#f6f7fb] outline-none disabled:opacity-50"
+              >
+                <option value="user">user</option>
+                <option value="admin">admin</option>
+              </select>
+            </template>
+            <template #cell-plan_name="{ row }"><span class="text-[#e8e8f0]/60">{{ row.plan_name || '—' }}</span></template>
+            <template #cell-is_verified="{ row }">
+              <button
+                type="button"
+                :disabled="busyUserId === row.id"
+                @click="toggleVerified(row)"
+                class="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider transition-all duration-200 disabled:opacity-50"
+                :class="row.is_verified
+                  ? 'border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.12)] text-[#86efac] hover:border-[rgba(74,222,128,0.5)]'
+                  : 'border border-[rgba(248,113,113,0.3)] bg-[rgba(248,113,113,0.12)] text-[#fca5a5] hover:border-[rgba(248,113,113,0.5)]'"
+              >
+                {{ row.is_verified ? 'Verified' : 'Unverified' }}
+              </button>
+            </template>
+            <template #cell-created_at="{ row }"><span class="text-[#7ec8e3]/45">{{ row.created_at }}</span></template>
+            <template #cell-actions="{ row }">
+              <button
+                type="button"
+                :disabled="row.id === auth.user?.id"
+                @click="requestDeleteUser(row)"
+                class="rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Delete
+              </button>
+            </template>
+          </DataTable>
         </div>
       </template>
     </div>
