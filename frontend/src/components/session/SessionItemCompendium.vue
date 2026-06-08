@@ -1565,6 +1565,7 @@ function itemSizeLabel(item) {
             :key="item.id"
             type="button"
             @click="selectItem(item.id)"
+            @dblclick.stop.prevent="toggleCartItem(item)"
             @contextmenu.prevent="openItemContextMenu($event, item)"
             @mouseenter="hoveredItemId = item.id"
             @mouseleave="hoveredItemId = ''"

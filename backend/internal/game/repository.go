@@ -709,6 +709,16 @@ func (r *Repository) RemoveMemberAndCharacters(gameID, userID string) error {
 	})
 }
 
+func (r *Repository) ListAllGames() ([]models.Game, error) {
+	var games []models.Game
+	err := r.db.Preload("Owner").Preload("Members").Order("created_at DESC").Find(&games).Error
+	return games, err
+}
+
+func (r *Repository) AdminUpdateGame(gameID string, updates map[string]interface{}) error {
+	return r.db.Model(&models.Game{}).Where("id = ?", gameID).Updates(updates).Error
+}
+
 func (r *Repository) DeleteGame(gameID string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var characterIDs []string

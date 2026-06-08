@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -167,24 +168,45 @@ func main() {
 				result := make([]map[string]interface{}, 0, len(users))
 				for _, u := range users {
 					result = append(result, map[string]interface{}{
-						"id":          u.ID,
-						"username":    u.Username,
-						"email":       u.Email,
-						"role":        u.Role,
-						"is_verified": u.IsVerified,
-						"plan_name":   u.Plan.Name,
-						"created_at":  u.CreatedAt.Format("02.01.2006"),
+						"id":                   u.ID,
+						"username":             u.Username,
+						"email":                u.Email,
+						"role":                 u.Role,
+						"is_verified":          u.IsVerified,
+						"plan_id":              u.PlanID,
+						"plan_name":            u.Plan.Name,
+						"subscription_ends_at": u.SubscriptionEndsAt,
+						"created_at":           u.CreatedAt.Format("02.01.2006"),
 					})
 				}
 				respondJSON(w, 200, map[string]interface{}{"users": result})
+			})
+
+			r.Get("/plans", func(w http.ResponseWriter, r *http.Request) {
+				plans, err := authRepo.ListPlans()
+				if err != nil {
+					respondJSON(w, 500, map[string]string{"error": "Failed to load plans"})
+					return
+				}
+				result := make([]map[string]interface{}, 0, len(plans))
+				for _, p := range plans {
+					result = append(result, map[string]interface{}{
+						"id":            p.ID,
+						"name":          p.Name,
+						"price_monthly": p.PriceMonthly,
+					})
+				}
+				respondJSON(w, 200, map[string]interface{}{"plans": result})
 			})
 
 			r.Patch("/users/{userID}", func(w http.ResponseWriter, r *http.Request) {
 				userID := chi.URLParam(r, "userID")
 
 				var req struct {
-					Role       *string `json:"role"`
-					IsVerified *bool   `json:"is_verified"`
+					Role               *string `json:"role"`
+					IsVerified         *bool   `json:"is_verified"`
+					PlanID             *string `json:"plan_id"`
+					SubscriptionEndsAt *string `json:"subscription_ends_at"`
 				}
 				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 					respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
@@ -201,6 +223,34 @@ func main() {
 				}
 				if req.IsVerified != nil {
 					updates["is_verified"] = *req.IsVerified
+				}
+				if req.PlanID != nil {
+					exists, err := authRepo.PlanExists(*req.PlanID)
+					if err != nil {
+						respondJSON(w, 500, map[string]string{"error": "Failed to verify plan"})
+						return
+					}
+					if !exists {
+						respondJSON(w, 400, map[string]string{"error": "Unknown plan"})
+						return
+					}
+					updates["plan_id"] = *req.PlanID
+				}
+				if req.SubscriptionEndsAt != nil {
+					value := strings.TrimSpace(*req.SubscriptionEndsAt)
+					if value == "" {
+						updates["subscription_ends_at"] = nil
+					} else {
+						parsed, err := time.Parse("2006-01-02", value)
+						if err != nil {
+							parsed, err = time.Parse(time.RFC3339, value)
+						}
+						if err != nil {
+							respondJSON(w, 400, map[string]string{"error": "Invalid subscription end date"})
+							return
+						}
+						updates["subscription_ends_at"] = parsed
+					}
 				}
 				if len(updates) == 0 {
 					respondJSON(w, 400, map[string]string{"error": "No changes were provided"})
@@ -224,6 +274,74 @@ func main() {
 
 				if err := authRepo.DeleteUser(userID, adminID); err != nil {
 					respondJSON(w, 500, map[string]string{"error": "Failed to delete user"})
+					return
+				}
+				respondJSON(w, 200, map[string]interface{}{"success": true})
+			})
+
+			r.Get("/games", func(w http.ResponseWriter, r *http.Request) {
+				games, err := gameRepo.ListAllGames()
+				if err != nil {
+					respondJSON(w, 500, map[string]string{"error": "Failed to load games"})
+					return
+				}
+				result := make([]map[string]interface{}, 0, len(games))
+				for _, g := range games {
+					result = append(result, map[string]interface{}{
+						"id":          g.ID,
+						"title":       g.Title,
+						"system":      g.System,
+						"owner":       g.Owner.Username,
+						"owner_id":    g.OwnerID,
+						"players":     len(g.Members),
+						"max_players": g.MaxPlayers,
+						"created_at":  g.CreatedAt.Format("02.01.2006"),
+					})
+				}
+				respondJSON(w, 200, map[string]interface{}{"games": result})
+			})
+
+			r.Patch("/games/{gameID}", func(w http.ResponseWriter, r *http.Request) {
+				gameID := chi.URLParam(r, "gameID")
+				var req struct {
+					Title      *string `json:"title"`
+					MaxPlayers *int    `json:"max_players"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+					respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
+					return
+				}
+				updates := map[string]interface{}{}
+				if req.Title != nil {
+					title := strings.TrimSpace(*req.Title)
+					if title == "" {
+						respondJSON(w, 400, map[string]string{"error": "Title cannot be empty"})
+						return
+					}
+					updates["title"] = title
+				}
+				if req.MaxPlayers != nil {
+					if *req.MaxPlayers < 1 || *req.MaxPlayers > 100 {
+						respondJSON(w, 400, map[string]string{"error": "Max players must be between 1 and 100"})
+						return
+					}
+					updates["max_players"] = *req.MaxPlayers
+				}
+				if len(updates) == 0 {
+					respondJSON(w, 400, map[string]string{"error": "No changes were provided"})
+					return
+				}
+				if err := gameRepo.AdminUpdateGame(gameID, updates); err != nil {
+					respondJSON(w, 500, map[string]string{"error": "Failed to update game"})
+					return
+				}
+				respondJSON(w, 200, map[string]interface{}{"success": true})
+			})
+
+			r.Delete("/games/{gameID}", func(w http.ResponseWriter, r *http.Request) {
+				gameID := chi.URLParam(r, "gameID")
+				if err := gameRepo.DeleteGame(gameID); err != nil {
+					respondJSON(w, 500, map[string]string{"error": "Failed to delete game"})
 					return
 				}
 				respondJSON(w, 200, map[string]interface{}{"success": true})

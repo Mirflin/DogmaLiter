@@ -28,80 +28,109 @@ function getPreviewText(content) {
 <template>
   <HomeLayout>
   <div class="landing-page">
-    <section class="landing-hero relative overflow-hidden min-h-[600px] md:min-h-[700px] flex items-center">
+    <section class="landing-hero relative overflow-hidden flex items-center">
       <div class="absolute inset-0">
-        <img :src="bg2Image" alt="" class="w-full h-full object-cover blur-[3px] scale-105 opacity-30" />
+        <img :src="bg2Image" alt="" class="w-full h-full object-cover scale-110 opacity-25" />
       </div>
-      <div class="absolute inset-0 bg-linear-to-b from-[#0a0a1a]/70 via-transparent to-[#0a0a1a]" />
-      <div class="absolute inset-0 bg-linear-to-r from-[#0a0a1a]/80 via-[#0a0a1a]/30 to-[#0a0a1a]/60" />
+      <div class="absolute inset-0 bg-linear-to-b from-[#0a0a1a]/55 via-[#0a0a1a]/82 to-[#0a0a1a]" />
       <div class="absolute inset-0 pointer-events-none">
-        <div class="absolute top-32 left-20 w-80 h-80 bg-[#e94560]/10 rounded-full blur-[140px]" />
-        <div class="absolute bottom-20 right-32 w-96 h-96 bg-[#7ec8e3]/8 rounded-full blur-[160px]" />
+        <div class="absolute -top-16 left-[8%] w-[30rem] h-[30rem] bg-[#e94560]/12 rounded-full blur-[160px]" />
+        <div class="absolute bottom-[-6rem] right-[6%] w-[34rem] h-[34rem] bg-[#7ec8e3]/10 rounded-full blur-[180px]" />
       </div>
 
-      <div class="landing-hero__content relative max-w-[1400px] mx-auto px-6 py-24 md:py-32 flex flex-col md:flex-row items-center gap-12">
-        <div class="landing-hero__copy flex-1 max-w-2xl">
-          <p class="landing-eyebrow mb-4 text-[11px] uppercase tracking-[0.26em] text-[#7ec8e3]/55">Campaign Platform</p>
-          <h1 class="font-[Cinzel] text-[40px] md:text-[54px] font-bold text-[#e8e8f0] leading-tight mb-6 tracking-wide">
-            Your Tabletop,<br />
-            <span class="text-transparent bg-clip-text bg-linear-to-r from-[#e94560] to-[#ff6b81]">Reimagined.</span>
-          </h1>
-          <p class="text-[#c8d6e5] text-lg md:text-xl leading-relaxed mb-4 max-w-lg">
-            Manage your characters, inventories, and equipment online. Organize your tabletop campaigns and play with friends — all in your browser.
-          </p>
-          <ul class="list-none p-0 mb-10 space-y-2">
-            <li class="flex items-center gap-2 text-[#7ec8e3]/70 text-[15px]">
-              <svg class="w-4 h-4 text-[#e94560] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-              Free to play — no credit card required
-            </li>
-            <li class="flex items-center gap-2 text-[#7ec8e3]/70 text-[15px]">
-              <svg class="w-4 h-4 text-[#e94560] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-              No downloads or hosting needed
-            </li>
-            <li class="flex items-center gap-2 text-[#7ec8e3]/70 text-[15px]">
-              <svg class="w-4 h-4 text-[#e94560] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-              Just open your browser and play
-            </li>
-          </ul>
-          <router-link
-            to="/auth"
-            class="inline-block py-4 px-10 bg-linear-to-br from-[#e94560] to-[#c23152] text-white text-[16px] font-semibold no-underline rounded-xl hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(233,69,96,0.45)] transition-all duration-300 active:translate-y-0"
-          >
-            Create Free Account
-          </router-link>
+      <div class="relative w-full max-w-[1240px] mx-auto px-6 py-24 lg:py-28 grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-16 items-center">
+        <!-- Copy -->
+        <div class="max-w-2xl">
+          <span class="inline-flex items-center gap-2.5 rounded-full border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.07)] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8fd7ef]">
+            <span class="relative flex h-2 w-2">
+              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e94560] opacity-70"></span>
+              <span class="relative inline-flex h-2 w-2 rounded-full bg-[#e94560]"></span>
+            </span>
+            Campaign Platform
+          </span>
 
+          <h1 class="mt-6 font-[Cinzel] text-[44px] sm:text-[56px] lg:text-[64px] font-bold leading-[1.04] tracking-wide text-[#f3f4f8]">
+            Your Tabletop,<br />
+            <span class="text-transparent bg-clip-text bg-linear-to-r from-[#ff6b81] via-[#e94560] to-[#ff8aa0]">Reimagined.</span>
+          </h1>
+
+          <p class="mt-6 max-w-xl text-[17px] md:text-[19px] leading-relaxed text-[#c8d6e5]/85">
+            Manage characters, inventories, and equipment online. Run your tabletop campaigns and play with friends — entirely in your browser.
+          </p>
+
+          <div class="mt-7 flex flex-wrap gap-2.5">
+            <span v-for="perk in ['Free to play', 'No downloads', 'Browser-based']" :key="perk" class="inline-flex items-center gap-1.5 rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.05)] px-3 py-1.5 text-[13px] text-[#c8d6e5]/82">
+              <svg class="w-3.5 h-3.5 text-[#e94560] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+              {{ perk }}
+            </span>
+          </div>
+
+          <div class="mt-9 flex flex-wrap items-center gap-3.5">
+            <router-link
+              to="/auth"
+              class="group inline-flex items-center gap-2 py-4 px-9 bg-linear-to-br from-[#e94560] to-[#c23152] text-white text-[16px] font-semibold no-underline rounded-xl hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(233,69,96,0.45)] transition-all duration-300 active:translate-y-0"
+            >
+              Create Free Account
+              <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+            </router-link>
+            <a
+              href="#how"
+              class="inline-flex items-center gap-2 py-4 px-7 border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.06)] text-[#e8e8f0] text-[15px] font-semibold no-underline rounded-xl hover:border-[rgba(126,200,227,0.4)] hover:bg-[rgba(126,200,227,0.1)] transition-all duration-300"
+            >
+              See how it works
+            </a>
+          </div>
         </div>
 
-        <div class="landing-hero__aside hidden md:flex flex-shrink-0 items-center justify-center">
-          <div class="landing-atlas w-full max-w-[390px] p-6">
-            <div class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.1)] pb-5">
-              <img :src="logo" alt="DogmaLiter" class="w-20 h-20 object-contain drop-shadow-[0_0_40px_rgba(233,69,96,0.3)] animate-float" />
-              <div>
-                <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">Live Board</p>
-                <p class="mt-2 font-[Cinzel] text-[28px] font-bold text-[#f6f7fb]">Campaign Atlas</p>
+        <!-- Product mockup -->
+        <div class="relative hidden lg:block">
+          <div class="landing-atlas relative">
+            <div class="flex items-center gap-3 px-5 py-3.5 border-b border-[rgba(126,200,227,0.1)]">
+              <div class="flex gap-1.5">
+                <span class="h-3 w-3 rounded-full bg-[#e94560]/70"></span>
+                <span class="h-3 w-3 rounded-full bg-[#f0c674]/70"></span>
+                <span class="h-3 w-3 rounded-full bg-[#86efac]/70"></span>
+              </div>
+              <div class="ml-2 flex items-center gap-3">
+                <img :src="logo" alt="DogmaLiter" class="w-11 h-11 object-contain drop-shadow-[0_0_24px_rgba(233,69,96,0.35)] animate-float" />
+                <div>
+                  <p class="text-[10px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">Live Board</p>
+                  <p class="font-[Cinzel] text-[20px] font-bold text-[#f6f7fb] leading-tight">Campaign Atlas</p>
+                </div>
               </div>
             </div>
 
-            <div class="mt-5 grid gap-3 sm:grid-cols-2">
+            <div class="p-4 grid grid-cols-2 gap-3">
               <article class="landing-atlas__cell p-4">
                 <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">GM Control</p>
-                <p class="mt-2 text-[15px] leading-relaxed text-[#e8e8f0]/82">Run parties, items, sheets and invites from one place.</p>
+                <p class="mt-2 text-[14px] leading-relaxed text-[#e8e8f0]/82">Run parties, items, sheets and invites from one place.</p>
               </article>
               <article class="landing-atlas__cell p-4">
                 <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">Player Ready</p>
-                <p class="mt-2 text-[15px] leading-relaxed text-[#e8e8f0]/82">Choose a character, open inventory and stay in chat instantly.</p>
+                <p class="mt-2 text-[14px] leading-relaxed text-[#e8e8f0]/82">Open a character, browse inventory and stay in chat.</p>
               </article>
-              <article class="landing-atlas__cell p-4 sm:col-span-2">
+              <article class="landing-atlas__cell p-4 col-span-2">
                 <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">Why It Feels Better</p>
-                <p class="mt-2 text-[15px] leading-relaxed text-[#e8e8f0]/82">DogmaLiter keeps the tabletop rhythm intact: less setup friction, more space for party management, fast entry into play.</p>
+                <p class="mt-2 text-[14px] leading-relaxed text-[#e8e8f0]/82">DogmaLiter keeps the tabletop rhythm intact: less setup friction, more space for party management, fast entry into play.</p>
               </article>
+            </div>
+          </div>
+
+          <div class="absolute -left-5 -bottom-5 flex items-center gap-2.5 rounded-2xl border border-[rgba(126,200,227,0.16)] bg-[rgba(10,16,28,0.94)] px-4 py-3 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+            <span class="relative flex h-2.5 w-2.5">
+              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#86efac] opacity-60"></span>
+              <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#86efac]"></span>
+            </span>
+            <div>
+              <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Status</p>
+              <p class="text-[13px] font-semibold text-[#f6f7fb]">Session live</p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="landing-section landing-section--framed relative py-20 overflow-hidden">
+    <section id="how" class="landing-section landing-section--framed relative scroll-mt-24 py-20 overflow-hidden">
       <div class="absolute inset-0 bg-[#0a0a1a]" />
       <div class="landing-section-shell relative max-w-[1400px] mx-auto px-6 py-10">
         <h2 class="font-[Cinzel] text-[32px] font-bold text-[#e8e8f0] tracking-wide text-center mb-4">How It Works</h2>
@@ -234,23 +263,6 @@ function getPreviewText(content) {
 .landing-cta-shell {
   position: relative;
   z-index: 1;
-}
-
-.landing-hero__copy {
-  padding: 1.75rem;
-  border: 1px solid rgba(126, 200, 227, 0.1);
-  border-radius: 1.75rem;
-  background: linear-gradient(180deg, rgba(12, 17, 31, 0.72), rgba(8, 12, 24, 0.84));
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(10px);
-}
-
-.landing-eyebrow {
-  color: rgba(126, 200, 227, 0.55);
-}
-
-.landing-hero__aside {
-  width: min(100%, 24.5rem);
 }
 
 .landing-atlas,

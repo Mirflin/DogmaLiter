@@ -12,6 +12,10 @@ const props = defineProps({
     type: String,
     default: 'grid',
   },
+  round: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const FILL_MS = 750
@@ -139,8 +143,8 @@ onBeforeUnmount(() => {
     @pointerdown="resetHover"
   >
     <div
-      class="relative h-full w-full overflow-hidden rounded-[0.12rem] border-[3px] bg-[linear-gradient(180deg,rgba(27,49,93,0.98),rgba(13,24,47,1)),linear-gradient(135deg,rgba(106,147,211,0.2),rgba(7,12,24,0))]"
-      :class="rarityBorderClass"
+      class="relative h-full w-full overflow-hidden border-[3px] bg-[linear-gradient(180deg,rgba(27,49,93,0.98),rgba(13,24,47,1)),linear-gradient(135deg,rgba(106,147,211,0.2),rgba(7,12,24,0))]"
+      :class="[rarityBorderClass, round ? 'rounded-full' : 'rounded-[0.12rem]']"
     >
       <div class="flex h-full w-full min-h-0 items-center justify-center bg-[radial-gradient(circle_at_top,rgba(255,247,226,0.2),transparent_46%),linear-gradient(180deg,rgba(222,211,182,0.9),rgba(170,151,104,0.78))]">
         <img
@@ -186,7 +190,7 @@ onBeforeUnmount(() => {
     <Teleport to="body">
       <div
         v-if="showInfo"
-        class="fixed z-[12000] w-[16rem] overflow-hidden rounded-[1rem] border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+        class="fixed z-[12990] w-[16rem] overflow-hidden rounded-[1rem] border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
         :style="{ left: `${infoPos.left}px`, top: `${infoPos.top}px` }"
       >
         <div class="flex items-start justify-between gap-2">

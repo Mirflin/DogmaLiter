@@ -681,7 +681,7 @@ function equipmentEntry(slot) {
               class="aspect-square min-h-[var(--inv-ring)] max-w-[var(--inv-ring)] relative rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
               :class="['overflow-hidden', slotStateClasses('ring_1')]"
             >
-              <SessionInventoryDraggableItem v-if="equipmentEntry('ring_1')" :entry="equipmentEntry('ring_1')" variant="equipment" class="relative z-[1]" />
+              <SessionInventoryDraggableItem v-if="equipmentEntry('ring_1')" :entry="equipmentEntry('ring_1')" variant="equipment" :round="true" class="relative z-[1]" />
               <div :style="{
                 backgroundImage: `url(${ringImg})`,
                 backgroundSize: '75%',
@@ -748,7 +748,7 @@ function equipmentEntry(slot) {
               class="aspect-square min-h-[var(--inv-amulet)] max-w-[var(--inv-amulet)] relative rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
               :class="['overflow-hidden', slotStateClasses('amulet')]"
             >
-              <SessionInventoryDraggableItem v-if="equipmentEntry('amulet')" :entry="equipmentEntry('amulet')" variant="equipment" class="relative z-[1]" />
+              <SessionInventoryDraggableItem v-if="equipmentEntry('amulet')" :entry="equipmentEntry('amulet')" variant="equipment" :round="true" class="relative z-[1]" />
               <div :style="{
                 backgroundImage: `url(${amuletImg})`,
                 backgroundSize: '85%',
@@ -764,7 +764,7 @@ function equipmentEntry(slot) {
               class="aspect-square min-h-[var(--inv-ring)] max-w-[var(--inv-ring)] relative rounded-full border transition-[border-color,box-shadow,background-color] duration-150"
               :class="['overflow-hidden', slotStateClasses('ring_2')]"
             >
-              <SessionInventoryDraggableItem v-if="equipmentEntry('ring_2')" :entry="equipmentEntry('ring_2')" variant="equipment" class="relative z-[1]" />
+              <SessionInventoryDraggableItem v-if="equipmentEntry('ring_2')" :entry="equipmentEntry('ring_2')" variant="equipment" :round="true" class="relative z-[1]" />
               <div :style="{
                 backgroundImage: `url(${ring2Img})`,
                 backgroundSize: '75%',

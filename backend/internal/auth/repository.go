@@ -58,6 +58,18 @@ func (r *Repository) AdminUpdateUser(userID string, updates map[string]interface
 	return r.db.Model(&models.User{}).Where("id = ?", userID).Updates(updates).Error
 }
 
+func (r *Repository) ListPlans() ([]models.Plan, error) {
+	var plans []models.Plan
+	err := r.db.Order("price_monthly ASC").Find(&plans).Error
+	return plans, err
+}
+
+func (r *Repository) PlanExists(planID string) (bool, error) {
+	var count int64
+	err := r.db.Model(&models.Plan{}).Where("id = ?", planID).Count(&count).Error
+	return count > 0, err
+}
+
 func (r *Repository) DeleteUser(userID, actingAdminID string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// 1. Fully delete games owned by the user (with all their content).

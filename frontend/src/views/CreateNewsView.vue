@@ -2,8 +2,14 @@
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ArrowLeft as ArrowLeftIcon } from '@lucide/vue'
 import api, { API_URL } from '@/api'
 import { notify } from '@/notify'
+
+function goBack() {
+  if (window.history.length > 1) router.back()
+  else router.push('/admin')
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -110,6 +116,14 @@ async function submit() {
 <template>
   <HomeLayout>
     <div class="max-w-[800px] mx-auto px-6 py-8">
+      <button
+        type="button"
+        @click="goBack"
+        class="mb-5 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.08)] px-4 py-2 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+      >
+        <ArrowLeftIcon class="h-4 w-4" :stroke-width="2" />
+        Back
+      </button>
       <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-8">{{ isEditing ? 'Edit News Post' : 'Create News Post' }}</h1>
 
       <div class="space-y-6">

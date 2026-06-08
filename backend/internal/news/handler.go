@@ -38,15 +38,35 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	var req struct {
-		Title   string `json:"title"`
-		Content string `json:"content"`
+		Title       *string `json:"title"`
+		Content     *string `json:"content"`
+		IsPublished *bool   `json:"is_published"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, 400, map[string]string{"error": "invalid request body"})
 		return
 	}
 
-	post, err := h.service.Update(id, req.Title, req.Content)
+	if req.IsPublished != nil && req.Title == nil && req.Content == nil {
+		post, err := h.service.SetPublished(id, *req.IsPublished)
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		respondJSON(w, 200, postToMap(*post))
+		return
+	}
+
+	title := ""
+	content := ""
+	if req.Title != nil {
+		title = *req.Title
+	}
+	if req.Content != nil {
+		content = *req.Content
+	}
+
+	post, err := h.service.Update(id, title, content)
 	if err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return

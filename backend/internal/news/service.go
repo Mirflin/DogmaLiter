@@ -101,6 +101,19 @@ func (s *Service) Create(authorID, title, content string, imageFile multipart.Fi
 	return created, nil
 }
 
+func (s *Service) SetPublished(id string, published bool) (*models.NewsPost, error) {
+	post, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, errors.New("news post not found")
+	}
+	post.IsPublished = published
+	post.UpdatedAt = time.Now()
+	if err := s.repo.Update(post); err != nil {
+		return nil, errors.New("failed to update news post")
+	}
+	return post, nil
+}
+
 func (s *Service) Update(id, title, content string) (*models.NewsPost, error) {
 	if len(title) < 1 || len(title) > 300 {
 		return nil, errors.New("title must be 1-300 characters")
