@@ -288,6 +288,7 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 500, map[string]string{"error": "Failed to create character"})
 		return
 	}
+	h.logActivity(gameID, userID, character.Name, "Created character", "")
 
 	createdCharacter, err := h.service.repo.GetCharacterByID(gameID, character.ID)
 	if err != nil {
@@ -699,6 +700,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, 500, map[string]string{"error": "Failed to update character"})
 			return
 		}
+		h.logActivity(gameID, userID, character.Name, "Updated character", "")
 
 		character, err = h.service.repo.GetCharacterByID(gameID, characterID)
 		if err != nil {
@@ -845,6 +847,7 @@ func (h *Handler) GiveInventoryItems(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 500, map[string]string{"error": "Failed to deliver items"})
 		return
 	}
+	h.logActivity(gameID, userID, character.Name, "Delivered items", fmt.Sprintf("%d item(s)", len(entries)))
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -978,6 +981,65 @@ func (h *Handler) UpdateInventoryLayout(w http.ResponseWriter, r *http.Request) 
 		respondJSON(w, 500, map[string]string{"error": "Failed to save inventory layout"})
 		return
 	}
+	{
+		nameByID := make(map[string]string, len(character.Inventory))
+		oldGrid := make(map[string][2]int, len(character.Inventory))
+		for _, inv := range character.Inventory {
+			nameByID[inv.ID] = inv.Item.Name
+			oldGrid[inv.ID] = [2]int{inv.GridX, inv.GridY}
+		}
+		oldEquip := make(map[string]string, len(character.Equipment))
+		for _, eq := range character.Equipment {
+			oldEquip[eq.InventoryItemID] = eq.Slot
+		}
+		newEquip := make(map[string]string, len(equipment))
+		for _, eq := range equipment {
+			newEquip[eq.InventoryItemID] = eq.Slot
+		}
+
+		itemLabel := func(id string) string {
+			if name := nameByID[id]; name != "" {
+				return name
+			}
+			return "an item"
+		}
+
+		var changes []string
+		for itemID, slot := range newEquip {
+			if oldEquip[itemID] != slot {
+				changes = append(changes, fmt.Sprintf("equipped %s (%s)", itemLabel(itemID), slot))
+			}
+		}
+		for itemID := range oldEquip {
+			if _, stillEquipped := newEquip[itemID]; !stillEquipped {
+				changes = append(changes, fmt.Sprintf("unequipped %s", itemLabel(itemID)))
+			}
+		}
+		for _, position := range positions {
+			if _, wasEquipped := oldEquip[position.ID]; wasEquipped {
+				continue
+			}
+			if _, nowEquipped := newEquip[position.ID]; nowEquipped {
+				continue
+			}
+			if old, ok := oldGrid[position.ID]; ok && (old[0] != position.GridX || old[1] != position.GridY) {
+				changes = append(changes, fmt.Sprintf("moved %s", itemLabel(position.ID)))
+			}
+		}
+
+		if len(changes) > 0 {
+			extra := 0
+			if len(changes) > 6 {
+				extra = len(changes) - 6
+				changes = changes[:6]
+			}
+			details := strings.Join(changes, ", ")
+			if extra > 0 {
+				details += fmt.Sprintf(" +%d more", extra)
+			}
+			h.logActivity(gameID, userID, character.Name, "Inventory", details)
+		}
+	}
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -1097,6 +1159,7 @@ func (h *Handler) UpdateInventoryItem(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 500, map[string]string{"error": "Failed to update inventory item"})
 		return
 	}
+	h.logActivity(gameID, userID, character.Name, "Updated item", target.Item.Name)
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -1182,6 +1245,7 @@ func (h *Handler) SplitInventoryItem(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 500, map[string]string{"error": "Failed to unstack item"})
 		return
 	}
+	h.logActivity(gameID, userID, character.Name, "Unstacked item", target.Item.Name)
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -1224,6 +1288,14 @@ func (h *Handler) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	removedItemName := ""
+	for i := range character.Inventory {
+		if character.Inventory[i].ID == inventoryItemID {
+			removedItemName = character.Inventory[i].Item.Name
+			break
+		}
+	}
+
 	affected, err := h.service.repo.DeleteInventoryEntry(characterID, inventoryItemID)
 	if err != nil {
 		respondJSON(w, 500, map[string]string{"error": "Failed to delete inventory item"})
@@ -1233,6 +1305,7 @@ func (h *Handler) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 404, map[string]string{"error": "Inventory item not found"})
 		return
 	}
+	h.logActivity(gameID, userID, character.Name, "Removed item", removedItemName)
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -1271,11 +1344,116 @@ func (h *Handler) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 500, map[string]string{"error": "Failed to delete character"})
 		return
 	}
+	h.logActivity(gameID, userID, character.Name, "Deleted character", "")
 
 	respondJSON(w, 200, map[string]interface{}{
 		"success":      true,
 		"character_id": characterID,
 	})
+}
+
+func (h *Handler) logActivity(gameID, userID, characterName, action, details string) {
+	_ = h.service.repo.CreateActivity(&models.ActivityLog{
+		ID:            uuid.New().String(),
+		GameID:        gameID,
+		UserID:        userID,
+		CharacterName: characterName,
+		Action:        action,
+		Details:       details,
+		CreatedAt:     time.Now(),
+	})
+}
+
+func clearCutoff(r *http.Request) *time.Time {
+	hours, _ := strconv.Atoi(r.URL.Query().Get("older_than_hours"))
+	if hours <= 0 {
+		return nil
+	}
+	cutoff := time.Now().Add(-time.Duration(hours) * time.Hour)
+	return &cutoff
+}
+
+func (h *Handler) ClearChatMessages(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can clear chat history"})
+		return
+	}
+
+	deleted, err := h.service.repo.DeleteChatMessages(gameID, clearCutoff(r))
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to clear chat history"})
+		return
+	}
+	respondJSON(w, 200, map[string]interface{}{"success": true, "deleted": deleted})
+}
+
+func (h *Handler) ClearActivity(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can clear activity"})
+		return
+	}
+
+	deleted, err := h.service.repo.DeleteActivity(gameID, clearCutoff(r))
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to clear activity"})
+		return
+	}
+	respondJSON(w, 200, map[string]interface{}{"success": true, "deleted": deleted})
+}
+
+func (h *Handler) GetActivity(w http.ResponseWriter, r *http.Request) {
+	userID := auth.GetUserID(r)
+	gameID := chi.URLParam(r, "gameID")
+
+	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	if err != nil {
+		h.respondGameAccessError(w, gameID, err)
+		return
+	}
+	if !isGM {
+		respondJSON(w, 403, map[string]string{"error": "Only the GM can view activity"})
+		return
+	}
+
+	logs, err := h.service.repo.ListActivity(gameID, 200)
+	if err != nil {
+		respondJSON(w, 500, map[string]string{"error": "Failed to load activity"})
+		return
+	}
+
+	result := make([]map[string]interface{}, 0, len(logs))
+	for _, entry := range logs {
+		result = append(result, map[string]interface{}{
+			"id":             entry.ID,
+			"action":         entry.Action,
+			"details":        entry.Details,
+			"character_name": entry.CharacterName,
+			"created_at":     entry.CreatedAt,
+			"user": map[string]interface{}{
+				"id":        entry.User.ID,
+				"username":  entry.User.Username,
+				"avatar_id": entry.User.AvatarID,
+			},
+		})
+	}
+
+	respondJSON(w, 200, map[string]interface{}{"activity": result})
 }
 
 func markInventoryOccupancy(occupied [][]bool, items []models.CharacterInventory) {

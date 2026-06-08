@@ -193,6 +193,41 @@ func (r *Repository) UpdateCharacter(character *models.Character, replaceCustomA
 	})
 }
 
+func (r *Repository) CreateActivity(log *models.ActivityLog) error {
+	return r.db.Create(log).Error
+}
+
+func (r *Repository) DeleteChatMessages(gameID string, before *time.Time) (int64, error) {
+	query := r.db.Where("game_id = ?", gameID)
+	if before != nil {
+		query = query.Where("created_at < ?", *before)
+	}
+	result := query.Delete(&models.ChatMessage{})
+	return result.RowsAffected, result.Error
+}
+
+func (r *Repository) DeleteActivity(gameID string, before *time.Time) (int64, error) {
+	query := r.db.Where("game_id = ?", gameID)
+	if before != nil {
+		query = query.Where("created_at < ?", *before)
+	}
+	result := query.Delete(&models.ActivityLog{})
+	return result.RowsAffected, result.Error
+}
+
+func (r *Repository) ListActivity(gameID string, limit int) ([]models.ActivityLog, error) {
+	if limit <= 0 || limit > 500 {
+		limit = 200
+	}
+	var logs []models.ActivityLog
+	err := r.db.Preload("User").
+		Where("game_id = ?", gameID).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&logs).Error
+	return logs, err
+}
+
 func (r *Repository) AddCharacterInventoryItems(entries []models.CharacterInventory) error {
 	if len(entries) == 0 {
 		return nil

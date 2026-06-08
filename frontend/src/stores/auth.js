@@ -343,6 +343,23 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function getGameActivity(gameID) {
+    const { data } = await api.get(`/games/${gameID}/activity`)
+    return data
+  }
+
+  async function clearGameChat(gameID, olderThanHours = 0) {
+    const params = olderThanHours > 0 ? { older_than_hours: olderThanHours } : {}
+    const { data } = await api.delete(`/games/${gameID}/chat-messages`, { params })
+    return data
+  }
+
+  async function clearGameActivity(gameID, olderThanHours = 0) {
+    const params = olderThanHours > 0 ? { older_than_hours: olderThanHours } : {}
+    const { data } = await api.delete(`/games/${gameID}/activity`, { params })
+    return data
+  }
+
   async function getGameChatMessages(gameID) {
     const { data } = await api.get(`/games/${gameID}/chat-messages`)
     return data
@@ -415,6 +432,9 @@ export const useAuthStore = defineStore('auth', () => {
     deleteInventoryItem,
     splitInventoryItem,
     uploadCharacterPortrait,
+    getGameActivity,
+    clearGameChat,
+    clearGameActivity,
     getGameChatMessages,
     sendGameChatMessage,
     updateGame,

@@ -171,6 +171,7 @@ onMounted(() => {
 
   interactable = interact('.session-inventory-item', { context: boardRef.value })
   interactable.draggable({
+    enabled: props.canEdit,
     inertia: false,
     autoScroll: true,
     listeners: {
@@ -179,6 +180,10 @@ onMounted(() => {
       end: onDragEnd,
     },
   })
+})
+
+watch(() => props.canEdit, (value) => {
+  if (interactable) interactable.draggable({ enabled: value })
 })
 
 onBeforeUnmount(() => {
@@ -839,7 +844,7 @@ function equipmentEntry(slot) {
   </article>
 
   <Teleport to="body">
-    <div v-if="detailEntry" class="fixed inset-0 z-[12500] flex items-center justify-center p-4">
+    <div v-if="detailEntry" class="fixed inset-0 z-[12700] flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeItemDetail"></div>
 
       <div class="relative flex max-h-full w-full max-w-[40rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">

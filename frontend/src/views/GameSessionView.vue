@@ -3,7 +3,9 @@ import {
   ArrowLeft as ArrowLeftIcon,
   ChevronRight as ChevronRightIcon,
   ContactRound as ContactRoundIcon,
+  Eye as EyeIcon,
   FolderOpen as FolderOpenIcon,
+  LayoutGrid as LayoutGridIcon,
   MessageSquareText as MessageSquareTextIcon,
   Package as PackageIcon,
   RefreshCw as RefreshCwIcon,
@@ -11,6 +13,7 @@ import {
   TriangleAlert as TriangleAlertIcon,
   UserRound as UserRoundIcon,
   Users as UsersIcon,
+  X as XIcon,
 } from '@lucide/vue'
 import { API_URL } from '@/api'
 import SessionCharacterPickerModal from '@/components/session/SessionCharacterPickerModal.vue'
@@ -83,7 +86,9 @@ const gmCharacterCreateRestorePicker = ref(false)
 
 let chatPollHandle = null
 let characterPollHandle = null
+let managePollHandle = null
 let characterRequestId = 0
+const MANAGE_POLL_INTERVAL = 15000
 
 const gameId = computed(() => route.params.id)
 const game = computed(() => session.value?.game ?? null)
@@ -565,6 +570,24 @@ const chatColumns = [
   { key: 'author', label: 'Author', filterable: true },
   { key: 'text', label: 'Message' },
 ]
+const activityColumns = [
+  { key: 'time', label: 'Time' },
+  { key: 'player', label: 'Player', filterable: true },
+  { key: 'character', label: 'Character', filterable: true },
+  { key: 'action', label: 'Action', filterable: true },
+  { key: 'details', label: 'Details' },
+]
+const manageActivity = ref([])
+const manageActivityLoading = ref(false)
+const manageActivityLoaded = ref(false)
+const activityRows = computed(() => (manageActivity.value ?? []).map((entry) => ({
+  id: entry.id,
+  time: formatDateTime(entry.created_at),
+  player: entry.user?.username || 'Unknown',
+  character: entry.character_name || '—',
+  action: entry.action || '',
+  details: entry.details || '',
+})))
 const managePlayers = computed(() => (game.value?.members ?? []).map(member => ({
   ...member,
   characterCount: characters.value.filter(character => character.user_id === member.user_id).length,
@@ -588,16 +611,259 @@ function canRemoveMember(member) {
   return member?.role !== 'gm' && member?.user_id !== viewer.value?.user_id
 }
 
-async function loadManageChat() {
-  manageChatLoading.value = true
+async function loadManageChat({ silent = false } = {}) {
+  if (manageChatLoading.value) return
+  if (!silent || !manageChatLoaded.value) manageChatLoading.value = true
   try {
     const data = await auth.getGameChatMessages(gameId.value)
     manageChatMessages.value = data.messages || []
     manageChatLoaded.value = true
   } catch (err) {
-    notify.error(err, 'Failed to load chat history')
+    if (!silent) notify.error(err, 'Failed to load chat history')
   } finally {
     manageChatLoading.value = false
+  }
+}
+
+async function loadManageActivity({ silent = false } = {}) {
+  if (manageActivityLoading.value) return
+  if (!silent || !manageActivityLoaded.value) manageActivityLoading.value = true
+  try {
+    const data = await auth.getGameActivity(gameId.value)
+    manageActivity.value = data.activity || []
+    manageActivityLoaded.value = true
+  } catch (err) {
+    if (!silent) notify.error(err, 'Failed to load activity log')
+  } finally {
+    manageActivityLoading.value = false
+  }
+}
+
+async function refreshManageMembers({ silent = false } = {}) {
+  try {
+    const data = await auth.getGameSession(gameId.value)
+    if (session.value && data?.game) {
+      session.value = {
+        ...session.value,
+        game: { ...session.value.game, members: data.game.members ?? session.value.game?.members },
+        characters: data.characters ?? session.value.characters,
+      }
+    }
+  } catch (err) {
+    if (!silent) notify.error(err, 'Failed to refresh players')
+  }
+}
+
+function refreshManagePanel(panel = managePanel.value, options = {}) {
+  if (panel === 'chat') return loadManageChat(options)
+  if (panel === 'activity') return loadManageActivity(options)
+  if (panel === 'players') return refreshManageMembers(options)
+  return Promise.resolve()
+}
+
+const manageRefreshing = ref(false)
+async function refreshCurrentManagePanel() {
+  if (manageRefreshing.value) return
+  manageRefreshing.value = true
+  try {
+    await refreshManagePanel(managePanel.value)
+  } finally {
+    manageRefreshing.value = false
+  }
+}
+
+// Activity log item lookup — click an item name to open the shared-item modal.
+const gameItemsCache = ref([])
+let gameItemsLoaded = false
+const ACTIVITY_ITEM_ACTIONS = new Set(['Updated item', 'Removed item', 'Unstacked item'])
+function activityItemName(row) {
+  return ACTIVITY_ITEM_ACTIONS.has(row?.action) && row?.details ? row.details : ''
+}
+async function ensureGameItems() {
+  if (gameItemsLoaded) return
+  try {
+    const data = await auth.getGameItems(gameId.value, { per_page: 200 })
+    gameItemsCache.value = data.items || []
+    gameItemsLoaded = true
+  } catch {
+    // best-effort lookup; ignore failures
+  }
+}
+async function openActivityItem(name) {
+  if (!name) return
+  await ensureGameItems()
+  const match = gameItemsCache.value.find(item => String(item.name).toLowerCase() === String(name).toLowerCase())
+  if (match) {
+    openSharedItem({ ...match, owner: '' })
+  } else {
+    openSharedItem({ name, description: 'This item is no longer available in the compendium.', required_attributes: [], attribute_modifiers: [] })
+  }
+}
+
+// Player view — profile overview of a member in this game.
+const viewMember = ref(null)
+const viewMemberLoading = ref(false)
+const viewMemberCharacters = computed(() => {
+  if (!viewMember.value) return []
+  return (characters.value ?? []).filter(character => character.user_id === viewMember.value.user_id)
+})
+const viewMemberMessages = computed(() => {
+  if (!viewMember.value) return []
+  return (manageChatMessages.value ?? [])
+    .filter(message => (message.user_id || message.user?.id) === viewMember.value.user_id)
+    .slice()
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 6)
+    .map((message) => {
+      const shared = parseSharedItem(message.content)
+      return {
+        id: message.id,
+        time: formatDateTime(message.created_at),
+        text: shared ? `Shared item: ${shared.name || 'item'}` : message.content,
+        isItem: Boolean(shared),
+      }
+    })
+})
+async function openMemberView(member) {
+  if (!member) return
+  viewMember.value = member
+  if (!manageChatLoaded.value && !manageChatLoading.value) {
+    viewMemberLoading.value = true
+    try {
+      await loadManageChat({ silent: true })
+    } finally {
+      viewMemberLoading.value = false
+    }
+  }
+}
+function closeMemberView() {
+  viewMember.value = null
+}
+
+// Read-only inventory grid viewer for any character (GM inspection).
+const inventoryViewCharacter = ref(null)
+const inventoryViewLoading = ref(false)
+function buildEffectiveAttributeMap(character) {
+  const base = {}
+  const src = character?.base_attributes
+  if (src) {
+    for (const [key, value] of Object.entries(src)) {
+      const name = normalizeAttributeName(key)
+      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
+      base[name] = Number(value) || 0
+    }
+  }
+  for (const attribute of (character?.custom_attributes ?? [])) {
+    const name = normalizeAttributeName(attribute?.name)
+    if (name) base[name] = Number(attribute?.value) || 0
+  }
+  const modifiers = {}
+  for (const slot of (character?.equipment ?? [])) {
+    for (const modifier of (slot?.inventory_item?.item?.attribute_modifiers ?? [])) {
+      const name = normalizeAttributeName(modifier?.attribute_name)
+      if (!name) continue
+      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
+      if (!modifiers[name]) modifiers[name] = { flat: 0, percent: 0 }
+      if (modifier?.is_percentage) modifiers[name].percent += Number(modifier?.modifier_value) || 0
+      else modifiers[name].flat += Number(modifier?.modifier_value) || 0
+    }
+  }
+  const result = {}
+  for (const name of new Set([...Object.keys(base), ...Object.keys(modifiers)])) {
+    const baseValue = base[name] ?? 0
+    const mod = modifiers[name] ?? { flat: 0, percent: 0 }
+    result[name] = baseValue + mod.flat + Math.round(baseValue * mod.percent / 100)
+  }
+  return result
+}
+const inventoryViewCurrency = computed(() => {
+  const character = inventoryViewCharacter.value
+  return [
+    { key: 'gold', label: 'Gold', value: character?.currency_gold ?? 0 },
+    { key: 'silver', label: 'Silver', value: character?.currency_silver ?? 0 },
+    { key: 'copper', label: 'Bronze', value: character?.currency_copper ?? 0 },
+  ]
+})
+const inventoryViewAttributes = computed(() => buildEffectiveAttributeMap(inventoryViewCharacter.value))
+async function openCharacterInventory(character) {
+  if (!character?.id) return
+  inventoryViewLoading.value = true
+  inventoryViewCharacter.value = { ...character, inventory: [], equipment: [] }
+  try {
+    const data = await auth.getGameCharacter(gameId.value, character.id)
+    if (data?.character) inventoryViewCharacter.value = data.character
+  } catch (err) {
+    notify.error(err, 'Failed to load inventory')
+    inventoryViewCharacter.value = null
+  } finally {
+    inventoryViewLoading.value = false
+  }
+}
+function closeCharacterInventory() {
+  inventoryViewCharacter.value = null
+}
+
+// Inspect chooser — pick what to view for a roster character.
+const inspectChoice = ref(null)
+function openInspectChoice(character) {
+  inspectChoice.value = character
+}
+function closeInspectChoice() {
+  inspectChoice.value = null
+}
+function inspectCharacterSheet() {
+  const character = inspectChoice.value
+  closeInspectChoice()
+  if (character) switchCharacter(character.id, { nextTab: 'sheet' })
+}
+function inspectCharacterInventory() {
+  const character = inspectChoice.value
+  closeInspectChoice()
+  if (character) openCharacterInventory(character)
+}
+
+function startManagePolling() {
+  stopManagePolling()
+  managePollHandle = setInterval(() => {
+    if (activeTab.value === 'manage' && isGM.value) refreshManagePanel(managePanel.value, { silent: true })
+  }, MANAGE_POLL_INTERVAL)
+}
+
+function stopManagePolling() {
+  if (managePollHandle) {
+    clearInterval(managePollHandle)
+    managePollHandle = null
+  }
+}
+
+const CLEAR_PERIODS = [
+  { label: 'Older than 24h', hours: 24 },
+  { label: 'Older than 7 days', hours: 168 },
+  { label: 'Older than 30 days', hours: 720 },
+  { label: 'Everything', hours: 0 },
+]
+const chatClearHours = ref(24)
+const activityClearHours = ref(24)
+
+async function clearChatHistory() {
+  try {
+    await auth.clearGameChat(gameId.value, chatClearHours.value)
+    manageChatLoaded.value = false
+    await loadManageChat()
+    notify.success({ title: 'Chat cleared', message: 'Chat history was cleared.' })
+  } catch (err) {
+    notify.error(err, 'Failed to clear chat history')
+  }
+}
+
+async function clearActivity() {
+  try {
+    await auth.clearGameActivity(gameId.value, activityClearHours.value)
+    manageActivityLoaded.value = false
+    await loadManageActivity()
+    notify.success({ title: 'Activity cleared', message: 'Activity log was cleared.' })
+  } catch (err) {
+    notify.error(err, 'Failed to clear activity log')
   }
 }
 
@@ -638,10 +904,14 @@ async function confirmRemoveMember() {
   }
 }
 
+// Refresh the relevant table every time a Manage sub-tab is opened.
 watch(managePanel, (panel) => {
-  if (panel === 'chat' && !manageChatLoaded.value && !manageChatLoading.value) {
-    loadManageChat()
-  }
+  if (activeTab.value === 'manage') refreshManagePanel(panel)
+})
+
+// Refresh the active sub-tab whenever the Manage tab itself is entered.
+watch(activeTab, (tab) => {
+  if (tab === 'manage') refreshManagePanel()
 })
 
 function openGameSettings() {
@@ -1353,11 +1623,13 @@ watch(
 onMounted(() => {
   loadSession({ preserveCharacter: true, promptSelection: false })
   startCharacterPolling()
+  startManagePolling()
 })
 
 onBeforeUnmount(() => {
   stopChatPolling()
   stopCharacterPolling()
+  stopManagePolling()
   resetPortraitSelection()
 })
 </script>
@@ -2061,14 +2333,15 @@ onBeforeUnmount(() => {
                       </div>
 
                       <p class="mt-4 line-clamp-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
-                        {{ character.backstory || 'Blank dossier. Use the GM tools to configure this character before play.' }}
+                        {{ character.backstory || 'Blank dossier.' }}
                       </p>
 
                       <div class="mt-6 flex flex-wrap gap-3">
                         <button
-                          @click="switchCharacter(character.id, { nextTab: 'sheet' })"
-                          class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.32)]"
+                          @click="openInspectChoice(character)"
+                          class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.32)]"
                         >
+                          <EyeIcon class="h-4 w-4" :stroke-width="2" />
                           Inspect
                         </button>
                         <button
@@ -2113,27 +2386,41 @@ onBeforeUnmount(() => {
 
               <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
                 <div class="inline-flex flex-wrap gap-1.5 rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.6)] p-1.5">
-                  <button
-                    v-for="panel in [{ id: 'players', label: 'Players' }, { id: 'chat', label: 'Chat History' }]"
+                  <div
+                    v-for="panel in [{ id: 'players', label: 'Players' }, { id: 'chat', label: 'Chat History' }, { id: 'activity', label: 'Activity' }]"
                     :key="panel.id"
-                    type="button"
+                    role="button"
+                    tabindex="0"
                     @click="managePanel = panel.id"
-                    class="cursor-pointer rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-200"
+                    @keydown.enter="managePanel = panel.id"
+                    class="cursor-pointer select-none rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-200"
                     :class="managePanel === panel.id
-                      ? 'bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] text-white shadow-[0_8px_20px_rgba(233,69,96,0.25)]'
-                      : 'text-[#d8dce7]/70 hover:text-[#f6f7fb]'"
+                      ? 'bg-[linear-gradient(135deg,rgba(233,69,96,0.95),rgba(194,49,82,0.95))] text-white shadow-[0_8px_20px_rgba(233,69,96,0.3)]'
+                      : 'text-[#d8dce7]/70 hover:bg-[rgba(126,200,227,0.06)] hover:text-[#f6f7fb]'"
                   >
                     {{ panel.label }}
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div
+                    role="button"
+                    tabindex="0"
+                    @click="refreshCurrentManagePanel"
+                    @keydown.enter="refreshCurrentManagePanel"
+                    title="Refresh"
+                    class="inline-flex cursor-pointer select-none items-center justify-center rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] p-2.5 text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+                  >
+                    <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': manageRefreshing }" :stroke-width="2" />
+                  </div>
+                  <button
+                    type="button"
+                    @click="openGameSettings"
+                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+                  >
+                    <SettingsIcon class="h-4 w-4" :stroke-width="2" />
+                    Game Settings
                   </button>
                 </div>
-                <button
-                  type="button"
-                  @click="openGameSettings"
-                  class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
-                >
-                  <SettingsIcon class="h-4 w-4" :stroke-width="2" />
-                  Game Settings
-                </button>
               </div>
             </article>
 
@@ -2145,7 +2432,7 @@ onBeforeUnmount(() => {
                 row-key="user_id"
                 :search-keys="['username', 'role']"
                 search-placeholder="Search players"
-                :page-size="8"
+                :page-size="10"
                 min-width="640px"
                 empty-text="No members yet"
               >
@@ -2155,6 +2442,9 @@ onBeforeUnmount(() => {
                 <template #cell-characterCount="{ row }"><span class="text-[#f6f7fb]">{{ row.characterCount }}</span></template>
                 <template #cell-actions="{ row }">
                   <div class="flex flex-wrap justify-end gap-2">
+                    <button type="button" @click="openMemberView(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                      <EyeIcon class="h-3.5 w-3.5" :stroke-width="2" /> View
+                    </button>
                     <button v-if="isGameOwner && row.role === 'player'" type="button" @click="updateMemberRole(row, 'assistant_gm')" class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.28)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.45)]">
                       Make GM
                     </button>
@@ -2176,18 +2466,67 @@ onBeforeUnmount(() => {
                 :rows="chatHistoryRows"
                 :search-keys="['author', 'text']"
                 search-placeholder="Search chat history"
-                :page-size="12"
+                :page-size="10"
                 min-width="560px"
                 min-height="18rem"
                 :empty-text="manageChatLoading ? 'Loading...' : 'No chat messages yet'"
               >
+                <template #toolbar>
+                  <div class="flex items-center gap-2">
+                    <select v-model.number="chatClearHours" class="rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.72)] px-2.5 py-1.5 text-[12px] text-[#f6f7fb] outline-none">
+                      <option v-for="period in CLEAR_PERIODS" :key="period.hours" :value="period.hours">{{ period.label }}</option>
+                    </select>
+                    <div role="button" tabindex="0" @click="clearChatHistory" @keydown.enter="clearChatHistory" class="cursor-pointer select-none rounded-lg border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.5)]">Clear</div>
+                  </div>
+                </template>
                 <template #cell-time="{ row }"><span class="whitespace-nowrap text-[#7ec8e3]/45">{{ row.time }}</span></template>
                 <template #cell-author="{ row }"><span class="whitespace-nowrap font-semibold text-[#f6f7fb]">{{ row.author }}</span></template>
                 <template #cell-text="{ row }">
                   <span v-if="row.isItem" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-2 py-1 text-[12px] text-[#8fd7ef]">
                     <PackageIcon class="h-3.5 w-3.5" :stroke-width="2" /> Shared item: {{ row.text }}
                   </span>
-                  <span v-else class="whitespace-pre-wrap break-words text-[#e8e8f0]/78">{{ row.text }}</span>
+                  <span v-else class="inline-block max-w-[34rem] truncate align-middle text-[#e8e8f0]/78" :title="row.text">{{ row.text }}</span>
+                </template>
+              </DataTable>
+            </div>
+
+            <!-- Activity log table -->
+            <div v-show="managePanel === 'activity'">
+              <DataTable
+                :columns="activityColumns"
+                :rows="activityRows"
+                :search-keys="['player', 'character', 'action', 'details']"
+                search-placeholder="Search activity"
+                :page-size="10"
+                min-width="720px"
+                min-height="18rem"
+                :empty-text="manageActivityLoading ? 'Loading...' : 'No recorded activity yet'"
+              >
+                <template #toolbar>
+                  <div class="flex items-center gap-2">
+                    <select v-model.number="activityClearHours" class="rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.72)] px-2.5 py-1.5 text-[12px] text-[#f6f7fb] outline-none">
+                      <option v-for="period in CLEAR_PERIODS" :key="period.hours" :value="period.hours">{{ period.label }}</option>
+                    </select>
+                    <div role="button" tabindex="0" @click="clearActivity" @keydown.enter="clearActivity" class="cursor-pointer select-none rounded-lg border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.5)]">Clear</div>
+                  </div>
+                </template>
+                <template #cell-time="{ row }"><span class="whitespace-nowrap text-[#7ec8e3]/45">{{ row.time }}</span></template>
+                <template #cell-player="{ row }"><span class="whitespace-nowrap font-semibold text-[#f6f7fb]">{{ row.player }}</span></template>
+                <template #cell-character="{ row }"><span class="text-[#d8dce7]/70">{{ row.character }}</span></template>
+                <template #cell-action="{ row }">
+                  <span class="rounded-full border border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[11px] font-semibold text-[#8fd7ef]">{{ row.action }}</span>
+                </template>
+                <template #cell-details="{ row }">
+                  <button
+                    v-if="activityItemName(row)"
+                    type="button"
+                    @click="openActivityItem(activityItemName(row))"
+                    class="inline-flex max-w-[28rem] cursor-pointer items-center gap-1.5 truncate rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 align-middle text-[12px] font-medium text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.45)]"
+                    :title="row.details"
+                  >
+                    <PackageIcon class="h-3.5 w-3.5 shrink-0" :stroke-width="2" /> {{ row.details }}
+                  </button>
+                  <span v-else class="inline-block max-w-[28rem] truncate align-middle text-[#e8e8f0]/78" :title="row.details">{{ row.details }}</span>
                 </template>
               </DataTable>
             </div>
@@ -2249,8 +2588,8 @@ onBeforeUnmount(() => {
         <div v-if="sharedItem" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeSharedItem"></div>
           <div class="relative flex max-h-full w-full max-w-[34rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <button type="button" @click="closeSharedItem" class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
-              <span class="text-[18px] leading-none">×</span>
+            <button type="button" @click="closeSharedItem" aria-label="Close item details" class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+              <XIcon class="h-5 w-5" :stroke-width="2" />
             </button>
             <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
               <div class="flex gap-4">
@@ -2299,6 +2638,124 @@ onBeforeUnmount(() => {
                 <span v-if="sharedItem.enchantment">Enchantment: <span class="font-semibold text-[#8fd7ef]">+{{ sharedItem.enchantment }}</span></span>
                 <span v-if="sharedItem.max_durability != null">Durability: <span class="font-semibold text-[#f6f7fb]">{{ sharedItem.durability ?? sharedItem.max_durability }} / {{ sharedItem.max_durability }}</span></span>
               </div>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="viewMember" class="fixed inset-0 z-[12540] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.85)] backdrop-blur-md" @click="closeMemberView"></div>
+          <div class="relative flex max-h-[92vh] w-full max-w-[52rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <button type="button" @click="closeMemberView" aria-label="Close player overview" class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+              <XIcon class="h-5 w-5" :stroke-width="2" />
+            </button>
+
+            <div class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.1)] px-6 py-5 pr-16">
+              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
+                <img v-if="avatarUrl(viewMember.avatar_id)" :src="avatarUrl(viewMember.avatar_id)" :alt="viewMember.username" class="h-full w-full object-cover" />
+                <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[22px] font-bold text-[#7ec8e3]/40">{{ (viewMember.username || '?').charAt(0).toUpperCase() }}</div>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Player Overview</p>
+                <h2 class="mt-1 break-words font-[Cinzel] text-[24px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ viewMember.username }}</h2>
+                <div class="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
+                  <span class="rounded-full border border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.08)] px-3 py-1 font-semibold uppercase tracking-[0.14em] text-[#8fd7ef]">{{ formatRole(viewMember.role) }}</span>
+                  <span class="text-[#7ec8e3]/45">Joined {{ formatDateTime(viewMember.joined_at) }}</span>
+                  <span class="text-[#7ec8e3]/45">· {{ viewMemberCharacters.length }} character(s)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-y-auto p-6">
+              <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Characters ({{ viewMemberCharacters.length }})</p>
+              <div v-if="viewMemberCharacters.length" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                <div v-for="character in viewMemberCharacters" :key="character.id" class="flex flex-col items-center rounded-[1.1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] p-3 text-center">
+                  <div class="h-16 w-16 overflow-hidden rounded-[0.9rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
+                    <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" />
+                    <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[20px] font-bold text-[#7ec8e3]/40">{{ (character.name || '?').charAt(0).toUpperCase() }}</div>
+                  </div>
+                  <p class="mt-2 line-clamp-2 break-words text-[13px] font-semibold text-[#f6f7fb] [overflow-wrap:anywhere]">{{ character.name }}</p>
+                </div>
+              </div>
+              <p v-else class="mt-2 text-[13px] text-[#7ec8e3]/45">This player has no characters in this game.</p>
+
+              <p class="mt-6 text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Recent messages</p>
+              <div v-if="viewMemberLoading" class="mt-3 flex justify-center py-6">
+                <div class="h-6 w-6 animate-spin rounded-full border-2 border-[#e94560] border-t-transparent"></div>
+              </div>
+              <ul v-else-if="viewMemberMessages.length" class="mt-3 space-y-2">
+                <li v-for="message in viewMemberMessages" :key="message.id" class="rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.04)] px-3 py-2">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                      <span v-if="message.isItem" class="inline-flex items-center gap-1.5 text-[12px] text-[#8fd7ef]"><PackageIcon class="h-3.5 w-3.5 shrink-0" :stroke-width="2" /> {{ message.text }}</span>
+                      <span v-else class="break-words text-[13px] text-[#e8e8f0]/82 [overflow-wrap:anywhere]">{{ message.text }}</span>
+                    </div>
+                    <span class="shrink-0 text-[11px] text-[#7ec8e3]/40">{{ message.time }}</span>
+                  </div>
+                </li>
+              </ul>
+              <p v-else class="mt-2 text-[13px] text-[#7ec8e3]/45">{{ game?.enable_chat ? 'No messages from this player yet.' : 'Chat is disabled for this game.' }}</p>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="inspectChoice" class="fixed inset-0 z-[12555] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeInspectChoice"></div>
+          <div class="relative w-full max-w-[24rem] overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <button type="button" @click="closeInspectChoice" aria-label="Close" class="absolute right-4 top-4 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+              <XIcon class="h-5 w-5" :stroke-width="2" />
+            </button>
+            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Inspect</p>
+            <h3 class="mt-1 break-words pr-10 font-[Cinzel] text-[20px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ inspectChoice.name }}</h3>
+            <p class="mt-2 text-[13px] text-[#d8dce7]/62">What would you like to open?</p>
+            <div class="mt-5 grid grid-cols-2 gap-3">
+              <button type="button" @click="inspectCharacterSheet" class="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                <UserRoundIcon class="h-6 w-6 text-[#8fd7ef]" :stroke-width="2" />
+                Character
+              </button>
+              <button type="button" @click="inspectCharacterInventory" class="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                <LayoutGridIcon class="h-6 w-6 text-[#8fd7ef]" :stroke-width="2" />
+                Inventory
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="inventoryViewCharacter" class="fixed inset-0 z-[12560] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.88)] backdrop-blur-md" @click="closeCharacterInventory"></div>
+          <div class="relative flex max-h-[94vh] w-full max-w-[80rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <div class="flex items-center justify-between gap-3 border-b border-[rgba(126,200,227,0.1)] px-6 py-4">
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Inventory (read-only)</p>
+                <h2 class="mt-1 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ inventoryViewCharacter.name }}</h2>
+              </div>
+              <button type="button" @click="closeCharacterInventory" aria-label="Close inventory" class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+                <XIcon class="h-5 w-5" :stroke-width="2" />
+              </button>
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-auto p-5 sm:p-6">
+              <div v-if="inventoryViewLoading" class="py-20 text-center">
+                <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#e94560] border-t-transparent"></div>
+              </div>
+              <SessionInventoryBoard
+                v-else
+                :character-name="inventoryViewCharacter.name || ''"
+                :inventory-items="inventoryViewCharacter.inventory ?? []"
+                :equipment="inventoryViewCharacter.equipment ?? []"
+                :currency-cards="inventoryViewCurrency"
+                :inventory-width="inventoryViewCharacter.inventory_width ?? 0"
+                :inventory-height="inventoryViewCharacter.inventory_height ?? 0"
+                :character-attributes="inventoryViewAttributes"
+                :attributes-enabled="attributesEnabled"
+                :character-id="inventoryViewCharacter.id"
+                :can-edit="false"
+              />
             </div>
           </div>
         </div>

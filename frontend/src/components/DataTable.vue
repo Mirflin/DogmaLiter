@@ -78,6 +78,12 @@ const pagedRows = computed(() => {
   const start = (page.value - 1) * props.pageSize
   return filteredRows.value.slice(start, start + props.pageSize)
 })
+// Reserve a stable height for a full page so the table doesn't shrink with fewer rows.
+const fillerCount = computed(() => {
+  if (!props.paginate) return 0
+  const occupied = pagedRows.value.length || 1
+  return Math.max(0, props.pageSize - occupied)
+})
 
 watch(search, () => { page.value = 1 })
 watch(columnFilters, () => { page.value = 1 }, { deep: true })
@@ -139,25 +145,28 @@ function rowId(row, index) {
           <tr
             v-for="(row, index) in pagedRows"
             :key="rowId(row, index)"
-            class="border-t border-[rgba(126,200,227,0.06)] align-top text-[#e8e8f0]/80 hover:bg-[rgba(126,200,227,0.04)]"
+            class="h-[3.25rem] border-t border-[rgba(126,200,227,0.06)] align-middle text-[#e8e8f0]/80 hover:bg-[rgba(126,200,227,0.04)]"
           >
             <td
               v-for="column in columns"
               :key="column.key"
-              class="px-5 py-3"
+              class="whitespace-nowrap px-5 py-2"
               :class="[column.align === 'right' ? 'text-right' : '', column.cellClass]"
             >
               <slot :name="`cell-${column.key}`" :row="row" :value="row?.[column.key]">{{ row?.[column.key] }}</slot>
             </td>
           </tr>
-          <tr v-if="!pagedRows.length">
-            <td :colspan="columns.length" class="px-5 py-10 text-center text-[#7ec8e3]/40">{{ emptyText }}</td>
+          <tr v-if="!pagedRows.length" class="h-[3.25rem]">
+            <td :colspan="columns.length" class="px-5 py-2 text-center text-[#7ec8e3]/40">{{ emptyText }}</td>
+          </tr>
+          <tr v-for="n in fillerCount" :key="`filler-${n}`" aria-hidden="true" class="h-[3.25rem] border-t border-[rgba(126,200,227,0.04)]">
+            <td :colspan="columns.length" class="px-5 py-2">&nbsp;</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div v-if="paginate && totalPages > 1" class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3">
+    <div v-if="paginate" class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3">
       <span class="text-[12px] text-[#7ec8e3]/45">Page {{ page }} / {{ totalPages }} · {{ filteredRows.length }} rows</span>
       <div class="flex gap-2">
         <button type="button" @click="page = Math.max(1, page - 1)" :disabled="page <= 1" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Prev</button>

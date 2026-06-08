@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 import { API_URL } from '@/api'
 import { ref, watch, computed, onUnmounted } from 'vue'
 import { notify } from '@/notify'
+import { X as XIcon } from '@lucide/vue'
 
 const props = defineProps({
   visible: Boolean,
@@ -218,7 +219,7 @@ function close() {
     <div v-if="visible" class="fixed inset-0 z-[10000] flex items-center justify-center" @click.self="close">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close"></div>
       <div class="relative w-full max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 bg-[#0f0f23] border border-[rgba(126,200,227,0.15)] rounded-2xl shadow-[0_16px_64px_rgba(0,0,0,0.6)] p-8">
-        <button @click="close" class="absolute top-4 right-4 text-[#7ec8e3]/40 hover:text-[#e8e8f0] bg-transparent border-none cursor-pointer text-xl leading-none">&times;</button>
+        <button @click="close" aria-label="Close settings" class="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] hover:border-[rgba(233,69,96,0.32)] cursor-pointer transition-all duration-200"><XIcon class="h-5 w-5" :stroke-width="2" /></button>
 
         <h2 class="font-[Cinzel] text-[24px] font-bold text-[#e8e8f0] tracking-wide mb-6">Game Settings</h2>
 
