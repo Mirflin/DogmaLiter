@@ -31,6 +31,8 @@ func AutoMigrate(db *gorm.DB) {
 		&models.GameMap{},
 		&models.ChatMessage{},
 		&models.ActivityLog{},
+		&models.TradeOffer{},
+		&models.TradeOfferItem{},
 	)
 	if err != nil {
 		log.Fatalf("Error with migration (stage 1): %v", err)

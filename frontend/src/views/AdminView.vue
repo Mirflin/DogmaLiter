@@ -168,7 +168,6 @@ async function confirmDeleteUser() {
   }
 }
 
-// --- News ---
 const pendingDeleteNews = ref(null)
 const deletingNews = ref(false)
 function editNews(post) {
@@ -213,7 +212,6 @@ async function confirmDeleteNews() {
   }
 }
 
-// --- Games ---
 const pendingDeleteGame = ref(null)
 const deletingGame = ref(false)
 function requestDeleteGame(game) {

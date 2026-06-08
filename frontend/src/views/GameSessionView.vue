@@ -1,6 +1,8 @@
 <script setup>
 import {
   ArrowLeft as ArrowLeftIcon,
+  ArrowLeftRight as ArrowLeftRightIcon,
+  Check as CheckIcon,
   ChevronRight as ChevronRightIcon,
   ContactRound as ContactRoundIcon,
   Eye as EyeIcon,
@@ -87,8 +89,10 @@ const gmCharacterCreateRestorePicker = ref(false)
 let chatPollHandle = null
 let characterPollHandle = null
 let managePollHandle = null
+let tradePollHandle = null
 let characterRequestId = 0
 const MANAGE_POLL_INTERVAL = 15000
+const TRADE_POLL_INTERVAL = 12000
 
 const gameId = computed(() => route.params.id)
 const game = computed(() => session.value?.game ?? null)
@@ -671,8 +675,6 @@ async function refreshCurrentManagePanel() {
     manageRefreshing.value = false
   }
 }
-
-// Activity log item lookup — click an item name to open the shared-item modal.
 const gameItemsCache = ref([])
 let gameItemsLoaded = false
 const ACTIVITY_ITEM_ACTIONS = new Set(['Updated item', 'Removed item', 'Unstacked item'])
@@ -685,9 +687,7 @@ async function ensureGameItems() {
     const data = await auth.getGameItems(gameId.value, { per_page: 200 })
     gameItemsCache.value = data.items || []
     gameItemsLoaded = true
-  } catch {
-    // best-effort lookup; ignore failures
-  }
+  } catch {  }
 }
 async function openActivityItem(name) {
   if (!name) return
@@ -699,8 +699,6 @@ async function openActivityItem(name) {
     openSharedItem({ name, description: 'This item is no longer available in the compendium.', required_attributes: [], attribute_modifiers: [] })
   }
 }
-
-// Player view — profile overview of a member in this game.
 const viewMember = ref(null)
 const viewMemberLoading = ref(false)
 const viewMemberCharacters = computed(() => {
@@ -739,8 +737,6 @@ async function openMemberView(member) {
 function closeMemberView() {
   viewMember.value = null
 }
-
-// Read-only inventory grid viewer for any character (GM inspection).
 const inventoryViewCharacter = ref(null)
 const inventoryViewLoading = ref(false)
 function buildEffectiveAttributeMap(character) {
@@ -802,8 +798,6 @@ async function openCharacterInventory(character) {
 function closeCharacterInventory() {
   inventoryViewCharacter.value = null
 }
-
-// Inspect chooser — pick what to view for a roster character.
 const inspectChoice = ref(null)
 function openInspectChoice(character) {
   inspectChoice.value = character
@@ -820,6 +814,142 @@ function inspectCharacterInventory() {
   const character = inspectChoice.value
   closeInspectChoice()
   if (character) openCharacterInventory(character)
+}
+const showTradeModal = ref(false)
+const tradePanel = ref('send')
+const tradeIncoming = ref([])
+const tradeOutgoing = ref([])
+const tradeTargets = ref([])
+const tradeRecipientId = ref('')
+const tradeRecipientSearch = ref('')
+const tradeRecipientOpen = ref(false)
+const tradeSelectedIds = ref([])
+const tradeBusy = ref(false)
+const tradeLoading = ref(false)
+
+const tradingEnabled = computed(() => game.value?.enable_item_trading !== false)
+const incomingTradeCount = computed(() => tradeIncoming.value.length)
+const tradeTargetOptions = computed(() => tradeTargets.value.filter(target => target.id !== activeCharacterId.value))
+const tradeRecipientFiltered = computed(() => {
+  const query = tradeRecipientSearch.value.trim().toLowerCase()
+  if (!query) return tradeTargetOptions.value
+  return tradeTargetOptions.value.filter(target => `${target.name} ${target.owner}`.toLowerCase().includes(query))
+})
+const tradeSelectedSet = computed(() => new Set(tradeSelectedIds.value))
+const tradeOfferableItems = computed(() => {
+  const equippedIds = new Set((activeCharacter.value?.equipment ?? []).map(entry => entry.inventory_item_id || entry.inventory_item?.id).filter(Boolean))
+  return (activeCharacter.value?.inventory ?? []).filter(entry => !equippedIds.has(entry.id))
+})
+
+async function loadTrades({ silent = false } = {}) {
+  if (tradeLoading.value) return
+  if (!silent) tradeLoading.value = true
+  try {
+    const data = await auth.getTrades(gameId.value)
+    tradeIncoming.value = data.incoming || []
+    tradeOutgoing.value = data.outgoing || []
+    tradeTargets.value = data.targets || []
+  } catch (err) {
+    if (!silent) notify.error(err, 'Failed to load trades')
+  } finally {
+    tradeLoading.value = false
+  }
+}
+
+function openTradeModal(panel = 'send') {
+  tradePanel.value = panel
+  tradeRecipientId.value = ''
+  tradeRecipientSearch.value = ''
+  tradeRecipientOpen.value = false
+  tradeSelectedIds.value = []
+  showTradeModal.value = true
+  loadTrades()
+}
+function selectTradeRecipient(target) {
+  tradeRecipientId.value = target.id
+  tradeRecipientSearch.value = `${target.name} — ${target.owner}`
+  tradeRecipientOpen.value = false
+}
+function onRecipientInput() {
+  tradeRecipientOpen.value = true
+  tradeRecipientId.value = ''
+}
+function closeRecipientDropdown() {
+  window.setTimeout(() => { tradeRecipientOpen.value = false }, 120)
+}
+function closeTradeModal() {
+  if (tradeBusy.value) return
+  showTradeModal.value = false
+}
+function toggleTradeItem(entryId) {
+  if (tradeSelectedSet.value.has(entryId)) {
+    tradeSelectedIds.value = tradeSelectedIds.value.filter(id => id !== entryId)
+  } else {
+    tradeSelectedIds.value = [...tradeSelectedIds.value, entryId]
+  }
+}
+
+async function submitTrade() {
+  if (!tradeRecipientId.value || !tradeSelectedIds.value.length || !activeCharacterId.value || tradeBusy.value) return
+  tradeBusy.value = true
+  try {
+    await auth.createTrade(gameId.value, {
+      from_character_id: activeCharacterId.value,
+      to_character_id: tradeRecipientId.value,
+      inventory_item_ids: tradeSelectedIds.value,
+    })
+    notify.success({ title: 'Offer sent', message: 'Your trade offer is waiting for a response.' })
+    tradeSelectedIds.value = []
+    tradeRecipientId.value = ''
+    tradeRecipientSearch.value = ''
+    await Promise.all([pollActiveCharacter(), loadTrades({ silent: true })])
+    tradePanel.value = 'outgoing'
+  } catch (err) {
+    notify.error(err, 'Failed to send trade offer')
+  } finally {
+    tradeBusy.value = false
+  }
+}
+
+async function acceptTradeOffer(offer) {
+  if (tradeBusy.value) return
+  tradeBusy.value = true
+  try {
+    await auth.acceptTrade(gameId.value, offer.id)
+    notify.success({ title: 'Trade accepted', message: 'The items were added to your inventory.' })
+    await Promise.all([pollActiveCharacter(), loadTrades({ silent: true })])
+  } catch (err) {
+    notify.error(err, 'Failed to accept trade')
+  } finally {
+    tradeBusy.value = false
+  }
+}
+
+async function declineTradeOffer(offer) {
+  if (tradeBusy.value) return
+  tradeBusy.value = true
+  const mine = offer.from_user_id === viewer.value?.user_id
+  try {
+    await auth.declineTrade(gameId.value, offer.id)
+    notify.success({ title: mine ? 'Trade cancelled' : 'Trade declined' })
+    await Promise.all([pollActiveCharacter(), loadTrades({ silent: true })])
+  } catch (err) {
+    notify.error(err, 'Failed to update trade')
+  } finally {
+    tradeBusy.value = false
+  }
+}
+
+function startTradePolling() {
+  stopTradePolling()
+  loadTrades({ silent: true })
+  tradePollHandle = window.setInterval(() => loadTrades({ silent: true }), TRADE_POLL_INTERVAL)
+}
+function stopTradePolling() {
+  if (tradePollHandle) {
+    clearInterval(tradePollHandle)
+    tradePollHandle = null
+  }
 }
 
 function startManagePolling() {
@@ -903,13 +1033,9 @@ async function confirmRemoveMember() {
     removingMember.value = false
   }
 }
-
-// Refresh the relevant table every time a Manage sub-tab is opened.
 watch(managePanel, (panel) => {
   if (activeTab.value === 'manage') refreshManagePanel(panel)
 })
-
-// Refresh the active sub-tab whenever the Manage tab itself is entered.
 watch(activeTab, (tab) => {
   if (tab === 'manage') refreshManagePanel()
 })
@@ -1624,12 +1750,14 @@ onMounted(() => {
   loadSession({ preserveCharacter: true, promptSelection: false })
   startCharacterPolling()
   startManagePolling()
+  startTradePolling()
 })
 
 onBeforeUnmount(() => {
   stopChatPolling()
   stopCharacterPolling()
   stopManagePolling()
+  stopTradePolling()
   resetPortraitSelection()
 })
 </script>
@@ -2088,6 +2216,24 @@ onBeforeUnmount(() => {
           </section>
 
           <section v-else-if="activeTab === 'inventory'">
+            <div v-if="activeCharacterId && (tradingEnabled || incomingTradeCount)" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] px-5 py-3.5">
+              <div class="flex items-center gap-2.5">
+                <ArrowLeftRightIcon class="h-5 w-5 text-[#8fd7ef]" :stroke-width="2" />
+                <div>
+                  <p class="text-[14px] font-semibold text-[#f6f7fb]">Player Trading</p>
+                  <p class="text-[12px] text-[#7ec8e3]/50">Offer items to another character and let them accept.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="openTradeModal(incomingTradeCount ? 'incoming' : 'send')"
+                class="relative inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.22)] bg-[rgba(126,200,227,0.1)] px-4 py-2.5 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.45)]"
+              >
+                <ArrowLeftRightIcon class="h-4 w-4" :stroke-width="2" />
+                Trade
+                <span v-if="incomingTradeCount" class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#e94560] px-1.5 text-[11px] font-bold text-white">{{ incomingTradeCount }}</span>
+              </button>
+            </div>
             <SessionInventoryBoard
               :character-name="characterSnapshot?.name || ''"
               :inventory-items="inventoryItems"
@@ -2696,6 +2842,147 @@ onBeforeUnmount(() => {
                 </li>
               </ul>
               <p v-else class="mt-2 text-[13px] text-[#7ec8e3]/45">{{ game?.enable_chat ? 'No messages from this player yet.' : 'Chat is disabled for this game.' }}</p>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
+      <Teleport to="body">
+        <div v-if="showTradeModal" class="fixed inset-0 z-[12555] flex items-center justify-center p-4">
+          <div class="absolute inset-0 bg-[rgba(5,8,12,0.85)] backdrop-blur-md" @click="closeTradeModal"></div>
+          <div class="relative flex max-h-[92vh] w-full max-w-[56rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <div class="flex items-center justify-between gap-3 border-b border-[rgba(126,200,227,0.1)] px-6 py-4">
+              <div class="flex items-center gap-2.5">
+                <ArrowLeftRightIcon class="h-5 w-5 text-[#8fd7ef]" :stroke-width="2" />
+                <h2 class="font-[Cinzel] text-[20px] font-bold text-[#f6f7fb]">Player Trading</h2>
+              </div>
+              <button type="button" @click="closeTradeModal" :disabled="tradeBusy" aria-label="Close" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:opacity-50">
+                <XIcon class="h-5 w-5" :stroke-width="2" />
+              </button>
+            </div>
+
+            <div class="flex gap-1.5 border-b border-[rgba(126,200,227,0.1)] px-6 py-3">
+              <button
+                v-for="panel in [{ id: 'send', label: 'New offer' }, { id: 'incoming', label: 'Incoming' }, { id: 'outgoing', label: 'Sent' }]"
+                :key="panel.id"
+                type="button"
+                @click="tradePanel = panel.id"
+                class="relative cursor-pointer rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-200"
+                :class="tradePanel === panel.id ? 'bg-[linear-gradient(135deg,rgba(233,69,96,0.95),rgba(194,49,82,0.95))] text-white' : 'text-[#d8dce7]/70 hover:bg-[rgba(126,200,227,0.06)] hover:text-[#f6f7fb]'"
+              >
+                {{ panel.label }}
+                <span v-if="panel.id === 'incoming' && incomingTradeCount" class="ml-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#e94560] px-1 text-[10px] font-bold text-white">{{ incomingTradeCount }}</span>
+                <span v-if="panel.id === 'outgoing' && tradeOutgoing.length" class="ml-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[rgba(126,200,227,0.25)] px-1 text-[10px] font-bold text-[#8fd7ef]">{{ tradeOutgoing.length }}</span>
+              </button>
+            </div>
+
+            <div class="min-h-[26rem] flex-1 overflow-y-auto p-6">
+              <!-- New offer -->
+              <div v-if="tradePanel === 'send'">
+                <p v-if="!tradingEnabled" class="mb-4 rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.08)] px-4 py-3 text-[13px] text-[#fca5a5]">Item trading is disabled for this game. You can still respond to existing offers.</p>
+                <label class="block text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/55">Send to</label>
+                <div class="relative mt-1.5">
+                  <input
+                    v-model="tradeRecipientSearch"
+                    @focus="tradeRecipientOpen = true"
+                    @input="onRecipientInput"
+                    @blur="closeRecipientDropdown"
+                    type="text"
+                    placeholder="Search character by name…"
+                    class="w-full rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none focus:border-[rgba(126,200,227,0.45)] placeholder:text-[#7ec8e3]/30"
+                  />
+                  <div v-if="tradeRecipientOpen" class="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.99),rgba(6,11,22,0.99))] py-1 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+                    <button
+                      v-for="target in tradeRecipientFiltered"
+                      :key="target.id"
+                      type="button"
+                      @mousedown.prevent="selectTradeRecipient(target)"
+                      class="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left text-[13px] transition-colors hover:bg-[rgba(126,200,227,0.08)]"
+                      :class="tradeRecipientId === target.id ? 'text-[#ff8aa0]' : 'text-[#e8e8f0]/82'"
+                    >
+                      <span class="font-semibold">{{ target.name }}</span>
+                      <span class="text-[12px] text-[#7ec8e3]/45">{{ target.owner }}</span>
+                    </button>
+                    <p v-if="!tradeRecipientFiltered.length" class="px-3 py-2 text-[12px] text-[#7ec8e3]/40">No matching characters</p>
+                  </div>
+                </div>
+
+                <p class="mt-5 text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/55">Items to offer ({{ tradeSelectedIds.length }} selected)</p>
+                <p v-if="!tradeOfferableItems.length" class="mt-3 text-[13px] text-[#7ec8e3]/45">No tradeable items. Unequip items first to offer them.</p>
+                <div v-else class="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  <button
+                    v-for="entry in tradeOfferableItems"
+                    :key="entry.id"
+                    type="button"
+                    @click="toggleTradeItem(entry.id)"
+                    class="flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all duration-200"
+                    :class="tradeSelectedSet.has(entry.id) ? 'border-[rgba(233,69,96,0.5)] bg-[rgba(233,69,96,0.12)]' : 'border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.04)] hover:border-[rgba(126,200,227,0.3)]'"
+                  >
+                    <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.66)]">
+                      <img v-if="avatarUrl(entry.item?.image_id)" :src="avatarUrl(entry.item?.image_id)" :alt="entry.item?.name" class="h-full w-full object-cover" />
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-[13px] font-semibold text-[#f6f7fb]">{{ entry.item?.name }}</p>
+                      <p class="text-[11px] text-[#7ec8e3]/45">{{ entry.item?.grid_width }}x{{ entry.item?.grid_height }}<span v-if="(entry.quantity || 1) > 1"> · x{{ entry.quantity }}</span></p>
+                      <p v-if="entry.max_durability != null" class="text-[11px]" :class="(entry.durability ?? entry.max_durability) <= entry.max_durability * 0.3 ? 'text-[#fca5a5]' : 'text-[#86efac]/80'">
+                        Dur {{ entry.durability ?? entry.max_durability }}/{{ entry.max_durability }}
+                      </p>
+                    </div>
+                    <CheckIcon v-if="tradeSelectedSet.has(entry.id)" class="h-4 w-4 shrink-0 text-[#ff6b81]" :stroke-width="3" />
+                  </button>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                  <button
+                    type="button"
+                    @click="submitTrade"
+                    :disabled="tradeBusy || !tradingEnabled || !tradeRecipientId || !tradeSelectedIds.length"
+                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.3)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                  >
+                    <ArrowLeftRightIcon class="h-4 w-4" :stroke-width="2" />
+                    {{ tradeBusy ? 'Sending…' : 'Send offer' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Incoming -->
+              <div v-else-if="tradePanel === 'incoming'">
+                <p v-if="!tradeIncoming.length" class="py-10 text-center text-[13px] text-[#7ec8e3]/45">No incoming offers.</p>
+                <div v-else class="space-y-3">
+                  <article v-for="offer in tradeIncoming" :key="offer.id" class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] p-4">
+                    <p class="text-[13px] text-[#d8dce7]/72"><span class="font-semibold text-[#f6f7fb]">{{ offer.from_username }}</span> ({{ offer.from_character_name }}) → <span class="font-semibold text-[#f6f7fb]">{{ offer.to_character_name }}</span></p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <span v-for="item in offer.items" :key="item.id" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-2 py-1 text-[12px] text-[#d8dce7]/82">
+                        <img v-if="avatarUrl(item.item?.image_id)" :src="avatarUrl(item.item?.image_id)" :alt="item.item?.name" class="h-5 w-5 rounded object-cover" />
+                        {{ item.item?.name }}<span v-if="(item.quantity || 1) > 1" class="text-[#7ec8e3]/50"> x{{ item.quantity }}</span>
+                      </span>
+                    </div>
+                    <div class="mt-4 flex justify-end gap-2">
+                      <button type="button" @click="declineTradeOffer(offer)" :disabled="tradeBusy" class="cursor-pointer rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3.5 py-2 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)] disabled:opacity-50">Decline</button>
+                      <button type="button" @click="acceptTradeOffer(offer)" :disabled="tradeBusy" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.14)] px-3.5 py-2 text-[12px] font-semibold text-[#86efac] transition-all duration-200 hover:border-[rgba(74,222,128,0.5)] disabled:opacity-50"><CheckIcon class="h-3.5 w-3.5" :stroke-width="2.5" /> Accept</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
+
+              <!-- Sent -->
+              <div v-else>
+                <p v-if="!tradeOutgoing.length" class="py-10 text-center text-[13px] text-[#7ec8e3]/45">No pending sent offers.</p>
+                <div v-else class="space-y-3">
+                  <article v-for="offer in tradeOutgoing" :key="offer.id" class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] p-4">
+                    <p class="text-[13px] text-[#d8dce7]/72">To <span class="font-semibold text-[#f6f7fb]">{{ offer.to_username }}</span> ({{ offer.to_character_name }})</p>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                      <span v-for="item in offer.items" :key="item.id" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-2 py-1 text-[12px] text-[#d8dce7]/82">
+                        <img v-if="avatarUrl(item.item?.image_id)" :src="avatarUrl(item.item?.image_id)" :alt="item.item?.name" class="h-5 w-5 rounded object-cover" />
+                        {{ item.item?.name }}<span v-if="(item.quantity || 1) > 1" class="text-[#7ec8e3]/50"> x{{ item.quantity }}</span>
+                      </span>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                      <button type="button" @click="declineTradeOffer(offer)" :disabled="tradeBusy" class="cursor-pointer rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3.5 py-2 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)] disabled:opacity-50">Cancel offer</button>
+                    </div>
+                  </article>
+                </div>
+              </div>
             </div>
           </div>
         </div>

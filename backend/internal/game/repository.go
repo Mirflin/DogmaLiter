@@ -709,6 +709,62 @@ func (r *Repository) RemoveMemberAndCharacters(gameID, userID string) error {
 	})
 }
 
+func (r *Repository) CreateTradeOffer(offer *models.TradeOffer, removeInventoryIDs []string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if len(removeInventoryIDs) > 0 {
+			if err := tx.Where("id IN ?", removeInventoryIDs).Delete(&models.CharacterInventory{}).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Create(offer).Error
+	})
+}
+
+func (r *Repository) GetTradeOffer(gameID, offerID string) (*models.TradeOffer, error) {
+	var offer models.TradeOffer
+	err := r.db.
+		Preload("Items").
+		Preload("Items.Item").
+		Preload("Items.Item.Image").
+		Preload("Items.Item.Types").
+		Preload("Items.Item.RequiredAttributes").
+		Preload("Items.Item.AttributeModifiers").
+		Where("game_id = ? AND id = ?", gameID, offerID).
+		First(&offer).Error
+	if err != nil {
+		return nil, err
+	}
+	return &offer, nil
+}
+
+func (r *Repository) ListTradeOffers(gameID, userID string) ([]models.TradeOffer, error) {
+	var offers []models.TradeOffer
+	err := r.db.
+		Preload("Items").
+		Preload("Items.Item").
+		Preload("Items.Item.Image").
+		Preload("Items.Item.RequiredAttributes").
+		Preload("Items.Item.AttributeModifiers").
+		Where("game_id = ? AND status = ? AND (from_user_id = ? OR to_user_id = ?)", gameID, "pending", userID, userID).
+		Order("created_at DESC").
+		Find(&offers).Error
+	return offers, err
+}
+
+func (r *Repository) ResolveTradeOffer(offerID, status string, newEntries []models.CharacterInventory) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if len(newEntries) > 0 {
+			if err := tx.Create(&newEntries).Error; err != nil {
+				return err
+			}
+		}
+		return tx.Model(&models.TradeOffer{}).Where("id = ?", offerID).Updates(map[string]interface{}{
+			"status":       status,
+			"responded_at": time.Now(),
+		}).Error
+	})
+}
+
 func (r *Repository) ListAllGames() ([]models.Game, error) {
 	var games []models.Game
 	err := r.db.Preload("Owner").Preload("Members").Order("created_at DESC").Find(&games).Error
@@ -721,6 +777,9 @@ func (r *Repository) AdminUpdateGame(gameID string, updates map[string]interface
 
 func (r *Repository) DeleteGame(gameID string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Where("game_id = ?", gameID).Delete(&models.TradeOffer{}).Error; err != nil {
+			return err
+		}
 		var characterIDs []string
 		if err := tx.Model(&models.Character{}).Where("game_id = ?", gameID).Pluck("id", &characterIDs).Error; err != nil {
 			return err

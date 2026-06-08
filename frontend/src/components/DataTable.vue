@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
-  // [{ key, label, sortable?, filterable?, align?: 'left'|'right', headerClass?, cellClass?, filterOptions?: [{value,label}] }]
   columns: { type: Array, default: () => [] },
   rows: { type: Array, default: () => [] },
   rowKey: { type: String, default: 'id' },
@@ -78,7 +77,6 @@ const pagedRows = computed(() => {
   const start = (page.value - 1) * props.pageSize
   return filteredRows.value.slice(start, start + props.pageSize)
 })
-// Reserve a stable height for a full page so the table doesn't shrink with fewer rows.
 const fillerCount = computed(() => {
   if (!props.paginate) return 0
   const occupied = pagedRows.value.length || 1

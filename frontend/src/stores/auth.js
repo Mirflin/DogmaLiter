@@ -348,6 +348,26 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function getTrades(gameID) {
+    const { data } = await api.get(`/games/${gameID}/trades`)
+    return data
+  }
+
+  async function createTrade(gameID, payload) {
+    const { data } = await api.post(`/games/${gameID}/trades`, payload)
+    return data
+  }
+
+  async function acceptTrade(gameID, tradeID) {
+    const { data } = await api.post(`/games/${gameID}/trades/${tradeID}/accept`)
+    return data
+  }
+
+  async function declineTrade(gameID, tradeID) {
+    const { data } = await api.post(`/games/${gameID}/trades/${tradeID}/decline`)
+    return data
+  }
+
   async function clearGameChat(gameID, olderThanHours = 0) {
     const params = olderThanHours > 0 ? { older_than_hours: olderThanHours } : {}
     const { data } = await api.delete(`/games/${gameID}/chat-messages`, { params })
@@ -433,6 +453,10 @@ export const useAuthStore = defineStore('auth', () => {
     splitInventoryItem,
     uploadCharacterPortrait,
     getGameActivity,
+    getTrades,
+    createTrade,
+    acceptTrade,
+    declineTrade,
     clearGameChat,
     clearGameActivity,
     getGameChatMessages,
