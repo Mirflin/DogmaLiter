@@ -8,6 +8,15 @@ characters, organize grid inventories, trade items between players, run sessions
 everything — chat, loot, and party state — in one place. No downloads, no hosting.
 </p>
 
+<p align="center">
+  <a href="https://app.dogmaliter.online"><b>🌐 Live demo — app.dogmaliter.online</b></a>
+</p>
+
+<p align="center">
+  <i>The project is live and can be reviewed online at
+  <a href="https://app.dogmaliter.online">app.dogmaliter.online</a> — no setup required.</i>
+</p>
+
 <!-- ============================================================
      MAIN SHOWCASE GIF
      Drop a short product overview clip here (landing → session).
@@ -129,6 +138,9 @@ drag-and-drop), Lucide icons.
 ---
 
 ## 🚀 Getting Started
+
+> 💡 **Just want to try it?** A hosted instance runs at **[app.dogmaliter.online](https://app.dogmaliter.online)** —
+> no installation needed. The steps below are only for running it locally.
 
 ### Prerequisites
 - Go 1.25+
