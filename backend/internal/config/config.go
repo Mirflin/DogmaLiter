@@ -30,7 +30,7 @@ type Config struct {
 
 func Load() *Config {
 	loadDotEnv()
-	frontendURL := getEnv("FRONTEND_URL", "http://89.254.131.120:5175")
+	frontendURL := getEnv("FRONTEND_URL", "http://127.0.0.1:5175")
 	frontendOrigins := getEnvList("FRONTEND_URLS")
 	if len(frontendOrigins) == 0 {
 		frontendOrigins = []string{frontendURL}
@@ -39,7 +39,7 @@ func Load() *Config {
 	}
 
 	return &Config{
-		DatabaseURL: getEnv("DATABASE_URL", "admin:FD371D79102981608CD4@tcp(89.254.131.120:3307)/DogmaLiter?charset=utf8mb4&parseTime=True&loc=Local"),
+		DatabaseURL: getEnv("DATABASE_URL", "root:password@tcp(127.0.0.1:3307)/DogmaLiter?charset=utf8mb4&parseTime=True&loc=Local"),
 		Port:        getEnv("PORT", "8006"),
 		JWTSecret:   getEnv("JWT_SECRET", "verysecretkey"),
 		FrontendURL: frontendURL,
