@@ -23,7 +23,7 @@ everything — chat, loot, and party state — in one place. No downloads, no ho
      Suggested path: docs/media/overview.gif
 ============================================================ -->
 <p align="center">
-  <img src="docs/media/overview.gif" alt="DogmaLiter overview" width="860" />
+  <img width="1499" height="807" alt="image" src="https://github.com/user-attachments/assets/f04216f5-c4af-46e8-a891-e7d28c9e4fd7" />
 </p>
 
 ---
@@ -50,7 +50,7 @@ equipped gear.
 
 <!-- docs/media/character.gif — character sheet with attributes and currency -->
 <p align="center">
-  <img src="docs/media/character.gif" alt="Character sheet" width="820" />
+  <img width="1726" height="1021" alt="image" src="https://github.com/user-attachments/assets/f7712767-427f-493e-9f99-ff28b55bdcfd" />
 </p>
 
 ### 🎒 Grid Inventory & Equipment
@@ -60,7 +60,7 @@ gear a character can't equip.
 
 <!-- docs/media/inventory.gif — dragging items, equipping, splitting a stack -->
 <p align="center">
-  <img src="docs/media/inventory.gif" alt="Grid inventory and equipment" width="820" />
+  <img width="917" height="1060" alt="image" src="https://github.com/user-attachments/assets/152bd5d0-9fbd-4370-85d4-115895c179d6" />
 </p>
 
 ### 📦 Item Compendium
@@ -70,7 +70,7 @@ double-click, then deliver).
 
 <!-- docs/media/compendium.gif — creating an item and delivering it to a character -->
 <p align="center">
-  <img src="docs/media/compendium.gif" alt="Item compendium" width="820" />
+  <img width="1738" height="1059" alt="image" src="https://github.com/user-attachments/assets/da9accb8-0b63-461c-a2ed-a05203be9155" />
 </p>
 
 ### 🔁 Player-to-Player Trading
@@ -80,7 +80,7 @@ picker and item durability shown at selection.
 
 <!-- docs/media/trading.gif — sending an offer and accepting/declining it -->
 <p align="center">
-  <img src="docs/media/trading.gif" alt="Player to player trading" width="820" />
+  <img width="906" height="555" alt="image" src="https://github.com/user-attachments/assets/ae89f8ee-dc56-40b0-8dc9-59ec8bd53897" />
 </p>
 
 ### 💬 In-Game Chat
@@ -89,7 +89,7 @@ disabled per game.
 
 <!-- docs/media/chat.gif — sending a message and sharing an item to chat -->
 <p align="center">
-  <img src="docs/media/chat.gif" alt="In-game chat" width="820" />
+  <img width="407" height="1177" alt="image" src="https://github.com/user-attachments/assets/bc15898f-b1cf-4796-a418-2b5b50d0018e" />
 </p>
 
 ### 🛡️ GM Manage Panel
@@ -101,7 +101,7 @@ read-only view of their grid inventory.
 
 <!-- docs/media/manage.gif — manage tab tables, player overview, inventory inspection -->
 <p align="center">
-  <img src="docs/media/manage.gif" alt="GM manage panel" width="820" />
+  <img width="1739" height="896" alt="image" src="https://github.com/user-attachments/assets/d4b7c81c-772e-4185-bdf3-b41cea0bca76" />
 </p>
 
 ### ⚙️ Admin Dashboard
@@ -111,19 +111,8 @@ deletions require confirmation.
 
 <!-- docs/media/admin.gif — admin tabs, editing a subscription, publishing news -->
 <p align="center">
-  <img src="docs/media/admin.gif" alt="Admin dashboard" width="820" />
+  <img width="1199" height="1028" alt="image" src="https://github.com/user-attachments/assets/43253d7e-be01-4c61-9b0c-7016ff549d68" />
 </p>
-
-### 🗺️ Maps & 📰 News
-Upload custom maps with configurable grids and manage the active map. A public news feed keeps
-players up to date.
-
-<!-- docs/media/maps-news.gif — uploading a map / browsing news -->
-<p align="center">
-  <img src="docs/media/maps-news.gif" alt="Maps and news" width="820" />
-</p>
-
----
 
 ## 🧱 Tech Stack
 
