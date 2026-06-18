@@ -379,6 +379,7 @@ async function confirmDeleteGame() {
             <template #cell-created_at="{ row }"><span class="text-[#7ec8e3]/45">{{ row.created_at }}</span></template>
             <template #cell-actions="{ row }">
               <div class="flex justify-end gap-2">
+                <button type="button" @click="router.push(`/games/${row.id}`)" class="rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">Open</button>
                 <button type="button" @click="requestDeleteGame(row)" class="rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]">Delete</button>
               </div>
             </template>

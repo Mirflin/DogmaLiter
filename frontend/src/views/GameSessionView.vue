@@ -28,6 +28,7 @@ import DataTable from '@/components/DataTable.vue'
 import { getErrorMessage, notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useGameSocket } from '@/composables/useGameSocket'
 import { useRoute, useRouter } from 'vue-router'
 
 const CHAT_POLL_INTERVAL = 15000
@@ -118,10 +119,23 @@ const canEditCharacter = computed(() => {
   if (!characterSnapshot.value) return false
   return isGM.value || characterSnapshot.value.user_id === viewer.value?.user_id
 })
-const STANDARD_ATTRS = new Set(['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'])
-const attributesEnabled = computed(() => game.value?.show_standard_attrs !== false)
+const STANDARD_ATTR_KEYS = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma']
+const STANDARD_ATTR_SET = new Set(STANDARD_ATTR_KEYS)
+// Which base attributes the game keeps enabled. Falls back to the legacy single
+// boolean for payloads from an older backend.
+const enabledStandardAttrs = computed(() => {
+  const list = game.value?.enabled_standard_attrs
+  if (Array.isArray(list)) return new Set(list)
+  return game.value?.show_standard_attrs === false ? new Set() : new Set(STANDARD_ATTR_KEYS)
+})
+const attributesEnabled = computed(() => enabledStandardAttrs.value.size > 0)
+// A standard attribute that the GM turned off — hidden everywhere it would show.
+function isStandardAttrDisabled(name) {
+  return STANDARD_ATTR_SET.has(name) && !enabledStandardAttrs.value.has(name)
+}
+const disabledStandardAttrs = computed(() => STANDARD_ATTR_KEYS.filter((key) => !enabledStandardAttrs.value.has(key)))
 const attributeCards = computed(() => {
-  if (!attributesEnabled.value || !characterSnapshot.value?.base_attributes) return []
+  if (!characterSnapshot.value?.base_attributes) return []
 
   const definitions = [
     { key: 'strength', label: 'Strength' },
@@ -132,11 +146,13 @@ const attributeCards = computed(() => {
     { key: 'charisma', label: 'Charisma' },
   ]
 
-  return definitions.map(({ key, label }) => {
-    const base = baseAttributeMap.value[key] ?? 0
-    const total = effectiveAttributeMap.value[key] ?? base
-    return { key, label, base, value: total, bonus: total - base, contributions: attributeContributions.value[key] ?? [] }
-  })
+  return definitions
+    .filter(({ key }) => enabledStandardAttrs.value.has(key))
+    .map(({ key, label }) => {
+      const base = baseAttributeMap.value[key] ?? 0
+      const total = effectiveAttributeMap.value[key] ?? base
+      return { key, label, base, value: total, bonus: total - base, contributions: attributeContributions.value[key] ?? [] }
+    })
 })
 const inventoryItems = computed(() => activeCharacter.value?.inventory ?? [])
 const equipment = computed(() => activeCharacter.value?.equipment ?? [])
@@ -153,7 +169,7 @@ const baseAttributeMap = computed(() => {
   if (base) {
     for (const [key, value] of Object.entries(base)) {
       const name = normalizeAttributeName(key)
-      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
+      if (isStandardAttrDisabled(name)) continue
       map[name] = Number(value) || 0
     }
   }
@@ -172,7 +188,7 @@ const equipmentModifiers = computed(() => {
     for (const modifier of modifiers) {
       const name = normalizeAttributeName(modifier?.attribute_name)
       if (!name) continue
-      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
+      if (isStandardAttrDisabled(name)) continue
       if (!acc[name]) acc[name] = { flat: 0, percent: 0 }
       if (modifier?.is_percentage) acc[name].percent += Number(modifier?.modifier_value) || 0
       else acc[name].flat += Number(modifier?.modifier_value) || 0
@@ -224,7 +240,7 @@ const attributeContributions = computed(() => {
     for (const modifier of modifiers) {
       const name = normalizeAttributeName(modifier?.attribute_name)
       if (!name) continue
-      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
+      if (isStandardAttrDisabled(name)) continue
       if (!map[name]) map[name] = []
       map[name].push({ source: itemName, value: Number(modifier?.modifier_value) || 0, percent: Boolean(modifier?.is_percentage) })
     }
@@ -745,7 +761,7 @@ function buildEffectiveAttributeMap(character) {
   if (src) {
     for (const [key, value] of Object.entries(src)) {
       const name = normalizeAttributeName(key)
-      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
+      if (isStandardAttrDisabled(name)) continue
       base[name] = Number(value) || 0
     }
   }
@@ -758,7 +774,7 @@ function buildEffectiveAttributeMap(character) {
     for (const modifier of (slot?.inventory_item?.item?.attribute_modifiers ?? [])) {
       const name = normalizeAttributeName(modifier?.attribute_name)
       if (!name) continue
-      if (!attributesEnabled.value && STANDARD_ATTRS.has(name)) continue
+      if (isStandardAttrDisabled(name)) continue
       if (!modifiers[name]) modifiers[name] = { flat: 0, percent: 0 }
       if (modifier?.is_percentage) modifiers[name].percent += Number(modifier?.modifier_value) || 0
       else modifiers[name].flat += Number(modifier?.modifier_value) || 0
@@ -963,6 +979,40 @@ function stopManagePolling() {
   if (managePollHandle) {
     clearInterval(managePollHandle)
     managePollHandle = null
+  }
+}
+
+// Realtime: the server pushes invalidation signals over WebSocket; we react by
+// refreshing the matching slice using the same functions polling already uses.
+// Polling stays active as a fallback for when the socket is down.
+const gameSocket = useGameSocket(() => gameId.value, handleRealtimeEvent)
+
+function handleRealtimeEvent(type, data) {
+  switch (type) {
+    case 'characters_changed':
+      // A character was created or deleted — refresh the roster (this is what
+      // makes a newly created character appear in the GM's list immediately).
+      loadSession({ preserveCharacter: true, promptSelection: false })
+      break
+    case 'character_updated':
+      if (!data?.character_id || data.character_id === activeCharacterId.value) {
+        pollActiveCharacter()
+      }
+      if (isGM.value && activeTab.value === 'manage') {
+        refreshManagePanel(managePanel.value, { silent: true })
+      }
+      break
+    case 'trades_changed':
+      loadTrades({ silent: true })
+      break
+    case 'chat_message':
+      refreshChatMessages()
+      break
+    case 'activity_changed':
+      if (isGM.value && activeTab.value === 'manage') {
+        refreshManagePanel(managePanel.value, { silent: true })
+      }
+      break
   }
 }
 
@@ -1751,6 +1801,7 @@ onMounted(() => {
   startCharacterPolling()
   startManagePolling()
   startTradePolling()
+  gameSocket.connect()
 })
 
 onBeforeUnmount(() => {
@@ -1758,6 +1809,7 @@ onBeforeUnmount(() => {
   stopCharacterPolling()
   stopManagePolling()
   stopTradePolling()
+  gameSocket.disconnect()
   resetPortraitSelection()
 })
 </script>
@@ -1814,6 +1866,7 @@ onBeforeUnmount(() => {
         :saving="gmCharacterEditorSaving"
         :error="gmCharacterEditorError"
         :members="game.members ?? []"
+        :disabled-standard-attrs="disabledStandardAttrs"
         @close="closeGMCharacterEditor"
         @save="saveGMCharacterEditor"
       />
@@ -2243,6 +2296,7 @@ onBeforeUnmount(() => {
               :inventory-height="inventoryHeight"
               :character-attributes="effectiveAttributeMap"
               :attributes-enabled="attributesEnabled"
+              :disabled-standard-attrs="disabledStandardAttrs"
               :character-id="activeCharacterId"
               :can-edit="canEditCharacter"
               @persist="persistInventoryLayout"
@@ -2523,7 +2577,7 @@ onBeforeUnmount(() => {
             </article>
           </section>
 
-          <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
+          <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" :disabled-standard-attrs="disabledStandardAttrs" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
 
           <section v-else-if="activeTab === 'manage' && isGM" class="space-y-6">
             <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
@@ -3040,6 +3094,7 @@ onBeforeUnmount(() => {
                 :inventory-height="inventoryViewCharacter.inventory_height ?? 0"
                 :character-attributes="inventoryViewAttributes"
                 :attributes-enabled="attributesEnabled"
+                :disabled-standard-attrs="disabledStandardAttrs"
                 :character-id="inventoryViewCharacter.id"
                 :can-edit="false"
               />

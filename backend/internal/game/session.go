@@ -14,6 +14,7 @@ import (
 
 	"backend/internal/auth"
 	"backend/internal/models"
+	"backend/internal/realtime"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -86,7 +87,7 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	game, isGM, err := h.authorizeGameAccess(userID, gameID)
+	game, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -144,10 +145,9 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ListItems(w http.ResponseWriter, r *http.Request) {
-	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -191,7 +191,7 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	game, isGM, err := h.authorizeGameAccess(userID, gameID)
+	game, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -296,6 +296,8 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.broadcast(gameID, realtime.EventCharactersChanged, nil)
+
 	respondJSON(w, 201, map[string]interface{}{
 		"character": serializeCharacterDetail(createdCharacter),
 	})
@@ -305,7 +307,7 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	game, isGM, err := h.authorizeGameAccess(userID, gameID)
+	game, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -366,11 +368,10 @@ func (h *Handler) CreateItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
-	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 	itemID := chi.URLParam(r, "itemID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -421,11 +422,10 @@ func (h *Handler) UpdateItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) DeleteItem(w http.ResponseWriter, r *http.Request) {
-	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 	itemID := chi.URLParam(r, "itemID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -456,7 +456,7 @@ func (h *Handler) GetCharacter(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	characterID := chi.URLParam(r, "characterID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -483,7 +483,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	characterID := chi.URLParam(r, "characterID")
 
-	game, isGM, err := h.authorizeGameAccess(userID, gameID)
+	game, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -701,6 +701,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		h.logActivity(gameID, userID, character.Name, "Updated character", "")
+		h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": characterID})
 
 		character, err = h.service.repo.GetCharacterByID(gameID, characterID)
 		if err != nil {
@@ -719,7 +720,7 @@ func (h *Handler) GiveInventoryItems(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	characterID := chi.URLParam(r, "characterID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -848,6 +849,7 @@ func (h *Handler) GiveInventoryItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logActivity(gameID, userID, character.Name, "Delivered items", fmt.Sprintf("%d item(s)", len(entries)))
+	h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": character.ID})
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -866,7 +868,7 @@ func (h *Handler) UpdateInventoryLayout(w http.ResponseWriter, r *http.Request) 
 	gameID := chi.URLParam(r, "gameID")
 	characterID := chi.URLParam(r, "characterID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1041,6 +1043,8 @@ func (h *Handler) UpdateInventoryLayout(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 
+	h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": characterID})
+
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
 		respondJSON(w, 500, map[string]string{"error": "Inventory layout was saved but the character could not be reloaded"})
@@ -1069,7 +1073,7 @@ func (h *Handler) UpdateInventoryItem(w http.ResponseWriter, r *http.Request) {
 	characterID := chi.URLParam(r, "characterID")
 	inventoryItemID := chi.URLParam(r, "inventoryItemID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1160,6 +1164,7 @@ func (h *Handler) UpdateInventoryItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logActivity(gameID, userID, character.Name, "Updated item", target.Item.Name)
+	h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": characterID})
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -1178,7 +1183,7 @@ func (h *Handler) SplitInventoryItem(w http.ResponseWriter, r *http.Request) {
 	characterID := chi.URLParam(r, "characterID")
 	inventoryItemID := chi.URLParam(r, "inventoryItemID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1246,6 +1251,7 @@ func (h *Handler) SplitInventoryItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logActivity(gameID, userID, character.Name, "Unstacked item", target.Item.Name)
+	h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": characterID})
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -1272,7 +1278,7 @@ func (h *Handler) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 	characterID := chi.URLParam(r, "characterID")
 	inventoryItemID := chi.URLParam(r, "inventoryItemID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1306,6 +1312,7 @@ func (h *Handler) DeleteInventoryItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logActivity(gameID, userID, character.Name, "Removed item", removedItemName)
+	h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": characterID})
 
 	updated, err := h.service.repo.GetCharacterByID(gameID, characterID)
 	if err != nil {
@@ -1323,7 +1330,7 @@ func (h *Handler) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	characterID := chi.URLParam(r, "characterID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1345,6 +1352,7 @@ func (h *Handler) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.logActivity(gameID, userID, character.Name, "Deleted character", "")
+	h.broadcast(gameID, realtime.EventCharactersChanged, nil)
 
 	respondJSON(w, 200, map[string]interface{}{
 		"success":      true,
@@ -1362,6 +1370,7 @@ func (h *Handler) logActivity(gameID, userID, characterName, action, details str
 		Details:       details,
 		CreatedAt:     time.Now(),
 	})
+	h.broadcast(gameID, realtime.EventActivityChanged, nil)
 }
 
 func clearCutoff(r *http.Request) *time.Time {
@@ -1374,10 +1383,9 @@ func clearCutoff(r *http.Request) *time.Time {
 }
 
 func (h *Handler) ClearChatMessages(w http.ResponseWriter, r *http.Request) {
-	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1396,10 +1404,9 @@ func (h *Handler) ClearChatMessages(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ClearActivity(w http.ResponseWriter, r *http.Request) {
-	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1418,10 +1425,9 @@ func (h *Handler) ClearActivity(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetActivity(w http.ResponseWriter, r *http.Request) {
-	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1525,10 +1531,9 @@ func regionFree(occupied [][]bool, startX, startY, width, height int) bool {
 }
 
 func (h *Handler) GetChatMessages(w http.ResponseWriter, r *http.Request) {
-	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	game, _, err := h.authorizeGameAccess(userID, gameID)
+	game, _, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1558,7 +1563,7 @@ func (h *Handler) CreateChatMessage(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	game, _, err := h.authorizeGameAccess(userID, gameID)
+	game, _, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -1603,15 +1608,24 @@ func (h *Handler) CreateChatMessage(w http.ResponseWriter, r *http.Request) {
 
 	_ = h.service.repo.TrimGameChatMessages(gameID, gameChatMessageLimit)
 
+	h.broadcast(gameID, realtime.EventChatMessage, nil)
+
 	respondJSON(w, 201, map[string]interface{}{
 		"message": serializeChatMessage(message, findGameMember(game, userID)),
 	})
 }
 
-func (h *Handler) authorizeGameAccess(userID, gameID string) (*models.Game, bool, error) {
+func (h *Handler) authorizeGameAccess(r *http.Request, gameID string) (*models.Game, bool, error) {
+	userID := auth.GetUserID(r)
+
 	game, err := h.service.repo.GetGameByID(gameID)
 	if err != nil {
 		return nil, false, err
+	}
+
+	// Global administrators have full GM-level access to every game.
+	if auth.GetUserRole(r) == "admin" {
+		return game, true, nil
 	}
 
 	isMember, err := h.service.repo.IsMember(gameID, userID)
@@ -1657,19 +1671,20 @@ func serializeGame(game *models.Game, userID string, isGM bool) map[string]inter
 	}
 
 	payload := map[string]interface{}{
-		"id":                  game.ID,
-		"title":               game.Title,
-		"description":         game.Description,
-		"system":              game.System,
-		"max_players":         game.MaxPlayers,
-		"owner_id":            game.OwnerID,
-		"cover_image_id":      game.CoverImageID,
-		"show_standard_attrs": game.ShowStandardAttrs,
-		"enable_chat":         game.EnableChat,
-		"enable_item_trading": game.EnableItemTrading,
-		"created_at":          game.CreatedAt,
-		"updated_at":          game.UpdatedAt,
-		"members":             members,
+		"id":                     game.ID,
+		"title":                  game.Title,
+		"description":            game.Description,
+		"system":                 game.System,
+		"max_players":            game.MaxPlayers,
+		"owner_id":               game.OwnerID,
+		"cover_image_id":         game.CoverImageID,
+		"show_standard_attrs":    game.ShowStandardAttrs,
+		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
+		"enable_chat":            game.EnableChat,
+		"enable_item_trading":    game.EnableItemTrading,
+		"created_at":             game.CreatedAt,
+		"updated_at":             game.UpdatedAt,
+		"members":                members,
 		"owner": map[string]interface{}{
 			"id":         game.Owner.ID,
 			"username":   game.Owner.Username,
@@ -2206,7 +2221,6 @@ func validateCurrencyAmount(value int, label string) (int, error) {
 
 	return value, nil
 }
-
 
 func normalizeCreateItemRequest(gameID, userID string, req createItemRequest) (*models.Item, error) {
 	return normalizeItemRequest(uuid.New().String(), gameID, userID, req)

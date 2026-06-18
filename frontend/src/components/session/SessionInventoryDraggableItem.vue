@@ -23,6 +23,12 @@ const RING_CIRCUMFERENCE = 94.25
 
 const characterAttributes = inject('inventoryCharacterAttributes', null)
 const attributesEnabled = inject('inventoryAttributesEnabled', null)
+const disabledStandardAttrs = inject('inventoryDisabledStandardAttrs', null)
+
+function isAttrDisabled(name) {
+  const list = disabledStandardAttrs?.value ?? []
+  return list.includes(String(name || '').trim().toLowerCase())
+}
 
 const rootRef = ref(null)
 const hovering = ref(false)
@@ -52,18 +58,22 @@ const descriptionPreview = computed(() => {
 })
 const requirementChecks = computed(() => {
   if (!(attributesEnabled?.value ?? true)) return []
-  return (item.value?.required_attributes ?? []).map((requirement) => {
-    const name = String(requirement?.attribute_name || '')
-    const current = Number(characterAttributes?.value?.[name] ?? 0)
-    const required = Number(requirement?.min_value ?? 0)
-    return { name, label: formatAttr(name), required, current, met: current >= required }
-  })
+  return (item.value?.required_attributes ?? [])
+    .filter((requirement) => !isAttrDisabled(requirement?.attribute_name))
+    .map((requirement) => {
+      const name = String(requirement?.attribute_name || '')
+      const current = Number(characterAttributes?.value?.[name] ?? 0)
+      const required = Number(requirement?.min_value ?? 0)
+      return { name, label: formatAttr(name), required, current, met: current >= required }
+    })
 })
-const modifierList = computed(() => ((attributesEnabled?.value ?? true) ? (item.value?.attribute_modifiers ?? []) : []).map((modifier) => ({
-  label: formatAttr(modifier?.attribute_name),
-  value: Number(modifier?.modifier_value ?? 0),
-  percent: Boolean(modifier?.is_percentage),
-})))
+const modifierList = computed(() => ((attributesEnabled?.value ?? true) ? (item.value?.attribute_modifiers ?? []) : [])
+  .filter((modifier) => !isAttrDisabled(modifier?.attribute_name))
+  .map((modifier) => ({
+    label: formatAttr(modifier?.attribute_name),
+    value: Number(modifier?.modifier_value ?? 0),
+    percent: Boolean(modifier?.is_percentage),
+  })))
 const meetsRequirements = computed(() => requirementChecks.value.every((requirement) => requirement.met))
 const rarityLabel = computed(() => formatAttr(item.value?.rarity || 'common'))
 const rarityTextClass = computed(() => RARITY_TEXT[item.value?.rarity] || RARITY_TEXT.common)

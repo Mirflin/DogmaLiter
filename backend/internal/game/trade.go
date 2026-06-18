@@ -8,6 +8,7 @@ import (
 
 	"backend/internal/auth"
 	"backend/internal/models"
+	"backend/internal/realtime"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -89,7 +90,7 @@ func (h *Handler) CreateTrade(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	game, _, err := h.authorizeGameAccess(userID, gameID)
+	game, _, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -202,6 +203,8 @@ func (h *Handler) CreateTrade(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logActivity(gameID, userID, from.Name, "Offered trade", fmt.Sprintf("%d item(s) to %s", len(items), to.Name))
+	h.broadcast(gameID, realtime.EventTradesChanged, nil)
+	h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": from.ID})
 	respondJSON(w, 201, map[string]interface{}{"offer": serializeTradeOffer(offer)})
 }
 
@@ -209,7 +212,7 @@ func (h *Handler) ListTrades(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	if _, _, err := h.authorizeGameAccess(userID, gameID); err != nil {
+	if _, _, err := h.authorizeGameAccess(r, gameID); err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
 	}
@@ -258,7 +261,7 @@ func (h *Handler) AcceptTrade(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	tradeID := chi.URLParam(r, "tradeID")
 
-	if _, _, err := h.authorizeGameAccess(userID, gameID); err != nil {
+	if _, _, err := h.authorizeGameAccess(r, gameID); err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
 	}
@@ -295,6 +298,8 @@ func (h *Handler) AcceptTrade(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.logActivity(gameID, userID, to.Name, "Accepted trade", fmt.Sprintf("%d item(s) from %s", len(entries), offer.FromCharacterName))
+	h.broadcast(gameID, realtime.EventTradesChanged, nil)
+	h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": to.ID})
 	respondJSON(w, 200, map[string]interface{}{"success": true})
 }
 
@@ -303,7 +308,7 @@ func (h *Handler) DeclineTrade(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	tradeID := chi.URLParam(r, "tradeID")
 
-	if _, _, err := h.authorizeGameAccess(userID, gameID); err != nil {
+	if _, _, err := h.authorizeGameAccess(r, gameID); err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
 	}
@@ -333,6 +338,7 @@ func (h *Handler) DeclineTrade(w http.ResponseWriter, r *http.Request) {
 			respondJSON(w, 500, map[string]string{"error": "Failed to resolve the trade"})
 			return
 		}
+		h.broadcast(gameID, realtime.EventTradesChanged, nil)
 		respondJSON(w, 200, map[string]interface{}{"success": true})
 		return
 	}
@@ -348,5 +354,7 @@ func (h *Handler) DeclineTrade(w http.ResponseWriter, r *http.Request) {
 		action = "Cancelled trade"
 	}
 	h.logActivity(gameID, userID, offer.FromCharacterName, action, fmt.Sprintf("%d item(s)", len(offer.Items)))
+	h.broadcast(gameID, realtime.EventTradesChanged, nil)
+	h.broadcast(gameID, realtime.EventCharacterUpdated, map[string]interface{}{"character_id": from.ID})
 	respondJSON(w, 200, map[string]interface{}{"success": true})
 }

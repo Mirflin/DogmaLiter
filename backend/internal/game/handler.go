@@ -4,18 +4,30 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"backend/internal/auth"
+	"backend/internal/realtime"
 
 	"github.com/go-chi/chi/v5"
 )
 
 type Handler struct {
 	service *Service
+	hub     *realtime.Hub
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(service *Service, hub *realtime.Hub) *Handler {
+	return &Handler{service: service, hub: hub}
+}
+
+// broadcast pushes a realtime event to everyone in the game. Nil-safe so the
+// handlers work even when no hub is wired (e.g. in tests).
+func (h *Handler) broadcast(gameID, eventType string, data map[string]interface{}) {
+	if h.hub == nil {
+		return
+	}
+	h.hub.BroadcastEvent(gameID, eventType, data)
 }
 
 func (h *Handler) Routes() chi.Router {
@@ -107,22 +119,27 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 
 	var req struct {
-		Title             string `json:"title"`
-		Description       string `json:"description"`
-		System            string `json:"system"`
-		MaxPlayers        int    `json:"max_players"`
-		ShowStandardAttrs *bool  `json:"show_standard_attrs"`
-		EnableChat        *bool  `json:"enable_chat"`
-		EnableItemTrading *bool  `json:"enable_item_trading"`
+		Title                string    `json:"title"`
+		Description          string    `json:"description"`
+		System               string    `json:"system"`
+		MaxPlayers           int       `json:"max_players"`
+		ShowStandardAttrs    *bool     `json:"show_standard_attrs"`
+		EnabledStandardAttrs *[]string `json:"enabled_standard_attrs"`
+		EnableChat           *bool     `json:"enable_chat"`
+		EnableItemTrading    *bool     `json:"enable_item_trading"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
 		return
 	}
 
-	showStd := true
-	if req.ShowStandardAttrs != nil {
-		showStd = *req.ShowStandardAttrs
+	// Prefer the explicit per-attribute list; fall back to the legacy boolean
+	// (true = all attributes, false = none) for older clients.
+	var enabledAttrs string
+	if req.EnabledStandardAttrs != nil {
+		enabledAttrs = formatEnabledStandardAttrs(*req.EnabledStandardAttrs)
+	} else if req.ShowStandardAttrs == nil || *req.ShowStandardAttrs {
+		enabledAttrs = strings.Join(standardAttributeKeys, ",")
 	}
 	chat := true
 	if req.EnableChat != nil {
@@ -136,7 +153,7 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		req.System = "custom"
 	}
 
-	game, err := h.service.CreateGame(userID, req.Title, req.Description, req.System, req.MaxPlayers, showStd, chat, trading)
+	game, err := h.service.CreateGame(userID, req.Title, req.Description, req.System, req.MaxPlayers, enabledAttrs, chat, trading)
 	if err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
@@ -177,7 +194,7 @@ func (h *Handler) RegenerateInviteCode(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	newCode, expiresAt, err := h.service.RegenerateInviteCode(userID, gameID)
+	newCode, expiresAt, err := h.service.RegenerateInviteCode(userID, gameID, auth.GetUserRole(r) == "admin")
 	if err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
@@ -198,7 +215,7 @@ func (h *Handler) GetInviteCode(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Game %s not found", gameID)})
 		return
 	}
-	if game.OwnerID != userID {
+	if game.OwnerID != userID && auth.GetUserRole(r) != "admin" {
 		respondJSON(w, 403, map[string]string{"error": "Only the game owner can view the invite code"})
 		return
 	}
@@ -213,6 +230,8 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
+	isAdmin := auth.GetUserRole(r) == "admin"
+
 	game, err := h.service.repo.GetGameByID(gameID)
 	if err != nil {
 		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Game %s not found", gameID)})
@@ -220,7 +239,7 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isMember, _ := h.service.repo.IsMember(gameID, userID)
-	if game.OwnerID != userID && !isMember {
+	if game.OwnerID != userID && !isMember && !isAdmin {
 		respondJSON(w, 403, map[string]string{"error": fmt.Sprintf("User %s is not a member of game %s", userID, gameID)})
 		return
 	}
@@ -253,6 +272,7 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 		"owner_id":               game.OwnerID,
 		"cover_image_id":         game.CoverImageID,
 		"show_standard_attrs":    game.ShowStandardAttrs,
+		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
 		"enable_chat":            game.EnableChat,
 		"enable_item_trading":    game.EnableItemTrading,
 		"invite_code":            game.InviteCode,
@@ -263,7 +283,7 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 		"owner":                  owner,
 	}
 
-	if game.OwnerID != userID {
+	if game.OwnerID != userID && !isAdmin {
 		delete(result, "invite_code")
 		delete(result, "invite_code_expires_at")
 	}
@@ -275,23 +295,26 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
+	isAdmin := auth.GetUserRole(r) == "admin"
+
 	game, err := h.service.repo.GetGameByID(gameID)
 	if err != nil {
 		respondJSON(w, 404, map[string]string{"error": fmt.Sprintf("Game %s not found", gameID)})
 		return
 	}
-	if game.OwnerID != userID {
+	if game.OwnerID != userID && !isAdmin {
 		respondJSON(w, 403, map[string]string{"error": "Only the game owner can update settings"})
 		return
 	}
 
 	var req struct {
-		Title             *string `json:"title"`
-		Description       *string `json:"description"`
-		MaxPlayers        *int    `json:"max_players"`
-		ShowStandardAttrs *bool   `json:"show_standard_attrs"`
-		EnableChat        *bool   `json:"enable_chat"`
-		EnableItemTrading *bool   `json:"enable_item_trading"`
+		Title                *string   `json:"title"`
+		Description          *string   `json:"description"`
+		MaxPlayers           *int      `json:"max_players"`
+		ShowStandardAttrs    *bool     `json:"show_standard_attrs"`
+		EnabledStandardAttrs *[]string `json:"enabled_standard_attrs"`
+		EnableChat           *bool     `json:"enable_chat"`
+		EnableItemTrading    *bool     `json:"enable_item_trading"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
@@ -309,15 +332,26 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 		game.Description = *req.Description
 	}
 	if req.MaxPlayers != nil && *req.MaxPlayers >= 1 {
-		plan, err := h.service.repo.GetUserPlan(userID)
-		if err == nil && plan.MaxPlayersPerGame != -1 && *req.MaxPlayers > plan.MaxPlayersPerGame {
-			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("Your plan allows max %d players", plan.MaxPlayersPerGame)})
-			return
+		if !isAdmin {
+			plan, err := h.service.repo.GetUserPlan(userID)
+			if err == nil && plan.MaxPlayersPerGame != -1 && *req.MaxPlayers > plan.MaxPlayersPerGame {
+				respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("Your plan allows max %d players", plan.MaxPlayersPerGame)})
+				return
+			}
 		}
 		game.MaxPlayers = *req.MaxPlayers
 	}
-	if req.ShowStandardAttrs != nil {
+	// EnabledStandardAttrs is the source of truth; ShowStandardAttrs is derived.
+	if req.EnabledStandardAttrs != nil {
+		game.EnabledStandardAttrs = formatEnabledStandardAttrs(*req.EnabledStandardAttrs)
+		game.ShowStandardAttrs = game.EnabledStandardAttrs != ""
+	} else if req.ShowStandardAttrs != nil {
 		game.ShowStandardAttrs = *req.ShowStandardAttrs
+		if *req.ShowStandardAttrs {
+			game.EnabledStandardAttrs = strings.Join(standardAttributeKeys, ",")
+		} else {
+			game.EnabledStandardAttrs = ""
+		}
 	}
 	if req.EnableChat != nil {
 		game.EnableChat = *req.EnableChat
@@ -332,13 +366,14 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, 200, map[string]interface{}{
-		"id":                  game.ID,
-		"title":               game.Title,
-		"description":         game.Description,
-		"max_players":         game.MaxPlayers,
-		"show_standard_attrs": game.ShowStandardAttrs,
-		"enable_chat":         game.EnableChat,
-		"enable_item_trading": game.EnableItemTrading,
+		"id":                     game.ID,
+		"title":                  game.Title,
+		"description":            game.Description,
+		"max_players":            game.MaxPlayers,
+		"show_standard_attrs":    game.ShowStandardAttrs,
+		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
+		"enable_chat":            game.EnableChat,
+		"enable_item_trading":    game.EnableItemTrading,
 	})
 }
 
@@ -366,7 +401,7 @@ func (h *Handler) UpdateMemberRole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UpdateMemberRole(userID, gameID, targetUserID, req.Role); err != nil {
+	if err := h.service.UpdateMemberRole(userID, gameID, targetUserID, req.Role, auth.GetUserRole(r) == "admin"); err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
@@ -378,7 +413,7 @@ func (h *Handler) RemoveMember(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	targetUserID := chi.URLParam(r, "userID")
 
-	if err := h.service.RemoveMember(userID, gameID, targetUserID); err != nil {
+	if err := h.service.RemoveMember(userID, gameID, targetUserID, auth.GetUserRole(r) == "admin"); err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
@@ -389,7 +424,7 @@ func (h *Handler) DeleteGame(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 	gameID := chi.URLParam(r, "gameID")
 
-	if err := h.service.DeleteGame(userID, gameID); err != nil {
+	if err := h.service.DeleteGame(userID, gameID, auth.GetUserRole(r) == "admin"); err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
 	}
@@ -413,7 +448,7 @@ func (h *Handler) UploadCoverImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	uploadID, err := h.service.UploadCoverImage(userID, gameID, file, header)
+	uploadID, err := h.service.UploadCoverImage(userID, gameID, auth.GetUserRole(r) == "admin", file, header)
 	if err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
@@ -427,7 +462,7 @@ func (h *Handler) UploadCharacterPortrait(w http.ResponseWriter, r *http.Request
 	gameID := chi.URLParam(r, "gameID")
 	characterID := chi.URLParam(r, "characterID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return
@@ -480,7 +515,7 @@ func (h *Handler) UploadItemImage(w http.ResponseWriter, r *http.Request) {
 	gameID := chi.URLParam(r, "gameID")
 	itemID := chi.URLParam(r, "itemID")
 
-	_, isGM, err := h.authorizeGameAccess(userID, gameID)
+	_, isGM, err := h.authorizeGameAccess(r, gameID)
 	if err != nil {
 		h.respondGameAccessError(w, gameID, err)
 		return

@@ -42,9 +42,19 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  disabledStandardAttrs: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['close', 'save'])
+
+// Hide base-attribute inputs for attributes the game has turned off.
+const visibleBaseAttributeFields = computed(() => {
+  const disabled = new Set(props.disabledStandardAttrs)
+  return baseAttributeFields.filter((field) => !disabled.has(field.key))
+})
 
 const fileInputRef = ref(null)
 const localError = ref('')
@@ -427,7 +437,7 @@ function emitSave() {
               </div>
             </div>
 
-            <div class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+            <div v-if="visibleBaseAttributeFields.length" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
               <div class="flex items-center justify-between gap-3">
                 <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Base Attributes</span>
                 <span class="text-[12px] text-[#d8dce7]/45">GM editable</span>
@@ -435,7 +445,7 @@ function emitSave() {
 
               <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <label
-                  v-for="attribute in baseAttributeFields"
+                  v-for="attribute in visibleBaseAttributeFields"
                   :key="attribute.key"
                   class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3"
                 >

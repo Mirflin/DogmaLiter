@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	"backend/internal/game"
 	"backend/internal/news"
 	"backend/internal/payment"
+	"backend/internal/realtime"
 	"backend/pkg/database"
 	"encoding/json"
 )
@@ -31,9 +33,11 @@ func main() {
 	authService := auth.NewService(authRepo, jwtManager, mailer, cfg.FrontendURL, cfg.UploadDir)
 	authHandler := auth.NewHandler(authService)
 
+	hub := realtime.NewHub()
+
 	gameRepo := game.NewRepository(db)
 	gameService := game.NewService(gameRepo, cfg.UploadDir)
-	gameHandler := game.NewHandler(gameService)
+	gameHandler := game.NewHandler(gameService, hub)
 
 	newsRepo := news.NewRepository(db)
 	newsService := news.NewService(newsRepo, cfg.UploadDir)
@@ -103,6 +107,35 @@ func main() {
 			"invite_code_expires_at": game.InviteCodeExpiresAt,
 		})
 	})
+
+	// Realtime WebSocket endpoint. The JWT arrives as the `token` query param
+	// (browsers can't set Authorization on a WS handshake), so this route lives
+	// outside the bearer-auth group and validates the token itself.
+	wsHandler := realtime.NewHandler(
+		hub,
+		func(token string) (string, error) {
+			claims, err := jwtManager.ValidateToken(token)
+			if err != nil {
+				return "", err
+			}
+			return claims.UserID, nil
+		},
+		func(userID, gameID string) bool {
+			g, err := gameRepo.GetGameByID(gameID)
+			if err != nil {
+				return false
+			}
+			if g.OwnerID == userID {
+				return true
+			}
+			isMember, _ := gameRepo.IsMember(gameID, userID)
+			return isMember
+		},
+		allowedOriginHosts(cfg.FrontendOrigins),
+	)
+	// Path kept separate from the "/api/games" mount to avoid a chi routing
+	// conflict with that subtree's wildcard.
+	r.Get("/api/ws/games/{gameID}", wsHandler.HandleWS)
 
 	r.Group(func(r chi.Router) {
 		r.Use(auth.JWTMiddleware(jwtManager))
@@ -359,4 +392,16 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
+}
+
+// allowedOriginHosts converts configured frontend origins (full URLs) into the
+// host patterns coder/websocket checks against the WS handshake Origin header.
+func allowedOriginHosts(origins []string) []string {
+	hosts := make([]string, 0, len(origins))
+	for _, origin := range origins {
+		if parsed, err := url.Parse(strings.TrimSpace(origin)); err == nil && parsed.Host != "" {
+			hosts = append(hosts, parsed.Host)
+		}
+	}
+	return hosts
 }

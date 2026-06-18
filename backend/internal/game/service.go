@@ -36,7 +36,7 @@ func generateInviteCode() string {
 	return strings.ToUpper(hex.EncodeToString(b))
 }
 
-func (s *Service) CreateGame(userID string, title, description, system string, maxPlayers int, showStandardAttrs, enableChat, enableItemTrading bool) (*models.Game, error) {
+func (s *Service) CreateGame(userID string, title, description, system string, maxPlayers int, enabledStandardAttrs string, enableChat, enableItemTrading bool) (*models.Game, error) {
 	plan, err := s.repo.GetUserPlan(userID)
 	if err != nil {
 		return nil, errors.New("failed to load plan")
@@ -62,17 +62,18 @@ func (s *Service) CreateGame(userID string, title, description, system string, m
 
 	expiresAt := time.Now().Add(15 * time.Minute)
 	game := &models.Game{
-		ID:                  uuid.New().String(),
-		OwnerID:             userID,
-		Title:               title,
-		Description:         description,
-		System:              system,
-		InviteCode:          generateInviteCode(),
-		InviteCodeExpiresAt: &expiresAt,
-		MaxPlayers:          maxPlayers,
-		ShowStandardAttrs:   showStandardAttrs,
-		EnableChat:          enableChat,
-		EnableItemTrading:   enableItemTrading,
+		ID:                   uuid.New().String(),
+		OwnerID:              userID,
+		Title:                title,
+		Description:          description,
+		System:               system,
+		InviteCode:           generateInviteCode(),
+		InviteCodeExpiresAt:  &expiresAt,
+		MaxPlayers:           maxPlayers,
+		ShowStandardAttrs:    enabledStandardAttrs != "",
+		EnabledStandardAttrs: enabledStandardAttrs,
+		EnableChat:           enableChat,
+		EnableItemTrading:    enableItemTrading,
 	}
 
 	if err := s.repo.CreateGame(game); err != nil {
@@ -138,12 +139,12 @@ func (s *Service) JoinByCode(userID, code string) (*models.Game, error) {
 	return game, nil
 }
 
-func (s *Service) RegenerateInviteCode(userID, gameID string) (string, time.Time, error) {
+func (s *Service) RegenerateInviteCode(userID, gameID string, isAdmin bool) (string, time.Time, error) {
 	game, err := s.repo.GetGameByID(gameID)
 	if err != nil {
 		return "", time.Time{}, errors.New("game not found")
 	}
-	if game.OwnerID != userID {
+	if game.OwnerID != userID && !isAdmin {
 		return "", time.Time{}, errors.New("only the game owner can regenerate the invite code")
 	}
 
@@ -155,12 +156,12 @@ func (s *Service) RegenerateInviteCode(userID, gameID string) (string, time.Time
 	return newCode, expiresAt, nil
 }
 
-func (s *Service) UpdateMemberRole(actorID, gameID, targetUserID, role string) error {
+func (s *Service) UpdateMemberRole(actorID, gameID, targetUserID, role string, isAdmin bool) error {
 	game, err := s.repo.GetGameByID(gameID)
 	if err != nil {
 		return errors.New("game not found")
 	}
-	if game.OwnerID != actorID {
+	if game.OwnerID != actorID && !isAdmin {
 		return errors.New("only the main GM can change roles")
 	}
 	if targetUserID == game.OwnerID {
@@ -178,13 +179,13 @@ func (s *Service) UpdateMemberRole(actorID, gameID, targetUserID, role string) e
 	return s.repo.UpdateMemberRole(gameID, targetUserID, role)
 }
 
-func (s *Service) RemoveMember(actorID, gameID, targetUserID string) error {
+func (s *Service) RemoveMember(actorID, gameID, targetUserID string, isAdmin bool) error {
 	game, err := s.repo.GetGameByID(gameID)
 	if err != nil {
 		return errors.New("game not found")
 	}
 
-	isGM := game.OwnerID == actorID
+	isGM := isAdmin || game.OwnerID == actorID
 	if !isGM {
 		for _, member := range game.Members {
 			if member.UserID == actorID && (member.Role == "gm" || member.Role == "assistant_gm") {
@@ -223,31 +224,31 @@ func (s *Service) LeaveGame(userID, gameID string) error {
 	return s.repo.RemoveMember(gameID, userID)
 }
 
-func (s *Service) DeleteGame(userID, gameID string) error {
+func (s *Service) DeleteGame(userID, gameID string, isAdmin bool) error {
 	game, err := s.repo.GetGameByID(gameID)
 	if err != nil {
 		return errors.New("game not found")
 	}
-	if game.OwnerID != userID {
+	if game.OwnerID != userID && !isAdmin {
 		return errors.New("only the game owner can delete the game")
 	}
 	if game.CoverImageID != nil {
 		upload, err := s.repo.GetUploadByID(*game.CoverImageID)
 		if err == nil {
 			os.Remove(filepath.Join(s.uploadDir, upload.StorageKey))
-			s.repo.SubtractStorageUsage(userID, upload.SizeBytes)
+			s.repo.SubtractStorageUsage(game.OwnerID, upload.SizeBytes)
 			s.repo.DeleteUpload(upload.ID)
 		}
 	}
 	return s.repo.DeleteGame(gameID)
 }
 
-func (s *Service) UploadCoverImage(userID, gameID string, file multipart.File, header *multipart.FileHeader) (string, error) {
+func (s *Service) UploadCoverImage(userID, gameID string, isAdmin bool, file multipart.File, header *multipart.FileHeader) (string, error) {
 	game, err := s.repo.GetGameByID(gameID)
 	if err != nil {
 		return "", errors.New("game not found")
 	}
-	if game.OwnerID != userID {
+	if game.OwnerID != userID && !isAdmin {
 		return "", errors.New("only the game owner can upload a cover image")
 	}
 

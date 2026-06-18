@@ -33,6 +33,10 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  disabledStandardAttrs: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const auth = useAuthStore()
@@ -121,7 +125,10 @@ let itemListRequestId = 0
 const allItems = computed(() => (rawItems.value ?? []).map(item => normalizeItem(item)))
 const itemById = computed(() => Object.fromEntries(allItems.value.map(item => [item.id, item])))
 const attributeOptions = computed(() => {
+  // Seed with all standard keys so a disabled one can't sneak back in as a custom.
   const seen = new Set(BASE_ATTRIBUTE_OPTIONS.map(option => option.value))
+  const disabled = new Set(props.disabledStandardAttrs)
+  const enabledBaseOptions = BASE_ATTRIBUTE_OPTIONS.filter(option => !disabled.has(option.value))
   const customOptions = []
 
   for (const character of props.characters ?? []) {
@@ -140,7 +147,7 @@ const attributeOptions = computed(() => {
   }
 
   customOptions.sort((left, right) => left.label.localeCompare(right.label))
-  return [...BASE_ATTRIBUTE_OPTIONS, ...customOptions]
+  return [...enabledBaseOptions, ...customOptions]
 })
 const availableTagNames = computed(() => {
   const result = new Map()

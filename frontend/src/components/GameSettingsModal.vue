@@ -18,10 +18,19 @@ const saving = ref(false)
 const loadError = ref('')
 const game = ref(null)
 
+const STANDARD_ATTR_DEFS = [
+  { key: 'strength', label: 'Strength' },
+  { key: 'dexterity', label: 'Dexterity' },
+  { key: 'constitution', label: 'Constitution' },
+  { key: 'intelligence', label: 'Intelligence' },
+  { key: 'wisdom', label: 'Wisdom' },
+  { key: 'charisma', label: 'Charisma' },
+]
+
 const title = ref('')
 const description = ref('')
 const maxPlayers = ref(6)
-const showStandardAttrs = ref(true)
+const standardAttrs = ref(Object.fromEntries(STANDARD_ATTR_DEFS.map((attr) => [attr.key, true])))
 const enableChat = ref(true)
 const enableItemTrading = ref(true)
 
@@ -38,7 +47,7 @@ const coverFile = ref(null)
 const coverPreview = ref(null)
 const uploadingCover = ref(false)
 
-const isOwner = computed(() => game.value?.owner_id === auth.user?.id)
+const isOwner = computed(() => game.value?.owner_id === auth.user?.id || auth.user?.role === 'admin')
 
 watch(() => props.visible, async (val) => {
   if (val && props.gameId) {
@@ -50,7 +59,12 @@ watch(() => props.visible, async (val) => {
       title.value = data.title
       description.value = data.description || ''
       maxPlayers.value = data.max_players
-      showStandardAttrs.value = data.show_standard_attrs
+      const enabledList = Array.isArray(data.enabled_standard_attrs)
+        ? new Set(data.enabled_standard_attrs)
+        : null
+      for (const attr of STANDARD_ATTR_DEFS) {
+        standardAttrs.value[attr.key] = enabledList ? enabledList.has(attr.key) : data.show_standard_attrs !== false
+      }
       enableChat.value = data.enable_chat
       enableItemTrading.value = data.enable_item_trading
       inviteCode.value = data.invite_code || ''
@@ -160,7 +174,7 @@ async function handleSave() {
       title: title.value,
       description: description.value,
       max_players: maxPlayers.value,
-      show_standard_attrs: showStandardAttrs.value,
+      enabled_standard_attrs: STANDARD_ATTR_DEFS.filter((attr) => standardAttrs.value[attr.key]).map((attr) => attr.key),
       enable_chat: enableChat.value,
       enable_item_trading: enableItemTrading.value,
     })
@@ -266,16 +280,22 @@ function close() {
             </div>
           </div>
           <div class="space-y-3">
-            <label class="flex items-center gap-3 cursor-pointer group">
-              <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
-                :class="showStandardAttrs ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
-                <svg v-if="showStandardAttrs" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <input type="checkbox" v-model="showStandardAttrs" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
-              </span>
-              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Standard Attributes</span>
-            </label>
+            <div>
+              <p class="text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Base Attributes</p>
+              <p class="text-[#7ec8e3]/30 text-[12px] mb-3">Uncheck an attribute to remove it from this game's character sheets, editors and item stats.</p>
+              <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                <label v-for="attr in STANDARD_ATTR_DEFS" :key="attr.key" class="flex items-center gap-2.5 cursor-pointer group">
+                  <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
+                    :class="standardAttrs[attr.key] ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                    <svg v-if="standardAttrs[attr.key]" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <input type="checkbox" v-model="standardAttrs[attr.key]" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
+                  </span>
+                  <span class="text-[#e8e8f0]/70 text-[13px] select-none">{{ attr.label }}</span>
+                </label>
+              </div>
+            </div>
             <label class="flex items-center gap-3 cursor-pointer group">
               <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
                 :class="enableChat ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">

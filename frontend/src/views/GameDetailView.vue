@@ -19,7 +19,7 @@ const showSettingsModal = ref(false)
 
 const gameId = computed(() => route.params.id)
 
-const isGM = computed(() => game.value?.owner_id === auth.user?.id)
+const isGM = computed(() => game.value?.owner_id === auth.user?.id || auth.user?.role === 'admin')
 
 const filteredMembers = computed(() => {
   if (!game.value?.members) return []

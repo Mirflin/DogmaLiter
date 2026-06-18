@@ -9,10 +9,19 @@ import { notify } from '@/notify'
 const auth = useAuthStore()
 const router = useRouter()
 
+const STANDARD_ATTR_DEFS = [
+  { key: 'strength', label: 'Strength' },
+  { key: 'dexterity', label: 'Dexterity' },
+  { key: 'constitution', label: 'Constitution' },
+  { key: 'intelligence', label: 'Intelligence' },
+  { key: 'wisdom', label: 'Wisdom' },
+  { key: 'charisma', label: 'Charisma' },
+]
+
 const title = ref('')
 const description = ref('')
 const maxPlayers = ref(6)
-const showStandardAttrs = ref(true)
+const standardAttrs = ref(Object.fromEntries(STANDARD_ATTR_DEFS.map((attr) => [attr.key, true])))
 const enableChat = ref(true)
 const enableItemTrading = ref(true)
 const coverFile = ref(null)
@@ -95,7 +104,7 @@ async function handleCreate() {
       description: description.value.trim(),
       system: 'custom',
       max_players: maxPlayers.value,
-      show_standard_attrs: showStandardAttrs.value,
+      enabled_standard_attrs: STANDARD_ATTR_DEFS.filter((attr) => standardAttrs.value[attr.key]).map((attr) => attr.key),
       enable_chat: enableChat.value,
       enable_item_trading: enableItemTrading.value,
     })
@@ -266,14 +275,20 @@ onUnmounted(() => clearInterval(countdownTimer))
         <div class="space-y-4 p-5 bg-[rgba(15,15,35,0.4)] border border-[rgba(126,200,227,0.08)] rounded-xl">
           <p class="text-[#7ec8e3]/60 text-[13px] font-medium mb-1">Game Options</p>
 
-          <label class="flex items-center justify-between cursor-pointer group">
-            <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">Standard Attributes (STR, DEX, etc.)</span>
-            <div class="relative">
-              <input type="checkbox" v-model="showStandardAttrs" class="sr-only peer" />
-              <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
-              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+          <div>
+            <p class="text-[#e8e8f0]/80 text-[14px] mb-1">Base Attributes</p>
+            <p class="text-[#7ec8e3]/30 text-[12px] mb-3">Turn off any attribute your system doesn't use.</p>
+            <div class="space-y-2.5">
+              <label v-for="attr in STANDARD_ATTR_DEFS" :key="attr.key" class="flex items-center justify-between cursor-pointer group">
+                <span class="text-[#e8e8f0]/75 text-[13px] group-hover:text-[#e8e8f0] transition-colors">{{ attr.label }}</span>
+                <div class="relative">
+                  <input type="checkbox" v-model="standardAttrs[attr.key]" class="sr-only peer" />
+                  <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
+                  <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </div>
+              </label>
             </div>
-          </label>
+          </div>
 
           <label class="flex items-center justify-between cursor-pointer group">
             <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">In-Game Chat</span>

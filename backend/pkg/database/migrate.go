@@ -39,6 +39,7 @@ func AutoMigrate(db *gorm.DB) {
 	}
 
 	migrateItemSchema(db)
+	migrateGameStandardAttrs(db)
 
 	if !db.Migrator().HasConstraint(&models.Upload{}, "fk_uploads_user") {
 		err = db.Exec(`ALTER TABLE uploads ADD CONSTRAINT fk_uploads_user FOREIGN KEY (user_id) REFERENCES users(id)`).Error
@@ -105,6 +106,19 @@ func seedPlans(db *gorm.DB) {
 			db.Create(&plan)
 			log.Printf("Seeded plan: %s", plan.Name)
 		}
+	}
+}
+
+// migrateGameStandardAttrs preserves prior behaviour after the per-attribute
+// toggle column was introduced: games that had standard attributes turned off
+// (the old single boolean) start with an empty enabled list. Newly added column
+// defaults to all six, so this only adjusts the disabled ones. Idempotent.
+func migrateGameStandardAttrs(db *gorm.DB) {
+	if !db.Migrator().HasColumn(&models.Game{}, "enabled_standard_attrs") {
+		return
+	}
+	if err := db.Exec(`UPDATE games SET enabled_standard_attrs = '' WHERE show_standard_attrs = 0`).Error; err != nil {
+		log.Printf("games.enabled_standard_attrs backfill: %v", err)
 	}
 }
 
