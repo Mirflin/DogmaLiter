@@ -127,6 +127,8 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		EnabledStandardAttrs *[]string `json:"enabled_standard_attrs"`
 		EnableChat           *bool     `json:"enable_chat"`
 		EnableItemTrading    *bool     `json:"enable_item_trading"`
+		EnableHealth         *bool     `json:"enable_health"`
+		EnableArmorClass     *bool     `json:"enable_armor_class"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
@@ -149,11 +151,19 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	if req.EnableItemTrading != nil {
 		trading = *req.EnableItemTrading
 	}
+	health := false
+	if req.EnableHealth != nil {
+		health = *req.EnableHealth
+	}
+	armorClass := false
+	if req.EnableArmorClass != nil {
+		armorClass = *req.EnableArmorClass
+	}
 	if req.System == "" {
 		req.System = "custom"
 	}
 
-	game, err := h.service.CreateGame(userID, req.Title, req.Description, req.System, req.MaxPlayers, enabledAttrs, chat, trading)
+	game, err := h.service.CreateGame(userID, req.Title, req.Description, req.System, req.MaxPlayers, enabledAttrs, chat, trading, health, armorClass)
 	if err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
@@ -275,6 +285,8 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
 		"enable_chat":            game.EnableChat,
 		"enable_item_trading":    game.EnableItemTrading,
+		"enable_health":          game.EnableHealth,
+		"enable_armor_class":     game.EnableArmorClass,
 		"invite_code":            game.InviteCode,
 		"invite_code_expires_at": game.InviteCodeExpiresAt,
 		"created_at":             game.CreatedAt,
@@ -315,6 +327,8 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 		EnabledStandardAttrs *[]string `json:"enabled_standard_attrs"`
 		EnableChat           *bool     `json:"enable_chat"`
 		EnableItemTrading    *bool     `json:"enable_item_trading"`
+		EnableHealth         *bool     `json:"enable_health"`
+		EnableArmorClass     *bool     `json:"enable_armor_class"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
@@ -359,6 +373,12 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	if req.EnableItemTrading != nil {
 		game.EnableItemTrading = *req.EnableItemTrading
 	}
+	if req.EnableHealth != nil {
+		game.EnableHealth = *req.EnableHealth
+	}
+	if req.EnableArmorClass != nil {
+		game.EnableArmorClass = *req.EnableArmorClass
+	}
 
 	if err := h.service.repo.UpdateGame(game); err != nil {
 		respondJSON(w, 500, map[string]string{"error": "Failed to update game"})
@@ -374,6 +394,8 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
 		"enable_chat":            game.EnableChat,
 		"enable_item_trading":    game.EnableItemTrading,
+		"enable_health":          game.EnableHealth,
+		"enable_armor_class":     game.EnableArmorClass,
 	})
 }
 

@@ -129,6 +129,8 @@ const enabledStandardAttrs = computed(() => {
   return game.value?.show_standard_attrs === false ? new Set() : new Set(STANDARD_ATTR_KEYS)
 })
 const attributesEnabled = computed(() => enabledStandardAttrs.value.size > 0)
+const enableHealth = computed(() => Boolean(game.value?.enable_health))
+const enableArmorClass = computed(() => Boolean(game.value?.enable_armor_class))
 // A standard attribute that the GM turned off — hidden everywhere it would show.
 function isStandardAttrDisabled(name) {
   return STANDARD_ATTR_SET.has(name) && !enabledStandardAttrs.value.has(name)
@@ -179,6 +181,14 @@ const baseAttributeMap = computed(() => {
       map[name] = Number(attribute?.value) || 0
     }
   }
+  // Health and Armor Class flow through the same modifier pipeline so items can
+  // affect them, but they are gated by their own per-game toggles.
+  if (enableHealth.value) {
+    map.health = Number(characterSnapshot.value?.max_health) || 0
+  }
+  if (enableArmorClass.value) {
+    map.armor_class = Number(characterSnapshot.value?.armor_class) || 0
+  }
   return map
 })
 const equipmentModifiers = computed(() => {
@@ -208,6 +218,18 @@ const effectiveAttributeMap = computed(() => {
   }
   return result
 })
+// Vitals: base value is GM-set, effective value includes item modifiers.
+const baseMaxHealth = computed(() => Number(characterSnapshot.value?.max_health) || 0)
+const effectiveMaxHealth = computed(() => effectiveAttributeMap.value.health ?? baseMaxHealth.value)
+const currentHealth = computed(() => Number(characterSnapshot.value?.current_health) || 0)
+const healthPercent = computed(() => {
+  const max = effectiveMaxHealth.value
+  if (max <= 0) return 0
+  return Math.max(0, Math.min(100, (currentHealth.value / max) * 100))
+})
+const baseArmorClass = computed(() => Number(characterSnapshot.value?.armor_class) || 0)
+const effectiveArmorClass = computed(() => effectiveAttributeMap.value.armor_class ?? baseArmorClass.value)
+const armorClassBonus = computed(() => effectiveArmorClass.value - baseArmorClass.value)
 const statTooltip = ref({ visible: false, left: 0, top: 0, label: '', base: 0, total: 0, contributions: [] })
 function showStatTooltip(event, attribute) {
   const rect = event.currentTarget.getBoundingClientRect()
@@ -1169,6 +1191,7 @@ function createCharacterFormState(snapshot = null) {
     gold: snapshot?.currency_gold ?? 0,
     silver: snapshot?.currency_silver ?? 0,
     copper: snapshot?.currency_copper ?? 0,
+    currentHealth: snapshot?.current_health ?? 0,
   }
 }
 
@@ -1176,6 +1199,12 @@ function normalizeCurrencyValue(value) {
   const parsed = Number.parseInt(value, 10)
   if (Number.isNaN(parsed)) return 0
   return Math.min(999999999, Math.max(0, parsed))
+}
+
+function normalizeHealthValue(value) {
+  const parsed = Number.parseInt(value, 10)
+  if (Number.isNaN(parsed)) return 0
+  return Math.min(9999999, Math.max(0, parsed))
 }
 
 function resetPortraitSelection() {
@@ -1662,6 +1691,11 @@ async function saveCharacterProfile() {
     currency_copper: normalizeCurrencyValue(characterForm.value.copper),
   }
 
+  // Players may adjust current health when the feature is enabled.
+  if (enableHealth.value) {
+    payload.current_health = normalizeHealthValue(characterForm.value.currentHealth)
+  }
+
   if (!payload.name) {
     characterSaveError.value = 'Character name cannot be empty'
     characterSaveNotice.value = ''
@@ -1674,6 +1708,7 @@ async function saveCharacterProfile() {
     || payload.currency_gold !== (snapshot.currency_gold ?? 0)
     || payload.currency_silver !== (snapshot.currency_silver ?? 0)
     || payload.currency_copper !== (snapshot.currency_copper ?? 0)
+    || (enableHealth.value && payload.current_health !== (snapshot.current_health ?? 0))
 
   if (!hasProfileChanges && !portraitFile.value) {
     profileEditMode.value = false
@@ -1867,6 +1902,8 @@ onBeforeUnmount(() => {
         :error="gmCharacterEditorError"
         :members="game.members ?? []"
         :disabled-standard-attrs="disabledStandardAttrs"
+        :enable-health="enableHealth"
+        :enable-armor-class="enableArmorClass"
         @close="closeGMCharacterEditor"
         @save="saveGMCharacterEditor"
       />
@@ -2122,6 +2159,14 @@ onBeforeUnmount(() => {
                               </label>
                             </div>
                           </div>
+
+                          <div v-if="enableHealth">
+                            <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Health</span>
+                            <label class="mt-4 block rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
+                              <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Current HP (max {{ effectiveMaxHealth }})</span>
+                              <input v-model.number="characterForm.currentHealth" type="number" min="0" :max="effectiveMaxHealth" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                            </label>
+                          </div>
                         </div>
                       </div>
 
@@ -2167,6 +2212,30 @@ onBeforeUnmount(() => {
                         >
                           <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ currency.label }}</p>
                           <p class="mt-2 text-[24px] font-semibold text-[#f6f7fb]">{{ currency.value }}</p>
+                        </div>
+                      </div>
+
+                      <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+                        <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Vitals</p>
+                        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                          <div v-if="enableHealth" class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4">
+                            <div class="flex items-center justify-between">
+                              <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Health</p>
+                              <p class="text-[13px] font-semibold text-[#f6f7fb]">{{ currentHealth }} / {{ effectiveMaxHealth }}</p>
+                            </div>
+                            <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-[rgba(7,17,31,0.8)]">
+                              <div class="h-full rounded-full bg-[linear-gradient(90deg,#ef4444,#f87171)] transition-all duration-300" :style="{ width: `${healthPercent}%` }"></div>
+                            </div>
+                          </div>
+                          <div v-if="enableArmorClass" class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4">
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Armor Class</p>
+                            <div class="mt-2 flex items-baseline gap-2">
+                              <p class="text-[24px] font-bold text-[#f6f7fb]">{{ effectiveArmorClass }}</p>
+                              <span v-if="armorClassBonus" class="text-[12px] font-semibold" :class="armorClassBonus > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'">
+                                {{ baseArmorClass }} ({{ armorClassBonus > 0 ? '+' : '' }}{{ armorClassBonus }})
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -2577,7 +2646,7 @@ onBeforeUnmount(() => {
             </article>
           </section>
 
-          <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" :disabled-standard-attrs="disabledStandardAttrs" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
+          <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" :disabled-standard-attrs="disabledStandardAttrs" :enable-health="enableHealth" :enable-armor-class="enableArmorClass" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
 
           <section v-else-if="activeTab === 'manage' && isGM" class="space-y-6">
             <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">

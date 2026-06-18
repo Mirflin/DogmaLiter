@@ -277,6 +277,9 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 		BaseIntelligence: 10,
 		BaseWisdom:       10,
 		BaseCharisma:     10,
+		MaxHealth:        10,
+		CurrentHealth:    10,
+		ArmorClass:       10,
 		InventoryWidth:   10,
 		InventoryHeight:  6,
 		CurrencyGold:     0,
@@ -506,6 +509,9 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		CurrencyGold     *int                                     `json:"currency_gold"`
 		CurrencySilver   *int                                     `json:"currency_silver"`
 		CurrencyCopper   *int                                     `json:"currency_copper"`
+		CurrentHealth    *int                                     `json:"current_health"`
+		MaxHealth        *int                                     `json:"max_health"`
+		ArmorClass       *int                                     `json:"armor_class"`
 		OwnerUserID      *string                                  `json:"owner_user_id"`
 		InventoryWidth   *int                                     `json:"inventory_width"`
 		InventoryHeight  *int                                     `json:"inventory_height"`
@@ -573,11 +579,43 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		hasChanges = true
 	}
 
-	if req.OwnerUserID != nil || req.InventoryWidth != nil || req.InventoryHeight != nil || req.BaseAttributes != nil || req.CustomAttributes != nil {
+	// Current health is player-editable (like currency).
+	if req.CurrentHealth != nil {
+		value, err := validateHealthAmount(*req.CurrentHealth, "Current health")
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		character.CurrentHealth = value
+		hasChanges = true
+	}
+
+	// Max health and armor class are GM-only base stats (items modify them).
+	if req.OwnerUserID != nil || req.InventoryWidth != nil || req.InventoryHeight != nil || req.BaseAttributes != nil || req.CustomAttributes != nil || req.MaxHealth != nil || req.ArmorClass != nil {
 		if !isGM {
 			respondJSON(w, 403, map[string]string{"error": "Only the GM can edit advanced character settings"})
 			return
 		}
+	}
+
+	if req.MaxHealth != nil {
+		value, err := validateHealthAmount(*req.MaxHealth, "Max health")
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		character.MaxHealth = value
+		hasChanges = true
+	}
+
+	if req.ArmorClass != nil {
+		value, err := validateArmorClass(*req.ArmorClass)
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		character.ArmorClass = value
+		hasChanges = true
 	}
 
 	if req.OwnerUserID != nil {
@@ -1682,6 +1720,8 @@ func serializeGame(game *models.Game, userID string, isGM bool) map[string]inter
 		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
 		"enable_chat":            game.EnableChat,
 		"enable_item_trading":    game.EnableItemTrading,
+		"enable_health":          game.EnableHealth,
+		"enable_armor_class":     game.EnableArmorClass,
 		"created_at":             game.CreatedAt,
 		"updated_at":             game.UpdatedAt,
 		"members":                members,
@@ -1719,6 +1759,9 @@ func serializeCharacterSummaries(characters []models.Character) []map[string]int
 			"currency_gold":    character.CurrencyGold,
 			"currency_silver":  character.CurrencySilver,
 			"currency_copper":  character.CurrencyCopper,
+			"max_health":       character.MaxHealth,
+			"current_health":   character.CurrentHealth,
+			"armor_class":      character.ArmorClass,
 			"owner": map[string]interface{}{
 				"id":         character.User.ID,
 				"username":   character.User.Username,
@@ -1764,6 +1807,9 @@ func serializeCharacterDetail(character *models.Character) map[string]interface{
 		"currency_gold":    character.CurrencyGold,
 		"currency_silver":  character.CurrencySilver,
 		"currency_copper":  character.CurrencyCopper,
+		"max_health":       character.MaxHealth,
+		"current_health":   character.CurrentHealth,
+		"armor_class":      character.ArmorClass,
 		"owner": map[string]interface{}{
 			"id":         character.User.ID,
 			"username":   character.User.Username,
@@ -2217,6 +2263,22 @@ func validateCustomAttributeValue(value int) (int, error) {
 func validateCurrencyAmount(value int, label string) (int, error) {
 	if value < 0 || value > 999999999 {
 		return 0, fmt.Errorf("%s must be between 0 and 999999999", label)
+	}
+
+	return value, nil
+}
+
+func validateHealthAmount(value int, label string) (int, error) {
+	if value < 0 || value > 9999999 {
+		return 0, fmt.Errorf("%s must be between 0 and 9999999", label)
+	}
+
+	return value, nil
+}
+
+func validateArmorClass(value int) (int, error) {
+	if value < 0 || value > 99999 {
+		return 0, fmt.Errorf("Armor class must be between 0 and 99999")
 	}
 
 	return value, nil

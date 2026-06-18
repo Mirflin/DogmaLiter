@@ -172,6 +172,9 @@ func (r *Repository) UpdateCharacter(character *models.Character, replaceCustomA
 				"currency_gold":     character.CurrencyGold,
 				"currency_silver":   character.CurrencySilver,
 				"currency_copper":   character.CurrencyCopper,
+				"max_health":        character.MaxHealth,
+				"current_health":    character.CurrentHealth,
+				"armor_class":       character.ArmorClass,
 				"updated_at":        time.Now(),
 			}).Error; err != nil {
 			return err

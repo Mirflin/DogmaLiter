@@ -33,6 +33,8 @@ const maxPlayers = ref(6)
 const standardAttrs = ref(Object.fromEntries(STANDARD_ATTR_DEFS.map((attr) => [attr.key, true])))
 const enableChat = ref(true)
 const enableItemTrading = ref(true)
+const enableHealth = ref(false)
+const enableArmorClass = ref(false)
 
 const inviteCode = ref('')
 const inviteExpiresAt = ref(null)
@@ -67,6 +69,8 @@ watch(() => props.visible, async (val) => {
       }
       enableChat.value = data.enable_chat
       enableItemTrading.value = data.enable_item_trading
+      enableHealth.value = Boolean(data.enable_health)
+      enableArmorClass.value = Boolean(data.enable_armor_class)
       inviteCode.value = data.invite_code || ''
       inviteExpiresAt.value = data.invite_code_expires_at || null
       coverPreview.value = data.cover_image_id ? `${API_URL}/api/uploads/${data.cover_image_id}` : null
@@ -177,6 +181,8 @@ async function handleSave() {
       enabled_standard_attrs: STANDARD_ATTR_DEFS.filter((attr) => standardAttrs.value[attr.key]).map((attr) => attr.key),
       enable_chat: enableChat.value,
       enable_item_trading: enableItemTrading.value,
+      enable_health: enableHealth.value,
+      enable_armor_class: enableArmorClass.value,
     })
 
     if (coverFile.value) {
@@ -296,6 +302,26 @@ function close() {
                 </label>
               </div>
             </div>
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
+                :class="enableHealth ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                <svg v-if="enableHealth" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <input type="checkbox" v-model="enableHealth" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
+              </span>
+              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Health</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer group">
+              <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
+                :class="enableArmorClass ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                <svg v-if="enableArmorClass" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <input type="checkbox" v-model="enableArmorClass" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
+              </span>
+              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Armor Class</span>
+            </label>
             <label class="flex items-center gap-3 cursor-pointer group">
               <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
                 :class="enableChat ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">

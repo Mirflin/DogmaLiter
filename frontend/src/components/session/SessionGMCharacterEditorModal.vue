@@ -46,6 +46,14 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  enableHealth: {
+    type: Boolean,
+    default: false,
+  },
+  enableArmorClass: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const emit = defineEmits(['close', 'save'])
@@ -131,6 +139,9 @@ function createFormState(character = null) {
     currency_gold: character?.currency_gold ?? 0,
     currency_silver: character?.currency_silver ?? 0,
     currency_copper: character?.currency_copper ?? 0,
+    max_health: character?.max_health ?? 10,
+    current_health: character?.current_health ?? 10,
+    armor_class: character?.armor_class ?? 10,
     base_attributes: {
       strength: character?.base_attributes?.strength ?? 10,
       dexterity: character?.base_attributes?.dexterity ?? 10,
@@ -279,6 +290,9 @@ function emitSave() {
       currency_gold: normalizeInteger(form.value.currency_gold),
       currency_silver: normalizeInteger(form.value.currency_silver),
       currency_copper: normalizeInteger(form.value.currency_copper),
+      max_health: normalizeInteger(form.value.max_health, 10),
+      current_health: normalizeInteger(form.value.current_health, 10),
+      armor_class: normalizeInteger(form.value.armor_class, 10),
       base_attributes: {
         strength: normalizeInteger(form.value.base_attributes.strength, 10),
         dexterity: normalizeInteger(form.value.base_attributes.dexterity, 10),
@@ -434,6 +448,27 @@ function emitSave() {
                     <input v-model.number="form[currency.key]" type="number" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
                   </label>
                 </div>
+              </div>
+            </div>
+
+            <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Health &amp; Armor</span>
+                <span class="text-[12px] text-[#d8dce7]/45">GM editable</span>
+              </div>
+              <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <label v-if="enableHealth" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Max Health</span>
+                  <input v-model.number="form.max_health" type="number" min="0" max="9999999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                </label>
+                <label v-if="enableHealth" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Current Health</span>
+                  <input v-model.number="form.current_health" type="number" min="0" max="9999999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                </label>
+                <label v-if="enableArmorClass" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Armor Class</span>
+                  <input v-model.number="form.armor_class" type="number" min="0" max="99999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                </label>
               </div>
             </div>
 

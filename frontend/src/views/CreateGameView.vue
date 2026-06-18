@@ -24,6 +24,8 @@ const maxPlayers = ref(6)
 const standardAttrs = ref(Object.fromEntries(STANDARD_ATTR_DEFS.map((attr) => [attr.key, true])))
 const enableChat = ref(true)
 const enableItemTrading = ref(true)
+const enableHealth = ref(false)
+const enableArmorClass = ref(false)
 const coverFile = ref(null)
 const coverPreview = ref(null)
 
@@ -107,6 +109,8 @@ async function handleCreate() {
       enabled_standard_attrs: STANDARD_ATTR_DEFS.filter((attr) => standardAttrs.value[attr.key]).map((attr) => attr.key),
       enable_chat: enableChat.value,
       enable_item_trading: enableItemTrading.value,
+      enable_health: enableHealth.value,
+      enable_armor_class: enableArmorClass.value,
     })
     if (coverFile.value && data.id) {
       try {
@@ -294,6 +298,24 @@ onUnmounted(() => clearInterval(countdownTimer))
             <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">In-Game Chat</span>
             <div class="relative">
               <input type="checkbox" v-model="enableChat" class="sr-only peer" />
+              <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+            </div>
+          </label>
+
+          <label class="flex items-center justify-between cursor-pointer group">
+            <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">Health (players track their HP)</span>
+            <div class="relative">
+              <input type="checkbox" v-model="enableHealth" class="sr-only peer" />
+              <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+            </div>
+          </label>
+
+          <label class="flex items-center justify-between cursor-pointer group">
+            <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">Armor Class (GM only)</span>
+            <div class="relative">
+              <input type="checkbox" v-model="enableArmorClass" class="sr-only peer" />
               <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
               <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
             </div>

@@ -19,6 +19,8 @@ type Game struct {
 	EnabledStandardAttrs string    `gorm:"type:varchar(120);default:'strength,dexterity,constitution,intelligence,wisdom,charisma'" json:"-"`
 	EnableChat           bool      `gorm:"default:true" json:"enable_chat"`
 	EnableItemTrading    bool      `gorm:"default:true" json:"enable_item_trading"`
+	EnableHealth         bool      `gorm:"default:false" json:"enable_health"`
+	EnableArmorClass     bool      `gorm:"default:false" json:"enable_armor_class"`
 	CreatedAt            time.Time `json:"created_at"`
 	UpdatedAt            time.Time `json:"updated_at"`
 

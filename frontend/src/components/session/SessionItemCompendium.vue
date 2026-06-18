@@ -37,6 +37,14 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  enableHealth: {
+    type: Boolean,
+    default: false,
+  },
+  enableArmorClass: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 const auth = useAuthStore()
@@ -129,6 +137,18 @@ const attributeOptions = computed(() => {
   const seen = new Set(BASE_ATTRIBUTE_OPTIONS.map(option => option.value))
   const disabled = new Set(props.disabledStandardAttrs)
   const enabledBaseOptions = BASE_ATTRIBUTE_OPTIONS.filter(option => !disabled.has(option.value))
+
+  // Optional combat stats items can modify, gated by their per-game toggles.
+  const systemOptions = []
+  if (props.enableHealth) {
+    systemOptions.push({ value: 'health', label: 'Health' })
+    seen.add('health')
+  }
+  if (props.enableArmorClass) {
+    systemOptions.push({ value: 'armor_class', label: 'Armor Class' })
+    seen.add('armor_class')
+  }
+
   const customOptions = []
 
   for (const character of props.characters ?? []) {
@@ -147,7 +167,7 @@ const attributeOptions = computed(() => {
   }
 
   customOptions.sort((left, right) => left.label.localeCompare(right.label))
-  return [...enabledBaseOptions, ...customOptions]
+  return [...enabledBaseOptions, ...systemOptions, ...customOptions]
 })
 const availableTagNames = computed(() => {
   const result = new Map()

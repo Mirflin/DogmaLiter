@@ -36,7 +36,7 @@ func generateInviteCode() string {
 	return strings.ToUpper(hex.EncodeToString(b))
 }
 
-func (s *Service) CreateGame(userID string, title, description, system string, maxPlayers int, enabledStandardAttrs string, enableChat, enableItemTrading bool) (*models.Game, error) {
+func (s *Service) CreateGame(userID string, title, description, system string, maxPlayers int, enabledStandardAttrs string, enableChat, enableItemTrading, enableHealth, enableArmorClass bool) (*models.Game, error) {
 	plan, err := s.repo.GetUserPlan(userID)
 	if err != nil {
 		return nil, errors.New("failed to load plan")
@@ -74,6 +74,8 @@ func (s *Service) CreateGame(userID string, title, description, system string, m
 		EnabledStandardAttrs: enabledStandardAttrs,
 		EnableChat:           enableChat,
 		EnableItemTrading:    enableItemTrading,
+		EnableHealth:         enableHealth,
+		EnableArmorClass:     enableArmorClass,
 	}
 
 	if err := s.repo.CreateGame(game); err != nil {
