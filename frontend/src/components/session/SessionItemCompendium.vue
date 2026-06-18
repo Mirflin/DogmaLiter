@@ -17,6 +17,7 @@ import { API_URL } from '@/api'
 import { getErrorMessage, notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import SearchableSelect from '@/components/session/SearchableSelect.vue'
 
 const emit = defineEmits(['created'])
 
@@ -2192,9 +2193,7 @@ function itemSizeLabel(item) {
                     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
-                        <select v-model="requirement.attribute_name" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
-                          <option v-for="option in attributeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                        </select>
+                        <SearchableSelect v-model="requirement.attribute_name" :options="attributeOptions" :disabled="detailFormDisabled" class="mt-2" />
                       </label>
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Minimum</span>
@@ -2227,9 +2226,7 @@ function itemSizeLabel(item) {
                     <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
-                        <select v-model="modifier.attribute_name" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
-                          <option v-for="option in attributeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                        </select>
+                        <SearchableSelect v-model="modifier.attribute_name" :options="attributeOptions" :disabled="detailFormDisabled" class="mt-2" />
                       </label>
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Value</span>
@@ -2489,9 +2486,7 @@ function itemSizeLabel(item) {
                     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
-                        <select v-model="requirement.attribute_name" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none">
-                          <option v-for="option in attributeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                        </select>
+                        <SearchableSelect v-model="requirement.attribute_name" :options="attributeOptions" class="mt-2" />
                       </label>
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Minimum</span>
@@ -2524,9 +2519,7 @@ function itemSizeLabel(item) {
                     <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
-                        <select v-model="modifier.attribute_name" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none">
-                          <option v-for="option in attributeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                        </select>
+                        <SearchableSelect v-model="modifier.attribute_name" :options="attributeOptions" class="mt-2" />
                       </label>
                       <label class="block">
                         <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Value</span>
