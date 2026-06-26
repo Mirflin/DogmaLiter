@@ -12,6 +12,7 @@ import {
   Package as PackageIcon,
   RefreshCw as RefreshCwIcon,
   Settings as SettingsIcon,
+  Trash2 as Trash2Icon,
   TriangleAlert as TriangleAlertIcon,
   UserRound as UserRoundIcon,
   Users as UsersIcon,
@@ -82,6 +83,7 @@ const backstoryExpanded = ref(false)
 const gmRosterSearch = ref('')
 const gmRosterMemberFilter = ref('all')
 const gmRosterRoleFilter = ref('all')
+const collapsedRosterMembers = ref(new Set())
 const characterForm = ref(createCharacterFormState())
 const gmCharacterEditorTarget = ref(null)
 const gmCharacterCreateError = ref('')
@@ -557,6 +559,10 @@ const gmRosterMembers = computed(() => {
     .filter(Boolean)
 })
 const gmRosterVisibleCharacterCount = computed(() => gmRosterMembers.value.reduce((total, member) => total + member.filteredCharacters.length, 0))
+const gmRosterMemberFilterOptions = computed(() => [
+  { value: 'all', label: 'All members' },
+  ...(game.value?.members ?? []).map(member => ({ value: member.user_id, label: member.username })),
+])
 const gmRosterHasFilters = computed(() => Boolean(
   gmRosterSearch.value.trim()
   || gmRosterMemberFilter.value !== 'all'
@@ -1279,6 +1285,28 @@ function resetGMRosterFilters() {
   gmRosterSearch.value = ''
   gmRosterMemberFilter.value = 'all'
   gmRosterRoleFilter.value = 'all'
+}
+
+function isRosterMemberExpanded(userId) {
+  return !collapsedRosterMembers.value.has(userId)
+}
+
+function toggleRosterMember(userId) {
+  const next = new Set(collapsedRosterMembers.value)
+  if (next.has(userId)) {
+    next.delete(userId)
+  } else {
+    next.add(userId)
+  }
+  collapsedRosterMembers.value = next
+}
+
+function expandAllRosterMembers() {
+  collapsedRosterMembers.value = new Set()
+}
+
+function collapseAllRosterMembers() {
+  collapsedRosterMembers.value = new Set(gmRosterMembers.value.map(member => member.user_id))
 }
 
 function findCharacterById(characterId) {
@@ -2512,17 +2540,18 @@ onBeforeUnmount(() => {
 
           <section v-else-if="activeTab === 'players' && isGM" class="w-full space-y-5">
             <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
-              <div class="flex items-center justify-between gap-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Member Manager</p>
-                  <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">Campaign Roster</h3>
+                  <h3 class="mt-1 font-[Cinzel] text-[26px] font-bold text-[#f6f7fb]">Campaign Roster</h3>
                 </div>
-                <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
-                  {{ game.members?.length ?? 0 }} members
-                </span>
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
+                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">{{ game.members?.length ?? 0 }} members</span>
+                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">{{ gmRosterVisibleCharacterCount }} characters</span>
+                </div>
               </div>
 
-              <div class="mt-6 rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
+              <div class="mt-5 rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
                 <div class="flex flex-wrap items-end gap-3">
                   <label class="block min-w-[18rem] flex-1">
                     <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Search</span>
@@ -2536,15 +2565,12 @@ onBeforeUnmount(() => {
 
                   <label class="block min-w-[14rem]">
                     <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Member</span>
-                    <select
+                    <SearchableSelect
                       v-model="gmRosterMemberFilter"
-                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 focus:border-[rgba(233,69,96,0.34)]"
-                    >
-                      <option value="all">All members</option>
-                      <option v-for="member in game.members" :key="member.user_id" :value="member.user_id">
-                        {{ member.username }}
-                      </option>
-                    </select>
+                      :options="gmRosterMemberFilterOptions"
+                      placeholder="Search members…"
+                      class="mt-2"
+                    />
                   </label>
 
                   <label class="block min-w-[13rem]">
@@ -2571,94 +2597,74 @@ onBeforeUnmount(() => {
 
               </div>
 
-              <div class="mt-5 space-y-3">
+              <div v-if="gmRosterMembers.length" class="mt-4 flex items-center justify-end gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
+                <button @click="expandAllRosterMembers" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[#8fd7ef] transition-colors hover:border-[rgba(126,200,227,0.32)]">Expand all</button>
+                <button @click="collapseAllRosterMembers" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[#8fd7ef] transition-colors hover:border-[rgba(126,200,227,0.32)]">Collapse all</button>
+              </div>
+
+              <div class="mt-4 space-y-3">
                 <div
                   v-for="member in gmRosterMembers"
                   :key="member.user_id"
-                  class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4"
+                  class="overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.04)]"
                 >
-                  <div class="flex flex-wrap items-start justify-between gap-4">
-                    <div class="flex items-center gap-3">
-                      <div class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                        <img v-if="avatarUrl(member.avatar_id)" :src="avatarUrl(member.avatar_id)" :alt="member.username" class="h-full w-full object-cover" />
-                        <span v-else class="font-[Cinzel] text-[18px] font-bold text-[#8fd7ef]">{{ initials(member.username) }}</span>
-                      </div>
+                  <button
+                    type="button"
+                    @click="toggleRosterMember(member.user_id)"
+                    class="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-[rgba(126,200,227,0.06)]"
+                  >
+                    <ChevronRightIcon
+                      class="h-5 w-5 shrink-0 text-[#7ec8e3]/55 transition-transform duration-200"
+                      :class="isRosterMemberExpanded(member.user_id) ? 'rotate-90' : ''"
+                      :stroke-width="2.5"
+                    />
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                      <img v-if="avatarUrl(member.avatar_id)" :src="avatarUrl(member.avatar_id)" :alt="member.username" class="h-full w-full object-cover" />
+                      <span v-else class="font-[Cinzel] text-[16px] font-bold text-[#8fd7ef]">{{ initials(member.username) }}</span>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <p class="truncate text-[16px] font-semibold text-[#f6f7fb]">{{ member.username }}</p>
+                      <p class="truncate text-[12px] text-[#7ec8e3]/55">{{ formatRole(member.role) }} · joined {{ formatDateTime(member.joined_at) }}</p>
+                    </div>
+                    <span class="shrink-0 rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[12px] font-medium text-[#8fd7ef]">
+                      {{ member.filteredCharacters.length }}<template v-if="member.filteredCharacters.length !== member.totalCharacterCount">/{{ member.totalCharacterCount }}</template> chars
+                    </span>
+                  </button>
 
-                      <div>
-                        <p class="text-[15px] font-semibold text-[#f6f7fb]">{{ member.username }}</p>
-                        <p class="mt-1 text-[12px] text-[#7ec8e3]/58">{{ formatRole(member.role) }} · joined {{ formatDateTime(member.joined_at) }}</p>
+                  <div v-if="isRosterMemberExpanded(member.user_id)" class="border-t border-[rgba(126,200,227,0.08)]">
+                    <div v-if="member.filteredCharacters.length">
+                      <div
+                        v-for="character in member.filteredCharacters"
+                        :key="character.id"
+                        class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.05)] px-5 py-3.5 transition-colors last:border-b-0"
+                        :class="character.id === activeCharacterId ? 'bg-[rgba(233,69,96,0.1)]' : 'hover:bg-[rgba(126,200,227,0.04)]'"
+                      >
+                        <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                          <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" />
+                          <span v-else class="font-[Cinzel] text-[16px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                          <div class="flex items-center gap-2">
+                            <p class="truncate text-[16px] font-semibold text-[#f6f7fb]">{{ character.name }}</p>
+                            <span v-if="character.id === activeCharacterId" class="shrink-0 rounded-full bg-[rgba(233,69,96,0.2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ffe0e7]">Active</span>
+                          </div>
+                          <p class="truncate text-[12px] text-[#7ec8e3]/50">{{ character.owner?.username || member.username }} · {{ character.inventory_width }}x{{ character.inventory_height }}</p>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-1.5">
+                          <button @click="openInspectChoice(character)" title="Inspect" aria-label="Inspect" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] text-[#9fb6c4] transition-colors hover:border-[rgba(126,200,227,0.32)] hover:text-[#f6f7fb]">
+                            <EyeIcon class="h-[18px] w-[18px]" :stroke-width="2" />
+                          </button>
+                          <button @click="openGMCharacterEditor(character)" title="Configure" aria-label="Configure" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] text-[#fff4de] transition-colors hover:border-[rgba(197,138,56,0.4)]">
+                            <SettingsIcon class="h-[18px] w-[18px]" :stroke-width="2" />
+                          </button>
+                          <button @click="requestCharacterDeletion(character)" title="Delete" aria-label="Delete" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] text-[#fecaca] transition-colors hover:border-[rgba(248,113,113,0.45)]">
+                            <Trash2Icon class="h-[18px] w-[18px]" :stroke-width="2" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-
-                    <div class="flex flex-wrap gap-2 text-[11px] text-[#d8dce7]/60">
-                      <span class="rounded-full border border-[rgba(126,200,227,0.14)] px-2.5 py-1">{{ member.totalCharacterCount }} characters</span>
-                    </div>
+                    <p v-else class="px-5 py-4 text-[13px] text-[#d8dce7]/45">{{ gmRosterEmptyStateMessage(member) }}</p>
                   </div>
-
-                  <div v-if="member.filteredCharacters.length" class="mt-5 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                    <article
-                      v-for="character in member.filteredCharacters"
-                      :key="character.id"
-                      class="rounded-[1.8rem] border p-5 transition-all duration-200"
-                      :class="character.id === activeCharacterId
-                        ? 'border-[rgba(233,69,96,0.5)] bg-[rgba(233,69,96,0.14)] shadow-[0_20px_50px_rgba(233,69,96,0.18)] ring-1 ring-[rgba(255,173,189,0.35)]'
-                        : 'border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]'"
-                    >
-                      <div class="flex items-start justify-between gap-4">
-                        <div class="flex min-w-0 items-center gap-4">
-                          <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                            <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" />
-                            <span v-else class="font-[Cinzel] text-[20px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
-                          </div>
-
-                          <div class="min-w-0">
-                            <h4 class="truncate font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ character.name }}</h4>
-                            <p class="mt-1 text-[13px] text-[#7ec8e3]/58">{{ character.owner?.username || member.username }}</p>
-                          </div>
-                        </div>
-
-                        <div class="flex shrink-0 flex-col items-end gap-2">
-                          <span
-                            v-if="character.id === activeCharacterId"
-                            class="rounded-full border border-[rgba(255,173,189,0.34)] bg-[rgba(233,69,96,0.2)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ffe0e7]"
-                          >
-                            Active
-                          </span>
-                          <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fd7ef]">
-                            {{ character.inventory_width }}x{{ character.inventory_height }}
-                          </span>
-                        </div>
-                      </div>
-
-                      <p class="mt-4 line-clamp-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
-                        {{ character.backstory || 'Blank dossier.' }}
-                      </p>
-
-                      <div class="mt-6 flex flex-wrap gap-3">
-                        <button
-                          @click="openInspectChoice(character)"
-                          class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.32)]"
-                        >
-                          <EyeIcon class="h-4 w-4" :stroke-width="2" />
-                          Inspect
-                        </button>
-                        <button
-                          @click="openGMCharacterEditor(character)"
-                          class="cursor-pointer rounded-xl border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-4 py-2.5 text-[13px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
-                        >
-                          Configure
-                        </button>
-                        <button
-                          @click="requestCharacterDeletion(character)"
-                          class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </article>
-                  </div>
-
-                  <p v-else class="mt-4 text-[13px] text-[#d8dce7]/52">{{ gmRosterEmptyStateMessage(member) }}</p>
                 </div>
 
                 <article v-if="!gmRosterMembers.length" class="rounded-[1.75rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-8 text-center">
