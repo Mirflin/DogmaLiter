@@ -16,13 +16,16 @@ type Game struct {
 	// EnabledStandardAttrs is the source of truth for which of the six base
 	// attributes are active in a game (CSV of canonical keys). ShowStandardAttrs
 	// is kept in sync as (len > 0) for backward compatibility.
-	EnabledStandardAttrs string    `gorm:"type:varchar(120);default:'strength,dexterity,constitution,intelligence,wisdom,charisma'" json:"-"`
-	EnableChat           bool      `gorm:"default:true" json:"enable_chat"`
-	EnableItemTrading    bool      `gorm:"default:true" json:"enable_item_trading"`
-	EnableHealth         bool      `gorm:"default:false" json:"enable_health"`
-	EnableArmorClass     bool      `gorm:"default:false" json:"enable_armor_class"`
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	EnabledStandardAttrs string `gorm:"type:varchar(120);default:'strength,dexterity,constitution,intelligence,wisdom,charisma'" json:"-"`
+	EnableChat           bool   `gorm:"default:true" json:"enable_chat"`
+	EnableItemTrading    bool   `gorm:"default:true" json:"enable_item_trading"`
+	EnableHealth         bool   `gorm:"default:false" json:"enable_health"`
+	EnableArmorClass     bool   `gorm:"default:false" json:"enable_armor_class"`
+	// CharacterSlotsPerPlayer is how many characters each member may own. The
+	// game-wide cap scales as this value times the number of members.
+	CharacterSlotsPerPlayer int       `gorm:"default:5" json:"character_slots_per_player"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 
 	Owner      User         `gorm:"foreignKey:OwnerID" json:"owner,omitempty"`
 	CoverImage *Upload      `gorm:"foreignKey:CoverImageID" json:"cover_image,omitempty"`

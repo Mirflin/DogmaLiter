@@ -1,6 +1,6 @@
 <script setup>
 import { API_URL } from '@/api'
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
   visible: {
@@ -31,6 +31,21 @@ const emit = defineEmits(['select', 'create'])
 const remainingSlots = computed(() => {
   if (props.viewer?.character_limit < 0) return null
   return Math.max((props.viewer?.character_limit ?? 0) - (props.viewer?.owned_character_count ?? 0), 0)
+})
+
+const searchQuery = ref('')
+const filteredCharacters = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return props.characters
+  return props.characters.filter((character) => {
+    const name = String(character?.name || '').toLowerCase()
+    const owner = String(character?.owner?.username || '').toLowerCase()
+    return name.includes(q) || owner.includes(q)
+  })
+})
+
+watch(() => props.visible, (visible) => {
+  if (visible) searchQuery.value = ''
 })
 
 function avatarUrl(uploadId) {
@@ -69,12 +84,19 @@ function createCharacter() {
             <h2 class="mt-2 font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">Session Entry</h2>
           </div>
 
+          <input
+            v-if="characters.length"
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search by name or owner…"
+            class="session-input w-full max-w-[280px] rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(7,17,31,0.72)] px-4 py-2.5 text-[14px] text-[#f6f7fb] outline-none transition-colors focus:border-[rgba(233,69,96,0.4)]"
+          />
         </div>
 
-        <div v-if="characters.length" class="session-picker-scroll mt-6 max-h-[62vh] overflow-y-auto pr-1">
+        <div v-if="filteredCharacters.length" class="session-picker-scroll mt-6 max-h-[62vh] overflow-y-auto pr-1">
           <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <button
-              v-for="character in characters"
+              v-for="character in filteredCharacters"
               :key="character.id"
               @click="selectCharacter(character.id)"
               class="session-picker-card cursor-pointer rounded-[1.8rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.84)] p-4 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[rgba(233,69,96,0.32)] hover:shadow-[0_20px_50px_rgba(233,69,96,0.12)]"
@@ -103,6 +125,10 @@ function createCharacter() {
               </div>
             </button>
           </div>
+        </div>
+
+        <div v-else-if="characters.length" class="mt-6 rounded-[1.8rem] border border-dashed border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.04)] px-5 py-10 text-center">
+          <p class="text-[15px] text-[#d8dce7]/60">No characters match “{{ searchQuery }}”.</p>
         </div>
 
         <div v-else class="session-picker-empty mt-6 rounded-[1.8rem] border border-dashed border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.04)] px-5 py-10 text-center">

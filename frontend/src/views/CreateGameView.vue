@@ -21,6 +21,7 @@ const STANDARD_ATTR_DEFS = [
 const title = ref('')
 const description = ref('')
 const maxPlayers = ref(6)
+const characterSlotsPerPlayer = ref(5)
 const standardAttrs = ref(Object.fromEntries(STANDARD_ATTR_DEFS.map((attr) => [attr.key, true])))
 const enableChat = ref(true)
 const enableItemTrading = ref(true)
@@ -106,6 +107,7 @@ async function handleCreate() {
       description: description.value.trim(),
       system: 'custom',
       max_players: maxPlayers.value,
+      character_slots_per_player: characterSlotsPerPlayer.value,
       enabled_standard_attrs: STANDARD_ATTR_DEFS.filter((attr) => standardAttrs.value[attr.key]).map((attr) => attr.key),
       enable_chat: enableChat.value,
       enable_item_trading: enableItemTrading.value,
@@ -273,6 +275,19 @@ onUnmounted(() => clearInterval(countdownTimer))
             type="number"
             min="2"
             :max="auth.user?.max_players_per_game === -1 ? undefined : (auth.user?.max_players_per_game || 20)"
+            class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors"
+          />
+        </div>
+        <div>
+          <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">
+            Character slots per player
+            <span class="text-[#7ec8e3]/30 ml-1">(each player can own this many characters)</span>
+          </label>
+          <input
+            v-model.number="characterSlotsPerPlayer"
+            type="number"
+            min="1"
+            max="50"
             class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors"
           />
         </div>

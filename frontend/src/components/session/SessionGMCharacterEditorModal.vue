@@ -2,6 +2,7 @@
 import { X as XIcon } from '@lucide/vue'
 import { API_URL } from '@/api'
 import { computed, ref, watch } from 'vue'
+import SearchableSelect from '@/components/session/SearchableSelect.vue'
 
 const MAX_PORTRAIT_SIZE = 5 * 1024 * 1024
 const ALLOWED_PORTRAIT_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -74,6 +75,10 @@ const form = ref(createFormState())
 const displayError = computed(() => localError.value || props.error || '')
 const portraitUrl = computed(() => portraitPreviewUrl.value || avatarUrl(props.character?.portrait_id))
 const selectedOwner = computed(() => props.members.find(member => member.user_id === form.value.owner_user_id) ?? null)
+const memberOptions = computed(() => props.members.map(member => ({
+  value: member.user_id,
+  label: `${member.username} · ${formatRole(member.role)}`,
+})))
 
 watch(
   [() => props.visible, () => props.character],
@@ -422,15 +427,13 @@ function emitSave() {
 
                 <label class="block">
                   <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Assigned To</span>
-                  <select
+                  <SearchableSelect
                     v-model="form.owner_user_id"
+                    :options="memberOptions"
                     :disabled="saving"
-                    class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 focus:border-[rgba(233,69,96,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <option v-for="member in members" :key="member.user_id" :value="member.user_id">
-                      {{ member.username }} · {{ formatRole(member.role) }}
-                    </option>
-                  </select>
+                    placeholder="Search members…"
+                    class="mt-2"
+                  />
                 </label>
               </div>
 

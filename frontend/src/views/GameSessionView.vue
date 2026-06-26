@@ -23,6 +23,7 @@ import SessionGMCharacterCreateModal from '@/components/session/SessionGMCharact
 import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemCompendium from '@/components/session/SessionItemCompendium.vue'
+import SearchableSelect from '@/components/session/SearchableSelect.vue'
 import GameSettingsModal from '@/components/GameSettingsModal.vue'
 import DataTable from '@/components/DataTable.vue'
 import { getErrorMessage, notify } from '@/notify'
@@ -107,6 +108,10 @@ const viewer = computed(() => session.value?.viewer ?? {
 const isGM = computed(() => Boolean(viewer.value?.is_gm))
 const playerNeedsCharacterSelection = computed(() => !isGM.value && !activeCharacterId.value)
 const characters = computed(() => session.value?.characters ?? [])
+const characterOptions = computed(() => characters.value.map((character) => ({
+  value: character.id,
+  label: character.owner?.username ? `${character.name} · ${character.owner.username}` : character.name,
+})))
 const rosterCharacters = computed(() => {
   if (!isGM.value) return characters.value
   return characters.value.filter(character => character.user_id === viewer.value?.user_id)
@@ -230,6 +235,22 @@ const healthPercent = computed(() => {
 const baseArmorClass = computed(() => Number(characterSnapshot.value?.armor_class) || 0)
 const effectiveArmorClass = computed(() => effectiveAttributeMap.value.armor_class ?? baseArmorClass.value)
 const armorClassBonus = computed(() => effectiveArmorClass.value - baseArmorClass.value)
+// Stat objects for the hover tooltip (same shape as base-attribute cards), so it
+// shows which equipped items contribute to Health / Armor Class.
+const healthStat = computed(() => ({
+  label: 'Health',
+  base: baseMaxHealth.value,
+  value: effectiveMaxHealth.value,
+  bonus: effectiveMaxHealth.value - baseMaxHealth.value,
+  contributions: attributeContributions.value.health ?? [],
+}))
+const armorClassStat = computed(() => ({
+  label: 'Armor Class',
+  base: baseArmorClass.value,
+  value: effectiveArmorClass.value,
+  bonus: armorClassBonus.value,
+  contributions: attributeContributions.value.armor_class ?? [],
+}))
 const statTooltip = ref({ visible: false, left: 0, top: 0, label: '', base: 0, total: 0, contributions: [] })
 function showStatTooltip(event, attribute) {
   const rect = event.currentTarget.getBoundingClientRect()
@@ -1976,17 +1997,15 @@ onBeforeUnmount(() => {
               </div>
 
               <div class="flex flex-wrap items-center gap-3">
-                <select
+                <SearchableSelect
                   v-if="characters.length"
-                  :value="activeCharacterId"
-                  @change="switchCharacter($event.target.value, { nextTab: activeTab })"
-                  class="session-input min-w-[14rem] rounded-2xl border border-[rgba(126,200,227,0.14)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 focus:border-[rgba(233,69,96,0.34)]"
-                >
-                  <option value="">Choose a character</option>
-                  <option v-for="character in characters" :key="character.id" :value="character.id">
-                    {{ character.name }} · {{ character.owner?.username }}
-                  </option>
-                </select>
+                  :model-value="activeCharacterId"
+                  :options="characterOptions"
+                  placeholder="Search characters…"
+                  clearable
+                  class="min-w-[14rem]"
+                  @update:model-value="switchCharacter($event, { nextTab: activeTab })"
+                />
 
                 <button
                   @click="openCharacterPicker"
@@ -2218,7 +2237,12 @@ onBeforeUnmount(() => {
                       <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
                         <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Vitals</p>
                         <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                          <div v-if="enableHealth" class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4">
+                          <div
+                            v-if="enableHealth"
+                            class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
+                            @mouseenter="showStatTooltip($event, healthStat)"
+                            @mouseleave="hideStatTooltip"
+                          >
                             <div class="flex items-center justify-between">
                               <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Health</p>
                               <p class="text-[13px] font-semibold text-[#f6f7fb]">{{ currentHealth }} / {{ effectiveMaxHealth }}</p>
@@ -2227,7 +2251,12 @@ onBeforeUnmount(() => {
                               <div class="h-full rounded-full bg-[linear-gradient(90deg,#ef4444,#f87171)] transition-all duration-300" :style="{ width: `${healthPercent}%` }"></div>
                             </div>
                           </div>
-                          <div v-if="enableArmorClass" class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4">
+                          <div
+                            v-if="enableArmorClass"
+                            class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
+                            @mouseenter="showStatTooltip($event, armorClassStat)"
+                            @mouseleave="hideStatTooltip"
+                          >
                             <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Armor Class</p>
                             <div class="mt-2 flex items-baseline gap-2">
                               <p class="text-[24px] font-bold text-[#f6f7fb]">{{ effectiveArmorClass }}</p>
@@ -2300,7 +2329,7 @@ onBeforeUnmount(() => {
                       <span class="text-[12px] text-[#e8e8f0]/45">{{ equipment.length }} slots filled</span>
                     </div>
 
-                    <div v-if="equipment.length" class="mt-4 max-h-[12rem] space-y-3 overflow-y-auto pr-1">
+                    <div v-if="equipment.length" class="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
                       <div
                         v-for="slot in equipment"
                         :key="`${slot.slot}-${slot.inventory_item_id}`"
@@ -3658,6 +3687,13 @@ onBeforeUnmount(() => {
 }
 
 .session-dossier-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Equipment panel fills the height of the taller Custom Attributes panel so its
+   list scrolls within the matched height instead of leaving a fixed gap. */
+.session-equipment-panel {
   display: flex;
   flex-direction: column;
 }

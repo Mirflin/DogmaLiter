@@ -36,7 +36,7 @@ func generateInviteCode() string {
 	return strings.ToUpper(hex.EncodeToString(b))
 }
 
-func (s *Service) CreateGame(userID string, title, description, system string, maxPlayers int, enabledStandardAttrs string, enableChat, enableItemTrading, enableHealth, enableArmorClass bool) (*models.Game, error) {
+func (s *Service) CreateGame(userID string, title, description, system string, maxPlayers int, enabledStandardAttrs string, enableChat, enableItemTrading, enableHealth, enableArmorClass bool, characterSlotsPerPlayer int) (*models.Game, error) {
 	plan, err := s.repo.GetUserPlan(userID)
 	if err != nil {
 		return nil, errors.New("failed to load plan")
@@ -62,20 +62,21 @@ func (s *Service) CreateGame(userID string, title, description, system string, m
 
 	expiresAt := time.Now().Add(15 * time.Minute)
 	game := &models.Game{
-		ID:                   uuid.New().String(),
-		OwnerID:              userID,
-		Title:                title,
-		Description:          description,
-		System:               system,
-		InviteCode:           generateInviteCode(),
-		InviteCodeExpiresAt:  &expiresAt,
-		MaxPlayers:           maxPlayers,
-		ShowStandardAttrs:    enabledStandardAttrs != "",
-		EnabledStandardAttrs: enabledStandardAttrs,
-		EnableChat:           enableChat,
-		EnableItemTrading:    enableItemTrading,
-		EnableHealth:         enableHealth,
-		EnableArmorClass:     enableArmorClass,
+		ID:                      uuid.New().String(),
+		OwnerID:                 userID,
+		Title:                   title,
+		Description:             description,
+		System:                  system,
+		InviteCode:              generateInviteCode(),
+		InviteCodeExpiresAt:     &expiresAt,
+		MaxPlayers:              maxPlayers,
+		ShowStandardAttrs:       enabledStandardAttrs != "",
+		EnabledStandardAttrs:    enabledStandardAttrs,
+		EnableChat:              enableChat,
+		EnableItemTrading:       enableItemTrading,
+		EnableHealth:            enableHealth,
+		EnableArmorClass:        enableArmorClass,
+		CharacterSlotsPerPlayer: characterSlotsPerPlayer,
 	}
 
 	if err := s.repo.CreateGame(game); err != nil {

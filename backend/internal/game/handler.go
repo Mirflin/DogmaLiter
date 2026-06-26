@@ -119,21 +119,24 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 	userID := auth.GetUserID(r)
 
 	var req struct {
-		Title                string    `json:"title"`
-		Description          string    `json:"description"`
-		System               string    `json:"system"`
-		MaxPlayers           int       `json:"max_players"`
-		ShowStandardAttrs    *bool     `json:"show_standard_attrs"`
-		EnabledStandardAttrs *[]string `json:"enabled_standard_attrs"`
-		EnableChat           *bool     `json:"enable_chat"`
-		EnableItemTrading    *bool     `json:"enable_item_trading"`
-		EnableHealth         *bool     `json:"enable_health"`
-		EnableArmorClass     *bool     `json:"enable_armor_class"`
+		Title                   string    `json:"title"`
+		Description             string    `json:"description"`
+		System                  string    `json:"system"`
+		MaxPlayers              int       `json:"max_players"`
+		ShowStandardAttrs       *bool     `json:"show_standard_attrs"`
+		EnabledStandardAttrs    *[]string `json:"enabled_standard_attrs"`
+		EnableChat              *bool     `json:"enable_chat"`
+		EnableItemTrading       *bool     `json:"enable_item_trading"`
+		EnableHealth            *bool     `json:"enable_health"`
+		EnableArmorClass        *bool     `json:"enable_armor_class"`
+		CharacterSlotsPerPlayer *int      `json:"character_slots_per_player"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
 		return
 	}
+
+	slots := clampCharacterSlots(req.CharacterSlotsPerPlayer)
 
 	// Prefer the explicit per-attribute list; fall back to the legacy boolean
 	// (true = all attributes, false = none) for older clients.
@@ -163,7 +166,7 @@ func (h *Handler) CreateGame(w http.ResponseWriter, r *http.Request) {
 		req.System = "custom"
 	}
 
-	game, err := h.service.CreateGame(userID, req.Title, req.Description, req.System, req.MaxPlayers, enabledAttrs, chat, trading, health, armorClass)
+	game, err := h.service.CreateGame(userID, req.Title, req.Description, req.System, req.MaxPlayers, enabledAttrs, chat, trading, health, armorClass, slots)
 	if err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
@@ -274,25 +277,26 @@ func (h *Handler) GetGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := map[string]interface{}{
-		"id":                     game.ID,
-		"title":                  game.Title,
-		"description":            game.Description,
-		"system":                 game.System,
-		"max_players":            game.MaxPlayers,
-		"owner_id":               game.OwnerID,
-		"cover_image_id":         game.CoverImageID,
-		"show_standard_attrs":    game.ShowStandardAttrs,
-		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
-		"enable_chat":            game.EnableChat,
-		"enable_item_trading":    game.EnableItemTrading,
-		"enable_health":          game.EnableHealth,
-		"enable_armor_class":     game.EnableArmorClass,
-		"invite_code":            game.InviteCode,
-		"invite_code_expires_at": game.InviteCodeExpiresAt,
-		"created_at":             game.CreatedAt,
-		"updated_at":             game.UpdatedAt,
-		"members":                members,
-		"owner":                  owner,
+		"id":                         game.ID,
+		"title":                      game.Title,
+		"description":                game.Description,
+		"system":                     game.System,
+		"max_players":                game.MaxPlayers,
+		"owner_id":                   game.OwnerID,
+		"cover_image_id":             game.CoverImageID,
+		"show_standard_attrs":        game.ShowStandardAttrs,
+		"enabled_standard_attrs":     parseEnabledStandardAttrs(game.EnabledStandardAttrs),
+		"enable_chat":                game.EnableChat,
+		"enable_item_trading":        game.EnableItemTrading,
+		"enable_health":              game.EnableHealth,
+		"enable_armor_class":         game.EnableArmorClass,
+		"character_slots_per_player": game.CharacterSlotsPerPlayer,
+		"invite_code":                game.InviteCode,
+		"invite_code_expires_at":     game.InviteCodeExpiresAt,
+		"created_at":                 game.CreatedAt,
+		"updated_at":                 game.UpdatedAt,
+		"members":                    members,
+		"owner":                      owner,
 	}
 
 	if game.OwnerID != userID && !isAdmin {
@@ -320,15 +324,16 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Title                *string   `json:"title"`
-		Description          *string   `json:"description"`
-		MaxPlayers           *int      `json:"max_players"`
-		ShowStandardAttrs    *bool     `json:"show_standard_attrs"`
-		EnabledStandardAttrs *[]string `json:"enabled_standard_attrs"`
-		EnableChat           *bool     `json:"enable_chat"`
-		EnableItemTrading    *bool     `json:"enable_item_trading"`
-		EnableHealth         *bool     `json:"enable_health"`
-		EnableArmorClass     *bool     `json:"enable_armor_class"`
+		Title                   *string   `json:"title"`
+		Description             *string   `json:"description"`
+		MaxPlayers              *int      `json:"max_players"`
+		ShowStandardAttrs       *bool     `json:"show_standard_attrs"`
+		EnabledStandardAttrs    *[]string `json:"enabled_standard_attrs"`
+		EnableChat              *bool     `json:"enable_chat"`
+		EnableItemTrading       *bool     `json:"enable_item_trading"`
+		EnableHealth            *bool     `json:"enable_health"`
+		EnableArmorClass        *bool     `json:"enable_armor_class"`
+		CharacterSlotsPerPlayer *int      `json:"character_slots_per_player"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		respondJSON(w, 400, map[string]string{"error": "Invalid request body"})
@@ -379,6 +384,9 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	if req.EnableArmorClass != nil {
 		game.EnableArmorClass = *req.EnableArmorClass
 	}
+	if req.CharacterSlotsPerPlayer != nil {
+		game.CharacterSlotsPerPlayer = clampCharacterSlots(req.CharacterSlotsPerPlayer)
+	}
 
 	if err := h.service.repo.UpdateGame(game); err != nil {
 		respondJSON(w, 500, map[string]string{"error": "Failed to update game"})
@@ -386,16 +394,17 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, 200, map[string]interface{}{
-		"id":                     game.ID,
-		"title":                  game.Title,
-		"description":            game.Description,
-		"max_players":            game.MaxPlayers,
-		"show_standard_attrs":    game.ShowStandardAttrs,
-		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
-		"enable_chat":            game.EnableChat,
-		"enable_item_trading":    game.EnableItemTrading,
-		"enable_health":          game.EnableHealth,
-		"enable_armor_class":     game.EnableArmorClass,
+		"id":                         game.ID,
+		"title":                      game.Title,
+		"description":                game.Description,
+		"max_players":                game.MaxPlayers,
+		"show_standard_attrs":        game.ShowStandardAttrs,
+		"enabled_standard_attrs":     parseEnabledStandardAttrs(game.EnabledStandardAttrs),
+		"enable_chat":                game.EnableChat,
+		"enable_item_trading":        game.EnableItemTrading,
+		"enable_health":              game.EnableHealth,
+		"enable_armor_class":         game.EnableArmorClass,
+		"character_slots_per_player": game.CharacterSlotsPerPlayer,
 	})
 }
 
@@ -588,4 +597,19 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(data)
+}
+
+// clampCharacterSlots keeps the per-player character slot count within sane
+// bounds, defaulting to 5 when not provided.
+func clampCharacterSlots(value *int) int {
+	if value == nil {
+		return 5
+	}
+	if *value < 1 {
+		return 1
+	}
+	if *value > 50 {
+		return 50
+	}
+	return *value
 }

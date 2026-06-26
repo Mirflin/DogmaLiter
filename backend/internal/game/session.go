@@ -22,8 +22,7 @@ import (
 
 var errGameAccessDenied = errors.New("game access denied")
 
-const nonGMCharacterLimit = 5
-const gameCharacterLimit = 5
+const defaultCharacterSlotsPerPlayer = 5
 const gameChatMessageLimit = 40
 const defaultGameItemPage = 1
 const defaultGameItemPerPage = 18
@@ -105,6 +104,7 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ownedCharacterCount := len(characters)
+	canCreateCharacter := isGM || ownedCharacterCount < characterSlotsPerPlayer(game)
 	if isGM {
 		count, err := h.service.repo.CountGameCharactersForUser(gameID, userID)
 		if err != nil {
@@ -133,9 +133,9 @@ func (h *Handler) GetSession(w http.ResponseWriter, r *http.Request) {
 		"viewer": map[string]interface{}{
 			"user_id":               userID,
 			"is_gm":                 isGM,
-			"character_limit":       viewerCharacterLimit(isGM),
+			"character_limit":       viewerCharacterLimit(game, isGM),
 			"owned_character_count": ownedCharacterCount,
-			"can_create_character":  isGM || ownedCharacterCount < nonGMCharacterLimit,
+			"can_create_character":  canCreateCharacter,
 		},
 		"game":       serializeGame(game, userID, isGM),
 		"characters": serializeCharacterSummaries(characters),
@@ -208,32 +208,25 @@ func (h *Handler) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gameCharacterCount, err := h.service.repo.CountGameCharacters(gameID)
-	if err != nil {
-		respondJSON(w, 500, map[string]string{"error": "Failed to check character limit"})
-		return
-	}
-	if gameCharacterCount >= gameCharacterLimit {
-		respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("This game has reached its character limit (%d)", gameCharacterLimit)})
-		return
-	}
-
-	if !isGM {
-		count, err := h.service.repo.CountGameCharactersForUser(gameID, userID)
-		if err != nil {
-			respondJSON(w, 500, map[string]string{"error": "Failed to check character limit"})
-			return
-		}
-		if count >= nonGMCharacterLimit {
-			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("Character limit reached (%d)", nonGMCharacterLimit)})
-			return
-		}
-	}
-
 	ownerUserID, err := resolveCharacterOwnerUserID(game, req.OwnerUserID, userID, isGM)
 	if err != nil {
 		respondJSON(w, 400, map[string]string{"error": err.Error()})
 		return
+	}
+
+	// Players are limited to their per-player slots; the GM is exempt and can
+	// create as many characters / NPCs as the game needs.
+	if !isGM {
+		slots := characterSlotsPerPlayer(game)
+		ownerCount, err := h.service.repo.CountGameCharactersForUser(gameID, ownerUserID)
+		if err != nil {
+			respondJSON(w, 500, map[string]string{"error": "Failed to check character limit"})
+			return
+		}
+		if ownerCount >= int64(slots) {
+			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("You have reached your character limit (%d)", slots)})
+			return
+		}
 	}
 
 	name := generateRandomCharacterName()
@@ -1709,22 +1702,23 @@ func serializeGame(game *models.Game, userID string, isGM bool) map[string]inter
 	}
 
 	payload := map[string]interface{}{
-		"id":                     game.ID,
-		"title":                  game.Title,
-		"description":            game.Description,
-		"system":                 game.System,
-		"max_players":            game.MaxPlayers,
-		"owner_id":               game.OwnerID,
-		"cover_image_id":         game.CoverImageID,
-		"show_standard_attrs":    game.ShowStandardAttrs,
-		"enabled_standard_attrs": parseEnabledStandardAttrs(game.EnabledStandardAttrs),
-		"enable_chat":            game.EnableChat,
-		"enable_item_trading":    game.EnableItemTrading,
-		"enable_health":          game.EnableHealth,
-		"enable_armor_class":     game.EnableArmorClass,
-		"created_at":             game.CreatedAt,
-		"updated_at":             game.UpdatedAt,
-		"members":                members,
+		"id":                         game.ID,
+		"title":                      game.Title,
+		"description":                game.Description,
+		"system":                     game.System,
+		"max_players":                game.MaxPlayers,
+		"owner_id":                   game.OwnerID,
+		"cover_image_id":             game.CoverImageID,
+		"show_standard_attrs":        game.ShowStandardAttrs,
+		"enabled_standard_attrs":     parseEnabledStandardAttrs(game.EnabledStandardAttrs),
+		"enable_chat":                game.EnableChat,
+		"enable_item_trading":        game.EnableItemTrading,
+		"enable_health":              game.EnableHealth,
+		"enable_armor_class":         game.EnableArmorClass,
+		"character_slots_per_player": game.CharacterSlotsPerPlayer,
+		"created_at":                 game.CreatedAt,
+		"updated_at":                 game.UpdatedAt,
+		"members":                    members,
 		"owner": map[string]interface{}{
 			"id":         game.Owner.ID,
 			"username":   game.Owner.Username,
@@ -2128,11 +2122,18 @@ func resolveCharacterOwnerUserID(game *models.Game, requestedOwnerID *string, fa
 	return member.UserID, nil
 }
 
-func viewerCharacterLimit(isGM bool) int {
+func viewerCharacterLimit(game *models.Game, isGM bool) int {
 	if isGM {
 		return -1
 	}
-	return nonGMCharacterLimit
+	return characterSlotsPerPlayer(game)
+}
+
+func characterSlotsPerPlayer(game *models.Game) int {
+	if game != nil && game.CharacterSlotsPerPlayer > 0 {
+		return game.CharacterSlotsPerPlayer
+	}
+	return defaultCharacterSlotsPerPlayer
 }
 
 func generateRandomCharacterName() string {

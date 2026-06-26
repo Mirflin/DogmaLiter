@@ -30,6 +30,7 @@ const STANDARD_ATTR_DEFS = [
 const title = ref('')
 const description = ref('')
 const maxPlayers = ref(6)
+const characterSlotsPerPlayer = ref(5)
 const standardAttrs = ref(Object.fromEntries(STANDARD_ATTR_DEFS.map((attr) => [attr.key, true])))
 const enableChat = ref(true)
 const enableItemTrading = ref(true)
@@ -61,6 +62,7 @@ watch(() => props.visible, async (val) => {
       title.value = data.title
       description.value = data.description || ''
       maxPlayers.value = data.max_players
+      characterSlotsPerPlayer.value = data.character_slots_per_player ?? 5
       const enabledList = Array.isArray(data.enabled_standard_attrs)
         ? new Set(data.enabled_standard_attrs)
         : null
@@ -178,6 +180,7 @@ async function handleSave() {
       title: title.value,
       description: description.value,
       max_players: maxPlayers.value,
+      character_slots_per_player: characterSlotsPerPlayer.value,
       enabled_standard_attrs: STANDARD_ATTR_DEFS.filter((attr) => standardAttrs.value[attr.key]).map((attr) => attr.key),
       enable_chat: enableChat.value,
       enable_item_trading: enableItemTrading.value,
@@ -283,6 +286,13 @@ function close() {
             <div class="flex items-center gap-3">
               <input v-model.number="maxPlayers" type="number" min="1" :max="auth.user?.max_players_per_game === -1 ? undefined : (auth.user?.max_players_per_game || 50)" class="w-24 px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors" />
               <span class="text-[#7ec8e3]/30 text-[12px]">{{ auth.user?.max_players_per_game === -1 ? 'unlimited on your plan' : `max ${auth.user?.max_players_per_game || '?'} on your plan` }}</span>
+            </div>
+          </div>
+          <div>
+            <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Character slots per player</label>
+            <div class="flex items-center gap-3">
+              <input v-model.number="characterSlotsPerPlayer" type="number" min="1" max="50" class="w-24 px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors" />
+              <span class="text-[#7ec8e3]/30 text-[12px]">Each player can own this many characters</span>
             </div>
           </div>
           <div class="space-y-3">
