@@ -31,6 +31,7 @@ import { getErrorMessage, notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useGameSocket } from '@/composables/useGameSocket'
+import { useImageFallback } from '@/composables/useImageFallback'
 import { useRoute, useRouter } from 'vue-router'
 
 const CHAT_POLL_INTERVAL = 15000
@@ -48,6 +49,7 @@ const tabIcons = {
 }
 
 const auth = useAuthStore()
+const { markFailed: markImageFailed, isFailed: isImageFailed } = useImageFallback()
 const route = useRoute()
 const router = useRouter()
 
@@ -1167,7 +1169,8 @@ async function updateMemberRole(member, role) {
 
 function avatarUrl(uploadId) {
   if (!uploadId) return null
-  return `${API_URL}/api/uploads/${uploadId}`
+  const url = `${API_URL}/api/uploads/${uploadId}`
+  return isImageFailed(url) ? null : url
 }
 
 function initials(value) {
@@ -2010,7 +2013,7 @@ onBeforeUnmount(() => {
       </nav>
 
       <div class="mx-auto max-w-[1920px] session-content-shell" :class="{ 'chat-collapsed': chatCollapsed || !game?.enable_chat }">
-        <main class="min-w-0">
+        <main class="min-w-0 @container">
           <article class="session-command-deck mb-6 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] px-4 py-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:px-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
               <div class="min-w-0">
@@ -2060,6 +2063,7 @@ onBeforeUnmount(() => {
                         :src="currentPortraitUrl"
                         :alt="characterSnapshot.name"
                         class="h-full w-full object-cover object-top"
+                        @error="markImageFailed(currentPortraitUrl)"
                       />
                       <span v-else class="font-[Cinzel] text-[44px] font-bold text-[#ff8fa3]">{{ initials(characterSnapshot.name) }}</span>
                     </div>
@@ -2075,17 +2079,6 @@ onBeforeUnmount(() => {
                         <div v-if="characterLoading" class="inline-flex items-center gap-2 rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-[#8fd7ef]">
                           <span class="h-2 w-2 animate-pulse rounded-full bg-[#8fd7ef]"></span>
                           Loading
-                        </div>
-                      </div>
-
-                      <div class="mt-5 grid gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-                        <div
-                          v-for="currency in currencyCards"
-                          :key="currency.key"
-                          class="rounded-2xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3"
-                        >
-                          <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ currency.label }}</p>
-                          <p class="mt-2 text-[20px] font-semibold text-[#f6f7fb]">{{ currency.value }}</p>
                         </div>
                       </div>
                     </div>
@@ -2132,7 +2125,7 @@ onBeforeUnmount(() => {
                           <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Portrait</p>
                           <div class="overflow-hidden rounded-[1.4rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
                             <div class="flex h-64 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(8,16,30,0.94))]">
-                              <img v-if="currentPortraitUrl" :src="currentPortraitUrl" :alt="characterSnapshot.name" class="h-full w-full object-cover object-top" />
+                              <img v-if="currentPortraitUrl" :src="currentPortraitUrl" :alt="characterSnapshot.name" class="h-full w-full object-cover object-top" @error="markImageFailed(currentPortraitUrl)" />
                               <span v-else class="font-[Cinzel] text-[34px] font-bold text-[#8fd7ef]">{{ initials(characterSnapshot.name) }}</span>
                             </div>
                           </div>
@@ -2191,7 +2184,7 @@ onBeforeUnmount(() => {
                             <div class="flex items-center justify-between gap-3">
                               <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Currency</span>
                             </div>
-                            <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                            <div class="mt-4 grid gap-3 @xl:grid-cols-3">
                               <label class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
                                 <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Gold</span>
                                 <input v-model.number="characterForm.gold" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
@@ -2251,7 +2244,7 @@ onBeforeUnmount(() => {
                         </p>
                       </div>
 
-                      <div class="grid gap-3 sm:grid-cols-3">
+                      <div class="grid gap-3 @xl:grid-cols-3">
                         <div
                           v-for="currency in currencyCards"
                           :key="currency.key"
@@ -2264,7 +2257,7 @@ onBeforeUnmount(() => {
 
                       <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
                         <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Vitals</p>
-                        <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                        <div class="mt-4 grid gap-3 @sm:grid-cols-2">
                           <div
                             v-if="enableHealth"
                             class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
@@ -2301,7 +2294,7 @@ onBeforeUnmount(() => {
                           <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Base Attributes</p>
                           <span class="text-[12px] text-[#d8dce7]/45">Read-only</span>
                         </div>
-                        <div class="mt-4 grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+                        <div class="mt-4 grid gap-3 @sm:grid-cols-2 @4xl:grid-cols-3">
                           <div
                             v-for="attribute in attributeCards"
                             :key="attribute.key"
@@ -2466,7 +2459,7 @@ onBeforeUnmount(() => {
                 <div class="flex items-start justify-between gap-4">
                   <div class="flex min-w-0 items-center gap-4">
                     <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                      <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" />
+                      <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(character.portrait_id))" />
                       <span v-else class="font-[Cinzel] text-[20px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
                     </div>
 
@@ -2520,9 +2513,9 @@ onBeforeUnmount(() => {
                   <button
                     v-if="canDeleteCharacter(character)"
                     @click="requestCharacterDeletion(character)"
-                    class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)]"
                   >
-                    Delete
+                    <Trash2Icon class="h-3.5 w-3.5" :stroke-width="2" /> Delete
                   </button>
                 </div>
               </article>
@@ -2619,7 +2612,7 @@ onBeforeUnmount(() => {
                       :stroke-width="2.5"
                     />
                     <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                      <img v-if="avatarUrl(member.avatar_id)" :src="avatarUrl(member.avatar_id)" :alt="member.username" class="h-full w-full object-cover" />
+                      <img v-if="avatarUrl(member.avatar_id)" :src="avatarUrl(member.avatar_id)" :alt="member.username" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(member.avatar_id))" />
                       <span v-else class="font-[Cinzel] text-[16px] font-bold text-[#8fd7ef]">{{ initials(member.username) }}</span>
                     </div>
                     <div class="min-w-0 flex-1">
@@ -2640,7 +2633,7 @@ onBeforeUnmount(() => {
                         :class="character.id === activeCharacterId ? 'bg-[rgba(233,69,96,0.1)]' : 'hover:bg-[rgba(126,200,227,0.04)]'"
                       >
                         <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                          <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" />
+                          <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(character.portrait_id))" />
                           <span v-else class="font-[Cinzel] text-[16px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
                         </div>
                         <div class="min-w-0 flex-1">
@@ -2657,7 +2650,7 @@ onBeforeUnmount(() => {
                           <button @click="openGMCharacterEditor(character)" title="Configure" aria-label="Configure" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] text-[#fff4de] transition-colors hover:border-[rgba(197,138,56,0.4)]">
                             <SettingsIcon class="h-[18px] w-[18px]" :stroke-width="2" />
                           </button>
-                          <button @click="requestCharacterDeletion(character)" title="Delete" aria-label="Delete" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] text-[#fecaca] transition-colors hover:border-[rgba(248,113,113,0.45)]">
+                          <button @click="requestCharacterDeletion(character)" title="Delete" aria-label="Delete" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] text-[#fecaca] transition-colors hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)]">
                             <Trash2Icon class="h-[18px] w-[18px]" :stroke-width="2" />
                           </button>
                         </div>
@@ -2755,8 +2748,8 @@ onBeforeUnmount(() => {
                     <button v-else-if="isGameOwner && row.role === 'assistant_gm'" type="button" @click="updateMemberRole(row, 'player')" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#d8dce7]/80 transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
                       Revoke GM
                     </button>
-                    <button v-if="canRemoveMember(row)" type="button" @click="requestRemoveMember(row)" class="cursor-pointer rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]">
-                      Remove
+                    <button v-if="canRemoveMember(row)" type="button" @click="requestRemoveMember(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.26)]">
+                      <Trash2Icon class="h-3.5 w-3.5" :stroke-width="2" /> Remove
                     </button>
                   </div>
                 </template>
@@ -2898,7 +2891,7 @@ onBeforeUnmount(() => {
             <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
               <div class="flex gap-4">
                 <div class="h-24 w-24 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
-                  <img v-if="avatarUrl(sharedItem.image_id)" :src="avatarUrl(sharedItem.image_id)" :alt="sharedItem.name" class="h-full w-full object-cover" />
+                  <img v-if="avatarUrl(sharedItem.image_id)" :src="avatarUrl(sharedItem.image_id)" :alt="sharedItem.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(sharedItem.image_id))" />
                   <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[28px] font-bold text-[#7ec8e3]/40">{{ (sharedItem.name || '?').charAt(0).toUpperCase() }}</div>
                 </div>
                 <div class="min-w-0 flex-1 pr-8">
@@ -2957,7 +2950,7 @@ onBeforeUnmount(() => {
 
             <div class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.1)] px-6 py-5 pr-16">
               <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
-                <img v-if="avatarUrl(viewMember.avatar_id)" :src="avatarUrl(viewMember.avatar_id)" :alt="viewMember.username" class="h-full w-full object-cover" />
+                <img v-if="avatarUrl(viewMember.avatar_id)" :src="avatarUrl(viewMember.avatar_id)" :alt="viewMember.username" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(viewMember.avatar_id))" />
                 <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[22px] font-bold text-[#7ec8e3]/40">{{ (viewMember.username || '?').charAt(0).toUpperCase() }}</div>
               </div>
               <div class="min-w-0 flex-1">
@@ -2976,7 +2969,7 @@ onBeforeUnmount(() => {
               <div v-if="viewMemberCharacters.length" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                 <div v-for="character in viewMemberCharacters" :key="character.id" class="flex flex-col items-center rounded-[1.1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] p-3 text-center">
                   <div class="h-16 w-16 overflow-hidden rounded-[0.9rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
-                    <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" />
+                    <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(character.portrait_id))" />
                     <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[20px] font-bold text-[#7ec8e3]/40">{{ (character.name || '?').charAt(0).toUpperCase() }}</div>
                   </div>
                   <p class="mt-2 line-clamp-2 break-words text-[13px] font-semibold text-[#f6f7fb] [overflow-wrap:anywhere]">{{ character.name }}</p>
@@ -3077,7 +3070,7 @@ onBeforeUnmount(() => {
                     :class="tradeSelectedSet.has(entry.id) ? 'border-[rgba(233,69,96,0.5)] bg-[rgba(233,69,96,0.12)]' : 'border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.04)] hover:border-[rgba(126,200,227,0.3)]'"
                   >
                     <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.66)]">
-                      <img v-if="avatarUrl(entry.item?.image_id)" :src="avatarUrl(entry.item?.image_id)" :alt="entry.item?.name" class="h-full w-full object-cover" />
+                      <img v-if="avatarUrl(entry.item?.image_id)" :src="avatarUrl(entry.item?.image_id)" :alt="entry.item?.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(entry.item?.image_id))" />
                     </div>
                     <div class="min-w-0 flex-1">
                       <p class="truncate text-[13px] font-semibold text-[#f6f7fb]">{{ entry.item?.name }}</p>
@@ -3111,7 +3104,7 @@ onBeforeUnmount(() => {
                     <p class="text-[13px] text-[#d8dce7]/72"><span class="font-semibold text-[#f6f7fb]">{{ offer.from_username }}</span> ({{ offer.from_character_name }}) → <span class="font-semibold text-[#f6f7fb]">{{ offer.to_character_name }}</span></p>
                     <div class="mt-3 flex flex-wrap gap-2">
                       <span v-for="item in offer.items" :key="item.id" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-2 py-1 text-[12px] text-[#d8dce7]/82">
-                        <img v-if="avatarUrl(item.item?.image_id)" :src="avatarUrl(item.item?.image_id)" :alt="item.item?.name" class="h-5 w-5 rounded object-cover" />
+                        <img v-if="avatarUrl(item.item?.image_id)" :src="avatarUrl(item.item?.image_id)" :alt="item.item?.name" class="h-5 w-5 rounded object-cover" @error="markImageFailed(avatarUrl(item.item?.image_id))" />
                         {{ item.item?.name }}<span v-if="(item.quantity || 1) > 1" class="text-[#7ec8e3]/50"> x{{ item.quantity }}</span>
                       </span>
                     </div>
@@ -3131,7 +3124,7 @@ onBeforeUnmount(() => {
                     <p class="text-[13px] text-[#d8dce7]/72">To <span class="font-semibold text-[#f6f7fb]">{{ offer.to_username }}</span> ({{ offer.to_character_name }})</p>
                     <div class="mt-3 flex flex-wrap gap-2">
                       <span v-for="item in offer.items" :key="item.id" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-2 py-1 text-[12px] text-[#d8dce7]/82">
-                        <img v-if="avatarUrl(item.item?.image_id)" :src="avatarUrl(item.item?.image_id)" :alt="item.item?.name" class="h-5 w-5 rounded object-cover" />
+                        <img v-if="avatarUrl(item.item?.image_id)" :src="avatarUrl(item.item?.image_id)" :alt="item.item?.name" class="h-5 w-5 rounded object-cover" @error="markImageFailed(avatarUrl(item.item?.image_id))" />
                         {{ item.item?.name }}<span v-if="(item.quantity || 1) > 1" class="text-[#7ec8e3]/50"> x{{ item.quantity }}</span>
                       </span>
                     </div>
@@ -3290,7 +3283,7 @@ onBeforeUnmount(() => {
               >
                 <div class="flex items-start gap-3">
                   <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                    <img v-if="avatarUrl(message.user?.avatar_id)" :src="avatarUrl(message.user?.avatar_id)" :alt="message.user?.username" class="h-full w-full object-cover" />
+                    <img v-if="avatarUrl(message.user?.avatar_id)" :src="avatarUrl(message.user?.avatar_id)" :alt="message.user?.username" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(message.user?.avatar_id))" />
                     <span v-else class="font-[Cinzel] text-[14px] font-bold text-[#8fd7ef]">{{ initials(message.user?.username) }}</span>
                   </div>
 
@@ -3767,6 +3760,40 @@ onBeforeUnmount(() => {
 .session-inventory-summary,
 .session-inventory-meta {
   padding: 1.5rem !important;
+}
+
+@media (max-width: 639px) {
+  .session-content-shell {
+    padding: 1.5rem 1rem 27rem 1rem;
+  }
+
+  .session-content-shell.chat-collapsed {
+    padding-bottom: 9.5rem;
+  }
+
+  /* Below sm, the tab rail moves from a floating side column to a bottom
+     bar so it never overlaps card content or the chat dock's left edge. */
+  .session-tab-rail {
+    left: 0.5rem;
+    right: 0.5rem;
+    top: auto;
+    bottom: 0.5rem;
+    transform: none;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .session-tooltip {
+    display: none;
+  }
+
+  .session-chat-launcher {
+    bottom: 4.75rem;
+  }
+
+  .session-chat-dock {
+    bottom: 4.75rem;
+  }
 }
 
 @media (min-width: 640px) {

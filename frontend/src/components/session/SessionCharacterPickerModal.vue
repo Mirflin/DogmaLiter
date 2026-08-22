@@ -1,5 +1,6 @@
 <script setup>
 import { API_URL } from '@/api'
+import { useImageFallback } from '@/composables/useImageFallback'
 import { computed, ref, watch } from 'vue'
 
 const props = defineProps({
@@ -48,9 +49,12 @@ watch(() => props.visible, (visible) => {
   if (visible) searchQuery.value = ''
 })
 
+const { markFailed: markImageFailed, isFailed: isImageFailed } = useImageFallback()
+
 function avatarUrl(uploadId) {
   if (!uploadId) return null
-  return `${API_URL}/api/uploads/${uploadId}`
+  const url = `${API_URL}/api/uploads/${uploadId}`
+  return isImageFailed(url) ? null : url
 }
 
 function initials(value) {
@@ -108,6 +112,7 @@ function createCharacter() {
                     :src="avatarUrl(character.portrait_id)"
                     :alt="character.name"
                     class="h-full w-full object-cover object-top"
+                    @error="markImageFailed(avatarUrl(character.portrait_id))"
                   />
                   <span v-else class="font-[Cinzel] text-[32px] font-bold text-[#d9b574]">{{ initials(character.name) }}</span>
                 </div>

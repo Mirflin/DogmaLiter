@@ -1,6 +1,7 @@
 <script setup>
 import { X as XIcon } from '@lucide/vue'
 import { API_URL } from '@/api'
+import { useImageFallback } from '@/composables/useImageFallback'
 import { computed, ref, watch } from 'vue'
 import SearchableSelect from '@/components/session/SearchableSelect.vue'
 
@@ -95,9 +96,12 @@ watch(
   { immediate: true },
 )
 
+const { markFailed: markImageFailed, isFailed: isImageFailed } = useImageFallback()
+
 function avatarUrl(uploadId) {
   if (!uploadId) return null
-  return `${API_URL}/api/uploads/${uploadId}`
+  const url = `${API_URL}/api/uploads/${uploadId}`
+  return isImageFailed(url) ? null : url
 }
 
 function initials(value) {
@@ -346,12 +350,12 @@ function emitSave() {
         </p>
 
         <div v-if="character" class="mt-6 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside class="space-y-5 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+          <aside class="space-y-5 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 xl:sticky xl:top-0 xl:self-start">
             <div>
               <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Portrait</p>
               <div class="mt-4 overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
                 <div class="flex h-72 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(8,16,30,0.94))]">
-                  <img v-if="portraitUrl" :src="portraitUrl" :alt="character.name" class="h-full w-full object-cover object-top" />
+                  <img v-if="portraitUrl" :src="portraitUrl" :alt="character.name" class="h-full w-full object-cover object-top" @error="markImageFailed(portraitUrl)" />
                   <span v-else class="font-[Cinzel] text-[38px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
                 </div>
               </div>
@@ -526,7 +530,7 @@ function emitSave() {
                     <div class="flex flex-wrap items-end gap-2">
                       <button type="button" @click="moveCustomAttribute(index, -1)" :disabled="saving || index === 0" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">Up</button>
                       <button type="button" @click="moveCustomAttribute(index, 1)" :disabled="saving || index === form.custom_attributes.length - 1" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">Down</button>
-                      <button type="button" @click="removeCustomAttribute(index)" :disabled="saving" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                      <button type="button" @click="removeCustomAttribute(index)" :disabled="saving" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
                     </div>
                   </div>
                 </article>

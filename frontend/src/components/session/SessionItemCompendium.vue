@@ -16,6 +16,7 @@ import {
 import { API_URL } from '@/api'
 import { getErrorMessage, notify } from '@/notify'
 import { useAuthStore } from '@/stores/auth'
+import { useImageFallback } from '@/composables/useImageFallback'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import SearchableSelect from '@/components/session/SearchableSelect.vue'
 
@@ -49,6 +50,7 @@ const props = defineProps({
 })
 
 const auth = useAuthStore()
+const { markFailed: markImageFailed, isFailed: isImageFailed } = useImageFallback()
 
 const ITEM_PAGE_SIZE = 18
 const ITEM_NAME_LIMIT = 20
@@ -1411,7 +1413,8 @@ function itemImageUrl(item) {
   if (!item?.image_id) {
     return ''
   }
-  return `${API_URL}/api/uploads/${item.image_id}`
+  const url = `${API_URL}/api/uploads/${item.image_id}`
+  return isImageFailed(url) ? '' : url
 }
 
 function resolvedItemImageUrl(item) {
@@ -1604,24 +1607,24 @@ function itemSizeLabel(item) {
               isInCart(item) ? 'ring-2 ring-[rgba(233,69,96,0.45)]' : '',
             ]"
           >
-            <span
-              role="checkbox"
-              :aria-checked="isInCart(item)"
-              :title="isInCart(item) ? 'Remove from transfer cart' : 'Add to transfer cart'"
-              @click.stop.prevent="toggleCartItem(item)"
-              class="absolute bottom-3 left-3 z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-lg border shadow-[0_4px_12px_rgba(0,0,0,0.4)] transition-all duration-200"
-              :class="isInCart(item)
-                ? 'border-[rgba(233,69,96,0.55)] bg-[rgba(233,69,96,0.92)] text-white'
-                : 'border-[rgba(126,200,227,0.35)] bg-[rgba(7,17,31,0.92)] text-transparent hover:border-[rgba(126,200,227,0.7)]'"
-            >
-              <Check class="h-4 w-4" :stroke-width="3" />
-            </span>
             <div class="flex items-start gap-4">
               <div class="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.3rem] border text-[24px] font-bold uppercase" :class="itemFrameClass(item.rarity)">
-                <img v-if="itemImageUrl(item)" :src="itemImageUrl(item)" :alt="item.name" class="h-full w-full object-cover" />
+                <img v-if="itemImageUrl(item)" :src="itemImageUrl(item)" :alt="item.name" class="h-full w-full object-cover" @error="markImageFailed(itemImageUrl(item))" />
                 <span v-else>{{ itemGlyph(item) }}</span>
                 <span class="absolute right-2 top-2 rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(7,17,31,0.82)] px-2 py-0.5 text-[10px] font-semibold text-[#f6f7fb]">
                   {{ itemSizeLabel(item) }}
+                </span>
+                <span
+                  role="checkbox"
+                  :aria-checked="isInCart(item)"
+                  :title="isInCart(item) ? 'Remove from transfer cart' : 'Add to transfer cart'"
+                  @click.stop.prevent="toggleCartItem(item)"
+                  class="absolute bottom-2 left-2 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border shadow-[0_4px_12px_rgba(0,0,0,0.4)] transition-all duration-200"
+                  :class="isInCart(item)
+                    ? 'border-[rgba(233,69,96,0.55)] bg-[rgba(233,69,96,0.92)] text-white'
+                    : 'border-[rgba(126,200,227,0.35)] bg-[rgba(7,17,31,0.92)] text-transparent hover:border-[rgba(126,200,227,0.7)]'"
+                >
+                  <Check class="h-3.5 w-3.5" :stroke-width="3" />
                 </span>
               </div>
 
@@ -1688,7 +1691,7 @@ function itemSizeLabel(item) {
           <div v-if="inspectorItem" class="mt-5 flex flex-1 flex-col gap-5">
             <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
               <div class="flex h-64 items-center justify-center" :class="itemFrameClass(inspectorItem.rarity)">
-                <img v-if="resolvedItemImageUrl(inspectorItem)" :src="resolvedItemImageUrl(inspectorItem)" :alt="inspectorItem.name" class="h-full w-full object-cover" />
+                <img v-if="resolvedItemImageUrl(inspectorItem)" :src="resolvedItemImageUrl(inspectorItem)" :alt="inspectorItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(inspectorItem))" />
                 <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(inspectorItem) }}</span>
               </div>
             </div>
@@ -1820,7 +1823,7 @@ function itemSizeLabel(item) {
               <article v-for="line in cartItems" :key="line.item.id" class="rounded-[1.4rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-4">
                 <div class="flex items-start gap-4">
                   <div class="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[1.1rem] border text-[18px] font-bold uppercase" :class="itemFrameClass(line.item.rarity)">
-                    <img v-if="itemImageUrl(line.item)" :src="itemImageUrl(line.item)" :alt="line.item.name" class="h-full w-full object-cover" />
+                    <img v-if="itemImageUrl(line.item)" :src="itemImageUrl(line.item)" :alt="line.item.name" class="h-full w-full object-cover" @error="markImageFailed(itemImageUrl(line.item))" />
                     <span v-else>{{ itemGlyph(line.item) }}</span>
                   </div>
 
@@ -1972,7 +1975,7 @@ function itemSizeLabel(item) {
               <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
                 <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
                   <div class="flex h-64 items-center justify-center" :class="itemFrameClass(detailPreviewItem.rarity)">
-                    <img v-if="resolvedItemImageUrl(detailPreviewItem)" :src="resolvedItemImageUrl(detailPreviewItem)" :alt="detailPreviewItem.name" class="h-full w-full object-cover" />
+                    <img v-if="resolvedItemImageUrl(detailPreviewItem)" :src="resolvedItemImageUrl(detailPreviewItem)" :alt="detailPreviewItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(detailPreviewItem))" />
                     <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(detailPreviewItem) }}</span>
                   </div>
                 </div>
@@ -2548,7 +2551,7 @@ function itemSizeLabel(item) {
                 <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Live Preview</p>
                 <div class="mt-5 overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
                   <div class="flex h-64 items-center justify-center" :class="itemFrameClass(draftPreviewItem.rarity)">
-                    <img v-if="resolvedItemImageUrl(draftPreviewItem)" :src="resolvedItemImageUrl(draftPreviewItem)" :alt="draftPreviewItem.name" class="h-full w-full object-cover" />
+                    <img v-if="resolvedItemImageUrl(draftPreviewItem)" :src="resolvedItemImageUrl(draftPreviewItem)" :alt="draftPreviewItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(draftPreviewItem))" />
                     <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(draftPreviewItem) }}</span>
                   </div>
                 </div>

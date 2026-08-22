@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import SearchableSelect from '@/components/session/SearchableSelect.vue'
 
 const props = defineProps({
   columns: { type: Array, default: () => [] },
@@ -43,6 +44,10 @@ function distinctValues(column) {
     if (value !== undefined && value !== null && value !== '') set.add(String(value))
   }
   return [...set].sort((a, b) => a.localeCompare(b)).map(value => ({ value, label: value }))
+}
+
+function filterOptions(column) {
+  return [{ value: '', label: 'All' }, ...distinctValues(column)]
 }
 
 const filteredRows = computed(() => {
@@ -112,10 +117,12 @@ function rowId(row, index) {
 
       <label v-for="column in filterableColumns" :key="column.key" class="flex items-center gap-2">
         <span class="text-[11px] uppercase tracking-[0.14em] text-[#7ec8e3]/45">{{ column.label }}</span>
-        <select v-model="columnFilters[column.key]" class="rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.72)] px-2.5 py-1.5 text-[12px] text-[#f6f7fb] outline-none">
-          <option value="">All</option>
-          <option v-for="option in distinctValues(column)" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
+        <SearchableSelect
+          v-model="columnFilters[column.key]"
+          :options="filterOptions(column)"
+          :placeholder="`Search ${column.label.toLowerCase()}…`"
+          class="min-w-[10rem]"
+        />
       </label>
 
       <slot name="toolbar" />

@@ -1,6 +1,7 @@
 <script setup>
 import { API_URL } from '@/api'
 import { Eye } from '@lucide/vue'
+import { useImageFallback } from '@/composables/useImageFallback'
 import { computed, inject, onBeforeUnmount, ref } from 'vue'
 
 const props = defineProps({
@@ -47,8 +48,14 @@ const RARITY_TEXT = {
   unique: 'text-[#fca5a5]',
 }
 
+const { markFailed: markImageFailed, isFailed: isImageFailed } = useImageFallback()
+
 const item = computed(() => props.entry?.item ?? {})
-const itemImageUrl = computed(() => item.value?.image_id ? `${API_URL}/api/uploads/${item.value.image_id}` : '')
+const itemImageUrl = computed(() => {
+  if (!item.value?.image_id) return ''
+  const url = `${API_URL}/api/uploads/${item.value.image_id}`
+  return isImageFailed(url) ? '' : url
+})
 const itemInitial = computed(() => (item.value?.name || '?').charAt(0).toUpperCase())
 const sizeLabel = computed(() => `${item.value?.grid_width || 1}x${item.value?.grid_height || 1}`)
 const descriptionPreview = computed(() => {
@@ -163,6 +170,7 @@ onBeforeUnmount(() => {
           :alt="item.name"
           draggable="false"
           class="h-full w-full object-cover"
+          @error="markImageFailed(itemImageUrl)"
         />
         <span v-else class="font-[Cinzel] text-[clamp(1rem,1.5vw,1.45rem)] font-bold text-[rgba(23,36,66,0.92)]">{{ itemInitial }}</span>
       </div>

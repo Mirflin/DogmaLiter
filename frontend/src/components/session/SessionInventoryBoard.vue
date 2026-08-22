@@ -3,6 +3,7 @@ import interact from 'interactjs'
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { API_URL } from '@/api'
 import { notify } from '@/notify'
+import { useImageFallback } from '@/composables/useImageFallback'
 import { Send, Trash2, X } from '@lucide/vue'
 import SessionInventoryDraggableItem from './SessionInventoryDraggableItem.vue'
 import weaponImg from '@/assets/weapon.png'
@@ -442,7 +443,12 @@ const detailDurability = ref(0)
 const detailMaxDurability = ref(100)
 const detailConfirmDelete = ref(false)
 const detailEntry = computed(() => allEntriesById.value[detailEntryId.value] ?? null)
-const detailImageUrl = computed(() => detailEntry.value?.item?.image_id ? `${API_URL}/api/uploads/${detailEntry.value.item.image_id}` : '')
+const { markFailed: markImageFailed, isFailed: isImageFailed } = useImageFallback()
+const detailImageUrl = computed(() => {
+  if (!detailEntry.value?.item?.image_id) return ''
+  const url = `${API_URL}/api/uploads/${detailEntry.value.item.image_id}`
+  return isImageFailed(url) ? '' : url
+})
 const detailRequirements = computed(() => {
   if (!props.attributesEnabled) return []
   return (detailEntry.value?.item?.required_attributes ?? [])
@@ -875,7 +881,7 @@ function equipmentEntry(slot) {
         <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div class="h-28 w-28 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
-              <img v-if="detailImageUrl" :src="detailImageUrl" :alt="detailEntry.item?.name" class="h-full w-full object-cover" />
+              <img v-if="detailImageUrl" :src="detailImageUrl" :alt="detailEntry.item?.name" class="h-full w-full object-cover" @error="markImageFailed(detailImageUrl)" />
               <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[32px] font-bold text-[#7ec8e3]/40">
                 {{ (detailEntry.item?.name || '?').charAt(0).toUpperCase() }}
               </div>
