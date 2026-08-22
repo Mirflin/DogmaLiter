@@ -2132,11 +2132,6 @@ function itemSizeLabel(item) {
                     <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Height</span>
                     <input v-model.number="detailItemDraft.gridHeight" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                   </label>
-                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3 sm:col-span-2">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Preview Summary</span>
-                    <p class="mt-3 text-[18px] font-semibold text-[#f6f7fb]">{{ itemSizeLabel(detailPreviewItem) }}</p>
-                    <p class="mt-2 text-[13px] leading-relaxed text-[#d8dce7]/56">Adjust width and height to match the intended inventory footprint.</p>
-                  </div>
                 </div>
               </article>
 
