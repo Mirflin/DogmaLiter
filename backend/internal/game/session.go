@@ -1771,6 +1771,7 @@ func serializeCharacterSummaries(characters []models.Character) []map[string]int
 				"charisma":     character.BaseCharisma,
 			},
 			"custom_attributes": serializeCharacterCustomAttributes(character.CustomAttributes),
+			"created_at":        character.CreatedAt,
 			"updated_at":        character.UpdatedAt,
 		})
 	}

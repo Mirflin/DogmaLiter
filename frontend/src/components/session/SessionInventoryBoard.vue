@@ -450,7 +450,6 @@ const detailImageUrl = computed(() => {
   return isImageFailed(url) ? '' : url
 })
 const detailRequirements = computed(() => {
-  if (!props.attributesEnabled) return []
   return (detailEntry.value?.item?.required_attributes ?? [])
     .filter((requirement) => !isAttrDisabled(requirement?.attribute_name))
     .map((requirement) => {
@@ -460,7 +459,7 @@ const detailRequirements = computed(() => {
       return { label: formatLabel(name), required, current, met: current >= required }
     })
 })
-const detailModifiers = computed(() => (props.attributesEnabled ? (detailEntry.value?.item?.attribute_modifiers ?? []) : [])
+const detailModifiers = computed(() => (detailEntry.value?.item?.attribute_modifiers ?? [])
   .filter((modifier) => !isAttrDisabled(modifier?.attribute_name))
   .map((modifier) => ({
     label: formatLabel(modifier?.attribute_name),
@@ -930,6 +929,13 @@ function equipmentEntry(slot) {
                 <span class="font-semibold" :class="modifier.value >= 0 ? 'text-[#8fd7ef]' : 'text-[#fca5a5]'">{{ modifier.value >= 0 ? '+' : '' }}{{ modifier.value }}{{ modifier.percent ? '%' : '' }}</span>
               </li>
             </ul>
+          </div>
+
+          <div v-if="detailEntry.item?.tags?.length" class="mt-5">
+            <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Tags</p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <span v-for="tag in detailEntry.item.tags" :key="tag" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-2.5 py-1 text-[12px] text-[#ffe0e7]">{{ tag }}</span>
+            </div>
           </div>
 
           <div class="mt-5">

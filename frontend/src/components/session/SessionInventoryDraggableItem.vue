@@ -64,7 +64,6 @@ const descriptionPreview = computed(() => {
   return text.length > 140 ? `${text.slice(0, 137).trimEnd()}...` : text
 })
 const requirementChecks = computed(() => {
-  if (!(attributesEnabled?.value ?? true)) return []
   return (item.value?.required_attributes ?? [])
     .filter((requirement) => !isAttrDisabled(requirement?.attribute_name))
     .map((requirement) => {
@@ -74,13 +73,14 @@ const requirementChecks = computed(() => {
       return { name, label: formatAttr(name), required, current, met: current >= required }
     })
 })
-const modifierList = computed(() => ((attributesEnabled?.value ?? true) ? (item.value?.attribute_modifiers ?? []) : [])
+const modifierList = computed(() => (item.value?.attribute_modifiers ?? [])
   .filter((modifier) => !isAttrDisabled(modifier?.attribute_name))
   .map((modifier) => ({
     label: formatAttr(modifier?.attribute_name),
     value: Number(modifier?.modifier_value ?? 0),
     percent: Boolean(modifier?.is_percentage),
   })))
+const itemTags = computed(() => item.value?.tags ?? [])
 const meetsRequirements = computed(() => requirementChecks.value.every((requirement) => requirement.met))
 const rarityLabel = computed(() => formatAttr(item.value?.rarity || 'common'))
 const rarityTextClass = computed(() => RARITY_TEXT[item.value?.rarity] || RARITY_TEXT.common)
@@ -249,7 +249,11 @@ onBeforeUnmount(() => {
           </ul>
         </div>
 
-        <p v-if="!requirementChecks.length && !modifierList.length && !descriptionPreview" class="mt-2 text-[12px] text-[#d8dce7]/50">No additional details.</p>
+        <div v-if="itemTags.length" class="mt-3 flex flex-wrap gap-1.5">
+          <span v-for="tag in itemTags" :key="tag" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-2 py-0.5 text-[11px] text-[#ffe0e7]">{{ tag }}</span>
+        </div>
+
+        <p v-if="!requirementChecks.length && !modifierList.length && !itemTags.length && !descriptionPreview" class="mt-2 text-[12px] text-[#d8dce7]/50">No additional details.</p>
       </div>
     </Teleport>
   </div>

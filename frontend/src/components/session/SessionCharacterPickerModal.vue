@@ -114,7 +114,7 @@ function createCharacter() {
                     class="h-full w-full object-cover object-top"
                     @error="markImageFailed(avatarUrl(character.portrait_id))"
                   />
-                  <span v-else class="font-[Cinzel] text-[32px] font-bold text-[#d9b574]">{{ initials(character.name) }}</span>
+                  <div v-else class="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[rgba(217,181,116,0.3)] bg-[linear-gradient(135deg,rgba(217,181,116,0.16),rgba(126,200,227,0.06))] font-[Cinzel] text-[32px] font-bold text-[#d9b574]">{{ initials(character.name) }}</div>
                 </div>
               </div>
 

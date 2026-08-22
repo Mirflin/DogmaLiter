@@ -114,6 +114,7 @@ func (r *Repository) GetCharacterByID(gameID, characterID string) (*models.Chara
 		Preload("Inventory.Item").
 		Preload("Inventory.Item.Image").
 		Preload("Inventory.Item.Types").
+		Preload("Inventory.Item.Tags").
 		Preload("Inventory.Item.RequiredAttributes").
 		Preload("Inventory.Item.AttributeModifiers").
 		Preload("Equipment", func(db *gorm.DB) *gorm.DB {
@@ -123,6 +124,7 @@ func (r *Repository) GetCharacterByID(gameID, characterID string) (*models.Chara
 		Preload("Equipment.InventoryItem.Item").
 		Preload("Equipment.InventoryItem.Item.Image").
 		Preload("Equipment.InventoryItem.Item.Types").
+		Preload("Equipment.InventoryItem.Item.Tags").
 		Preload("Equipment.InventoryItem.Item.RequiredAttributes").
 		Preload("Equipment.InventoryItem.Item.AttributeModifiers").
 		First(&character).Error

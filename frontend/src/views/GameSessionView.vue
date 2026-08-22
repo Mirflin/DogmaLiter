@@ -5,6 +5,7 @@ import {
   Check as CheckIcon,
   ChevronRight as ChevronRightIcon,
   ContactRound as ContactRoundIcon,
+  Copy,
   Eye as EyeIcon,
   FolderOpen as FolderOpenIcon,
   LayoutGrid as LayoutGridIcon,
@@ -32,6 +33,7 @@ import { useAuthStore } from '@/stores/auth'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useGameSocket } from '@/composables/useGameSocket'
 import { useImageFallback } from '@/composables/useImageFallback'
+import { useFillHeight } from '@/composables/useFillHeight'
 import { useRoute, useRouter } from 'vue-router'
 
 const CHAT_POLL_INTERVAL = 15000
@@ -49,6 +51,8 @@ const tabIcons = {
 }
 
 const auth = useAuthStore()
+const fillHeightSectionRef = ref(null)
+const { heightPx: fillSectionHeight } = useFillHeight(fillHeightSectionRef)
 const { markFailed: markImageFailed, isFailed: isImageFailed } = useImageFallback()
 const route = useRoute()
 const router = useRouter()
@@ -82,10 +86,6 @@ const gmCharacterEditorSaving = ref(false)
 const portraitFile = ref(null)
 const portraitPreviewUrl = ref('')
 const backstoryExpanded = ref(false)
-const gmRosterSearch = ref('')
-const gmRosterMemberFilter = ref('all')
-const gmRosterRoleFilter = ref('all')
-const collapsedRosterMembers = ref(new Set())
 const characterForm = ref(createCharacterFormState())
 const gmCharacterEditorTarget = ref(null)
 const gmCharacterCreateError = ref('')
@@ -119,6 +119,23 @@ const characterOptions = computed(() => characters.value.map((character) => ({
 const rosterCharacters = computed(() => {
   if (!isGM.value) return characters.value
   return characters.value.filter(character => character.user_id === viewer.value?.user_id)
+})
+const characterVaultRows = computed(() => rosterCharacters.value.map(character => ({
+  ...character,
+  sizeLabel: `${character.inventory_width}x${character.inventory_height}`,
+})))
+const campaignCharacterRows = computed(() => {
+  const memberById = new Map((game.value?.members ?? []).map(member => [member.user_id, member]))
+  return characters.value.map(character => {
+    const member = memberById.get(character.user_id)
+    return {
+      ...character,
+      ownerName: character.owner?.username || member?.username || 'Unknown',
+      roleLabel: formatRole(member?.role || ''),
+      createdAt: character.created_at || '',
+      sizeLabel: `${character.inventory_width}x${character.inventory_height}`,
+    }
+  })
 })
 const itemTags = computed(() => session.value?.item_tags ?? [])
 const chatMessages = computed(() => session.value?.messages ?? [])
@@ -409,6 +426,63 @@ async function confirmCharacterDeletion() {
     deletingCharacter.value = false
   }
 }
+const duplicatingCharacterId = ref('')
+async function duplicateCharacter(character) {
+  if (!isGM.value || !character || duplicatingCharacterId.value) return
+
+  duplicatingCharacterId.value = character.id
+  try {
+    const detail = await auth.getGameCharacter(gameId.value, character.id)
+    const source = detail?.character
+    if (!source) throw new Error('Could not load character to duplicate')
+
+    const created = await createCharacter({
+      name: `${source.name} (Copy)`.slice(0, 100),
+      backstory: source.backstory || '',
+      owner_user_id: source.user_id,
+    }, { silent: true })
+    if (!created) return
+
+    await persistCharacterChanges(created, {
+      name: created.name,
+      backstory: source.backstory || '',
+      owner_user_id: source.user_id,
+      inventory_width: source.inventory_width,
+      inventory_height: source.inventory_height,
+      currency_gold: source.currency_gold,
+      currency_silver: source.currency_silver,
+      currency_copper: source.currency_copper,
+      max_health: source.max_health,
+      current_health: source.current_health,
+      armor_class: source.armor_class,
+      base_attributes: {
+        strength: source.base_attributes?.strength ?? 10,
+        dexterity: source.base_attributes?.dexterity ?? 10,
+        constitution: source.base_attributes?.constitution ?? 10,
+        intelligence: source.base_attributes?.intelligence ?? 10,
+        wisdom: source.base_attributes?.wisdom ?? 10,
+        charisma: source.base_attributes?.charisma ?? 10,
+      },
+      custom_attributes: (source.custom_attributes ?? []).map((attribute, index) => ({
+        name: attribute.name,
+        value: attribute.value ?? 0,
+        sort_order: attribute.sort_order ?? index,
+      })),
+    })
+
+    notify.success({
+      title: 'Character duplicated',
+      message: `Cloned "${source.name}" as "${created.name}". Inventory and equipment aren't copied.`,
+    })
+  } catch (error) {
+    notify.error({
+      title: 'Failed to duplicate character',
+      message: getErrorMessage(error, 'Failed to duplicate character'),
+    })
+  } finally {
+    duplicatingCharacterId.value = ''
+  }
+}
 const SHARED_ITEM_PREFIX = 'ITEMLINK::'
 const sharedItem = ref(null)
 function parseSharedItem(content) {
@@ -511,65 +585,6 @@ const occupiedInventoryCells = computed(() => inventoryItems.value.reduce((total
   const height = entry.item?.grid_height ?? 1
   return total + (width * height)
 }, 0))
-const gmRosterMembers = computed(() => {
-  const members = game.value?.members ?? []
-  const searchQuery = gmRosterSearch.value.trim().toLowerCase()
-
-  return members
-    .filter(member => {
-      if (gmRosterMemberFilter.value !== 'all' && member.user_id !== gmRosterMemberFilter.value) {
-        return false
-      }
-
-      if (gmRosterRoleFilter.value === 'all') {
-        return true
-      }
-
-      if (gmRosterRoleFilter.value === 'gm_team') {
-        return member.role === 'gm' || member.role === 'assistant_gm'
-      }
-
-      return member.role === gmRosterRoleFilter.value
-    })
-    .map(member => {
-      const allCharacters = characters.value.filter(character => character.user_id === member.user_id)
-      const matchesMember = !searchQuery || [member.username, formatRole(member.role)]
-        .filter(Boolean)
-        .some(value => value.toLowerCase().includes(searchQuery))
-
-      const filteredCharacters = searchQuery
-        ? allCharacters.filter(character => [
-          character.name,
-          character.backstory,
-          character.owner?.username,
-          member.username,
-        ]
-          .filter(Boolean)
-          .some(value => value.toLowerCase().includes(searchQuery)))
-        : allCharacters
-
-      if (searchQuery && !matchesMember && !filteredCharacters.length) {
-        return null
-      }
-
-      return {
-        ...member,
-        filteredCharacters,
-        totalCharacterCount: allCharacters.length,
-      }
-    })
-    .filter(Boolean)
-})
-const gmRosterVisibleCharacterCount = computed(() => gmRosterMembers.value.reduce((total, member) => total + member.filteredCharacters.length, 0))
-const gmRosterMemberFilterOptions = computed(() => [
-  { value: 'all', label: 'All members' },
-  ...(game.value?.members ?? []).map(member => ({ value: member.user_id, label: member.username })),
-])
-const gmRosterHasFilters = computed(() => Boolean(
-  gmRosterSearch.value.trim()
-  || gmRosterMemberFilter.value !== 'all'
-  || gmRosterRoleFilter.value !== 'all',
-))
 const currencyCards = computed(() => {
   const snapshot = characterSnapshot.value
 
@@ -580,7 +595,7 @@ const currencyCards = computed(() => {
   ]
 })
 const currentPortraitUrl = computed(() => portraitPreviewUrl.value || avatarUrl(characterSnapshot.value?.portrait_id))
-const rosterTitle = computed(() => (isGM.value ? 'GM Character Vault' : 'Available Characters'))
+const rosterTitle = computed(() => (isGM.value ? 'Character Vault' : 'Character Vault'))
 const rosterDescription = computed(() => {
   if (playerNeedsCharacterSelection.value) {
     return 'Choose an existing character or create one to unlock the rest of the session.'
@@ -625,6 +640,10 @@ const tabs = computed(() => {
   return baseTabs
 })
 const activeTabMeta = computed(() => tabs.value.find(tab => tab.id === activeTab.value) ?? tabs.value[0] ?? null)
+// These GM tabs are game-wide, not tied to a single character, so the
+// character-context header (name/owner/picker) has nothing to show.
+const CHARACTERLESS_TABS = new Set(['players', 'items', 'manage'])
+const showCharacterHeader = computed(() => !CHARACTERLESS_TABS.has(activeTab.value))
 
 const showGameSettings = ref(false)
 const managePanel = ref('players')
@@ -1268,48 +1287,6 @@ function clearActiveCharacter() {
 
 function goBack() {
   router.push(`/games/${gameId.value}`)
-}
-
-function memberEmptyStateMessage(member) {
-  return member?.role === 'player'
-    ? 'No characters assigned to this player yet.'
-    : 'No GM characters assigned to this member yet.'
-}
-
-function gmRosterEmptyStateMessage(member) {
-  if (member?.totalCharacterCount && gmRosterHasFilters.value) {
-    return 'No characters match the current search or filters for this member.'
-  }
-
-  return memberEmptyStateMessage(member)
-}
-
-function resetGMRosterFilters() {
-  gmRosterSearch.value = ''
-  gmRosterMemberFilter.value = 'all'
-  gmRosterRoleFilter.value = 'all'
-}
-
-function isRosterMemberExpanded(userId) {
-  return !collapsedRosterMembers.value.has(userId)
-}
-
-function toggleRosterMember(userId) {
-  const next = new Set(collapsedRosterMembers.value)
-  if (next.has(userId)) {
-    next.delete(userId)
-  } else {
-    next.add(userId)
-  }
-  collapsedRosterMembers.value = next
-}
-
-function expandAllRosterMembers() {
-  collapsedRosterMembers.value = new Set()
-}
-
-function collapseAllRosterMembers() {
-  collapsedRosterMembers.value = new Set(gmRosterMembers.value.map(member => member.user_id))
 }
 
 function findCharacterById(characterId) {
@@ -2014,7 +1991,7 @@ onBeforeUnmount(() => {
 
       <div class="mx-auto max-w-[1920px] session-content-shell" :class="{ 'chat-collapsed': chatCollapsed || !game?.enable_chat }">
         <main class="min-w-0 @container">
-          <article class="session-command-deck mb-6 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] px-4 py-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:px-5">
+          <article v-if="showCharacterHeader" class="session-command-deck mb-6 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] px-4 py-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:px-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
               <div class="min-w-0">
                 <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">{{ activeTabMeta?.label }}</p>
@@ -2065,7 +2042,9 @@ onBeforeUnmount(() => {
                         class="h-full w-full object-cover object-top"
                         @error="markImageFailed(currentPortraitUrl)"
                       />
-                      <span v-else class="font-[Cinzel] text-[44px] font-bold text-[#ff8fa3]">{{ initials(characterSnapshot.name) }}</span>
+                      <div v-else class="flex h-36 w-36 items-center justify-center rounded-full border-2 border-[rgba(255,143,163,0.3)] bg-[linear-gradient(135deg,rgba(233,69,96,0.16),rgba(126,200,227,0.08))] font-[Cinzel] text-[44px] font-bold text-[#ff8fa3] shadow-[inset_0_0_40px_rgba(255,143,163,0.08)]">
+                        {{ initials(characterSnapshot.name) }}
+                      </div>
                     </div>
 
                     <div class="border-t border-[rgba(126,200,227,0.08)] p-5">
@@ -2126,7 +2105,7 @@ onBeforeUnmount(() => {
                           <div class="overflow-hidden rounded-[1.4rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
                             <div class="flex h-64 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(8,16,30,0.94))]">
                               <img v-if="currentPortraitUrl" :src="currentPortraitUrl" :alt="characterSnapshot.name" class="h-full w-full object-cover object-top" @error="markImageFailed(currentPortraitUrl)" />
-                              <span v-else class="font-[Cinzel] text-[34px] font-bold text-[#8fd7ef]">{{ initials(characterSnapshot.name) }}</span>
+                              <div v-else class="flex h-28 w-28 items-center justify-center rounded-full border-2 border-[rgba(143,215,239,0.3)] bg-[linear-gradient(135deg,rgba(126,200,227,0.16),rgba(233,69,96,0.06))] font-[Cinzel] text-[34px] font-bold text-[#8fd7ef]">{{ initials(characterSnapshot.name) }}</div>
                             </div>
                           </div>
 
@@ -2426,8 +2405,8 @@ onBeforeUnmount(() => {
             />
           </section>
 
-          <section v-else-if="activeTab === 'characters'" class="space-y-5">
-            <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+          <section v-else-if="activeTab === 'characters'" ref="fillHeightSectionRef" class="flex min-h-[42rem] flex-col gap-5 xl:min-h-0" :style="fillSectionHeight ? { height: fillSectionHeight } : {}">
+            <article class="shrink-0 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Character Switcher</p>
@@ -2447,237 +2426,154 @@ onBeforeUnmount(() => {
               </div>
             </article>
 
-            <div class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              <article
-                v-for="character in rosterCharacters"
-                :key="character.id"
-                class="rounded-[1.8rem] border p-5 transition-all duration-200"
-                :class="character.id === activeCharacterId
-                  ? 'border-[rgba(233,69,96,0.5)] bg-[rgba(233,69,96,0.14)] shadow-[0_20px_50px_rgba(233,69,96,0.18)] ring-1 ring-[rgba(255,173,189,0.35)]'
-                  : 'border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] shadow-[0_20px_50px_rgba(0,0,0,0.18)]'"
-              >
-                <div class="flex items-start justify-between gap-4">
-                  <div class="flex min-w-0 items-center gap-4">
-                    <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                      <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(character.portrait_id))" />
-                      <span v-else class="font-[Cinzel] text-[20px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
-                    </div>
-
-                    <div class="min-w-0">
-                      <h3 class="truncate font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ character.name }}</h3>
-                      <p class="mt-1 text-[13px] text-[#7ec8e3]/58">{{ character.owner?.username }}</p>
-                    </div>
+            <DataTable
+              :columns="[
+                { key: 'name', label: 'Character', sortable: true },
+                { key: 'sizeLabel', label: 'Grid' },
+                { key: 'actions', label: '', align: 'right' },
+              ]"
+              :rows="characterVaultRows"
+              row-key="id"
+              :search-keys="['name', 'backstory']"
+              search-placeholder="Search characters"
+              :page-size="20"
+              min-width="720px"
+              fill-height
+              class="flex-1 min-h-0"
+              :empty-text="isGM ? 'No GM characters yet — create one to stage it for the campaign.' : 'No characters available yet.'"
+            >
+              <template #cell-name="{ row }">
+                <div class="flex items-center gap-3">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                    <img v-if="avatarUrl(row.portrait_id)" :src="avatarUrl(row.portrait_id)" :alt="row.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(row.portrait_id))" />
+                    <span v-else class="font-[Cinzel] text-[13px] font-bold text-[#8fd7ef]">{{ initials(row.name) }}</span>
                   </div>
-
-                  <div class="flex shrink-0 flex-col items-end gap-2">
-                    <span
-                      v-if="character.id === activeCharacterId"
-                      class="rounded-full border border-[rgba(255,173,189,0.34)] bg-[rgba(233,69,96,0.2)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#ffe0e7]"
-                    >
-                      Active
-                    </span>
-                    <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#8fd7ef]">
-                      {{ character.inventory_width }}x{{ character.inventory_height }}
-                    </span>
+                  <div class="min-w-0 flex items-center gap-2">
+                    <span class="truncate font-semibold text-[#f6f7fb]">{{ row.name }}</span>
+                    <span v-if="row.id === activeCharacterId" class="shrink-0 rounded-full bg-[rgba(233,69,96,0.2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ffe0e7]">Active</span>
                   </div>
                 </div>
-
-                <p class="mt-4 line-clamp-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
-                  {{ character.backstory || 'Blank dossier. Select this character to continue editing and session play.' }}
-                </p>
-
-                <div class="mt-6 flex flex-wrap gap-3">
+              </template>
+              <template #cell-sizeLabel="{ row }"><span class="text-[#7ec8e3]/60">{{ row.sizeLabel }}</span></template>
+              <template #cell-actions="{ row }">
+                <div class="flex flex-wrap justify-end gap-2">
                   <button
-                    @click="switchCharacter(character.id, { nextTab: activeTab })"
-                    :disabled="character.id === activeCharacterId"
-                    class="rounded-xl border px-4 py-2.5 text-[13px] font-semibold transition-all duration-200 disabled:cursor-not-allowed"
-                    :class="character.id === activeCharacterId
+                    @click="switchCharacter(row.id, { nextTab: activeTab })"
+                    :disabled="row.id === activeCharacterId"
+                    class="rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-all duration-200 disabled:cursor-not-allowed"
+                    :class="row.id === activeCharacterId
                       ? 'border-[rgba(255,173,189,0.34)] bg-[rgba(233,69,96,0.2)] text-[#fff2f5]'
                       : 'cursor-pointer border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] text-[#ffe0e7] hover:border-[rgba(233,69,96,0.45)]'"
                   >
-                    {{ character.id === activeCharacterId ? 'Active Character' : 'Make Active' }}
+                    {{ row.id === activeCharacterId ? 'Active' : 'Make Active' }}
                   </button>
                   <button
-                    @click="switchCharacter(character.id, { nextTab: 'sheet' })"
-                    class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]"
+                    @click="switchCharacter(row.id, { nextTab: 'sheet' })"
+                    class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]"
                   >
-                    Open Character Tab
+                    Open
                   </button>
                   <button
                     v-if="isGM"
-                    @click="openGMCharacterEditor(character)"
-                    class="cursor-pointer rounded-xl border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-4 py-2.5 text-[13px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
+                    @click="openGMCharacterEditor(row)"
+                    class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
                   >
                     Configure
                   </button>
                   <button
-                    v-if="canDeleteCharacter(character)"
-                    @click="requestCharacterDeletion(character)"
-                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)]"
+                    v-if="isGM"
+                    @click="duplicateCharacter(row)"
+                    :disabled="duplicatingCharacterId === row.id"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Copy class="h-3.5 w-3.5" :stroke-width="2" /> {{ duplicatingCharacterId === row.id ? 'Duplicating…' : 'Duplicate' }}
+                  </button>
+                  <button
+                    v-if="canDeleteCharacter(row)"
+                    @click="requestCharacterDeletion(row)"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)]"
                   >
                     <Trash2Icon class="h-3.5 w-3.5" :stroke-width="2" /> Delete
                   </button>
                 </div>
-              </article>
-
-              <article v-if="!rosterCharacters.length" class="md:col-span-2 2xl:col-span-3 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-8 text-center">
-                <h3 class="font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ isGM ? 'No GM characters yet' : 'No characters available' }}</h3>
-                <p class="mt-3 text-[14px] text-[#d8dce7]/58">
-                  {{ isGM
-                    ? 'Create a named character for your GM vault, then transfer it whenever the campaign needs it.'
-                    : 'Create a character or choose one from the roster to enter the session.' }}
-                </p>
-              </article>
-            </div>
+              </template>
+            </DataTable>
           </section>
 
-          <section v-else-if="activeTab === 'players' && isGM" class="w-full space-y-5">
-            <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
-              <div class="flex flex-wrap items-center justify-between gap-3">
+          <section v-else-if="activeTab === 'players' && isGM" ref="fillHeightSectionRef" class="flex min-h-[42rem] w-full flex-col xl:min-h-0" :style="fillSectionHeight ? { height: fillSectionHeight } : {}">
+            <article class="flex flex-1 flex-col min-h-0 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+              <div class="flex shrink-0 flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Member Manager</p>
-                  <h3 class="mt-1 font-[Cinzel] text-[26px] font-bold text-[#f6f7fb]">Campaign Roster</h3>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Campaign Roster</p>
+                  <h3 class="mt-1 font-[Cinzel] text-[26px] font-bold text-[#f6f7fb]">Characters</h3>
                 </div>
                 <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
                   <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">{{ game.members?.length ?? 0 }} members</span>
-                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">{{ gmRosterVisibleCharacterCount }} characters</span>
+                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">{{ campaignCharacterRows.length }} characters</span>
                 </div>
               </div>
 
-              <div class="mt-5 rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
-                <div class="flex flex-wrap items-end gap-3">
-                  <label class="block min-w-[18rem] flex-1">
-                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Search</span>
-                    <input
-                      v-model="gmRosterSearch"
-                      type="text"
-                      placeholder="Character, player, role, or backstory"
-                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 placeholder:text-[#7ec8e3]/35 focus:border-[rgba(233,69,96,0.34)]"
-                    />
-                  </label>
-
-                  <label class="block min-w-[14rem]">
-                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Member</span>
-                    <SearchableSelect
-                      v-model="gmRosterMemberFilter"
-                      :options="gmRosterMemberFilterOptions"
-                      placeholder="Search members…"
-                      class="mt-2"
-                    />
-                  </label>
-
-                  <label class="block min-w-[13rem]">
-                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Role</span>
-                    <select
-                      v-model="gmRosterRoleFilter"
-                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 focus:border-[rgba(233,69,96,0.34)]"
-                    >
-                      <option value="all">All roles</option>
-                      <option value="player">Players</option>
-                      <option value="gm_team">GM Team</option>
-                      <option value="assistant_gm">Assistant GMs</option>
-                    </select>
-                  </label>
-
-                  <button
-                    v-if="gmRosterHasFilters"
-                    @click="resetGMRosterFilters"
-                    class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-4 py-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.35)]"
-                  >
-                    Reset
-                  </button>
-                </div>
-
-              </div>
-
-              <div v-if="gmRosterMembers.length" class="mt-4 flex items-center justify-end gap-2 text-[11px] font-semibold uppercase tracking-[0.14em]">
-                <button @click="expandAllRosterMembers" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[#8fd7ef] transition-colors hover:border-[rgba(126,200,227,0.32)]">Expand all</button>
-                <button @click="collapseAllRosterMembers" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[#8fd7ef] transition-colors hover:border-[rgba(126,200,227,0.32)]">Collapse all</button>
-              </div>
-
-              <div class="mt-4 space-y-3">
-                <div
-                  v-for="member in gmRosterMembers"
-                  :key="member.user_id"
-                  class="overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.04)]"
-                >
-                  <button
-                    type="button"
-                    @click="toggleRosterMember(member.user_id)"
-                    class="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-[rgba(126,200,227,0.06)]"
-                  >
-                    <ChevronRightIcon
-                      class="h-5 w-5 shrink-0 text-[#7ec8e3]/55 transition-transform duration-200"
-                      :class="isRosterMemberExpanded(member.user_id) ? 'rotate-90' : ''"
-                      :stroke-width="2.5"
-                    />
-                    <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                      <img v-if="avatarUrl(member.avatar_id)" :src="avatarUrl(member.avatar_id)" :alt="member.username" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(member.avatar_id))" />
-                      <span v-else class="font-[Cinzel] text-[16px] font-bold text-[#8fd7ef]">{{ initials(member.username) }}</span>
+              <DataTable
+                class="mt-5 flex-1 min-h-0"
+                fill-height
+                :columns="[
+                  { key: 'name', label: 'Character', sortable: true },
+                  { key: 'ownerName', label: 'Owner', sortable: true, filterable: true },
+                  { key: 'roleLabel', label: 'Role', sortable: true, filterable: true },
+                  { key: 'createdAt', label: 'Created', sortable: true },
+                  { key: 'sizeLabel', label: 'Grid' },
+                  { key: 'actions', label: '', align: 'right' },
+                ]"
+                :rows="campaignCharacterRows"
+                row-key="id"
+                :search-keys="['name', 'ownerName', 'roleLabel', 'backstory']"
+                search-placeholder="Search character, player, or role"
+                :page-size="20"
+                min-width="880px"
+                empty-text="No characters in this campaign yet"
+              >
+                <template #cell-name="{ row }">
+                  <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                      <img v-if="avatarUrl(row.portrait_id)" :src="avatarUrl(row.portrait_id)" :alt="row.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(row.portrait_id))" />
+                      <span v-else class="font-[Cinzel] text-[13px] font-bold text-[#8fd7ef]">{{ initials(row.name) }}</span>
                     </div>
-                    <div class="min-w-0 flex-1">
-                      <p class="truncate text-[16px] font-semibold text-[#f6f7fb]">{{ member.username }}</p>
-                      <p class="truncate text-[12px] text-[#7ec8e3]/55">{{ formatRole(member.role) }} · joined {{ formatDateTime(member.joined_at) }}</p>
+                    <div class="min-w-0 flex items-center gap-2">
+                      <span class="truncate font-semibold text-[#f6f7fb]">{{ row.name }}</span>
+                      <span v-if="row.id === activeCharacterId" class="shrink-0 rounded-full bg-[rgba(233,69,96,0.2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ffe0e7]">Active</span>
                     </div>
-                    <span class="shrink-0 rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[12px] font-medium text-[#8fd7ef]">
-                      {{ member.filteredCharacters.length }}<template v-if="member.filteredCharacters.length !== member.totalCharacterCount">/{{ member.totalCharacterCount }}</template> chars
-                    </span>
-                  </button>
-
-                  <div v-if="isRosterMemberExpanded(member.user_id)" class="border-t border-[rgba(126,200,227,0.08)]">
-                    <div v-if="member.filteredCharacters.length">
-                      <div
-                        v-for="character in member.filteredCharacters"
-                        :key="character.id"
-                        class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.05)] px-5 py-3.5 transition-colors last:border-b-0"
-                        :class="character.id === activeCharacterId ? 'bg-[rgba(233,69,96,0.1)]' : 'hover:bg-[rgba(126,200,227,0.04)]'"
-                      >
-                        <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
-                          <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(character.portrait_id))" />
-                          <span v-else class="font-[Cinzel] text-[16px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
-                        </div>
-                        <div class="min-w-0 flex-1">
-                          <div class="flex items-center gap-2">
-                            <p class="truncate text-[16px] font-semibold text-[#f6f7fb]">{{ character.name }}</p>
-                            <span v-if="character.id === activeCharacterId" class="shrink-0 rounded-full bg-[rgba(233,69,96,0.2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ffe0e7]">Active</span>
-                          </div>
-                          <p class="truncate text-[12px] text-[#7ec8e3]/50">{{ character.owner?.username || member.username }} · {{ character.inventory_width }}x{{ character.inventory_height }}</p>
-                        </div>
-                        <div class="flex shrink-0 items-center gap-1.5">
-                          <button @click="openInspectChoice(character)" title="Inspect" aria-label="Inspect" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] text-[#9fb6c4] transition-colors hover:border-[rgba(126,200,227,0.32)] hover:text-[#f6f7fb]">
-                            <EyeIcon class="h-[18px] w-[18px]" :stroke-width="2" />
-                          </button>
-                          <button @click="openGMCharacterEditor(character)" title="Configure" aria-label="Configure" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] text-[#fff4de] transition-colors hover:border-[rgba(197,138,56,0.4)]">
-                            <SettingsIcon class="h-[18px] w-[18px]" :stroke-width="2" />
-                          </button>
-                          <button @click="requestCharacterDeletion(character)" title="Delete" aria-label="Delete" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] text-[#fecaca] transition-colors hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)]">
-                            <Trash2Icon class="h-[18px] w-[18px]" :stroke-width="2" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    <p v-else class="px-5 py-4 text-[13px] text-[#d8dce7]/45">{{ gmRosterEmptyStateMessage(member) }}</p>
                   </div>
-                </div>
-
-                <article v-if="!gmRosterMembers.length" class="rounded-[1.75rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-8 text-center">
-                  <h3 class="font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">
-                    {{ gmRosterHasFilters ? 'Nothing matched the current filters' : 'No members available yet' }}
-                  </h3>
-                  <p class="mt-3 text-[14px] text-[#d8dce7]/58">
-                    {{ gmRosterHasFilters
-                      ? 'Adjust the search or filters to broaden the roster view.'
-                      : 'Members will appear here once players or assistant GMs join the campaign.' }}
-                  </p>
-                </article>
-              </div>
+                </template>
+                <template #cell-createdAt="{ row }"><span class="text-[#7ec8e3]/60">{{ row.createdAt ? formatDateTime(row.createdAt) : '—' }}</span></template>
+                <template #cell-sizeLabel="{ row }"><span class="text-[#7ec8e3]/60">{{ row.sizeLabel }}</span></template>
+                <template #cell-actions="{ row }">
+                  <div class="flex flex-wrap justify-end gap-2">
+                    <button @click="openInspectChoice(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                      <EyeIcon class="h-3.5 w-3.5" :stroke-width="2" /> View
+                    </button>
+                    <button @click="openGMCharacterEditor(row)" class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]">
+                      Configure
+                    </button>
+                    <button
+                      @click="duplicateCharacter(row)"
+                      :disabled="duplicatingCharacterId === row.id"
+                      class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <Copy class="h-3.5 w-3.5" :stroke-width="2" /> {{ duplicatingCharacterId === row.id ? 'Duplicating…' : 'Duplicate' }}
+                    </button>
+                    <button @click="requestCharacterDeletion(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)]">
+                      <Trash2Icon class="h-3.5 w-3.5" :stroke-width="2" /> Delete
+                    </button>
+                  </div>
+                </template>
+              </DataTable>
             </article>
           </section>
 
           <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" :disabled-standard-attrs="disabledStandardAttrs" :enable-health="enableHealth" :enable-armor-class="enableArmorClass" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
 
-          <section v-else-if="activeTab === 'manage' && isGM" class="space-y-6">
-            <article class="rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+          <section v-else-if="activeTab === 'manage' && isGM" ref="fillHeightSectionRef" class="flex min-h-[42rem] flex-col gap-6 xl:min-h-0" :style="fillSectionHeight ? { height: fillSectionHeight } : {}">
+            <article class="shrink-0 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">GM Control Panel</p>
               <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">Manage Game</h3>
 
@@ -2722,14 +2618,16 @@ onBeforeUnmount(() => {
             </article>
 
             <!-- Players table -->
-            <div v-show="managePanel === 'players'">
+            <div v-show="managePanel === 'players'" class="flex-1 min-h-0 flex flex-col">
               <DataTable
+                fill-height
+                class="flex-1 min-h-0"
                 :columns="playerColumns"
                 :rows="managePlayers"
                 row-key="user_id"
                 :search-keys="['username', 'role']"
                 search-placeholder="Search players"
-                :page-size="10"
+                :page-size="20"
                 min-width="640px"
                 empty-text="No members yet"
               >
@@ -2757,13 +2655,15 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- Chat history table -->
-            <div v-show="managePanel === 'chat'">
+            <div v-show="managePanel === 'chat'" class="flex-1 min-h-0 flex flex-col">
               <DataTable
+                fill-height
+                class="flex-1 min-h-0"
                 :columns="chatColumns"
                 :rows="chatHistoryRows"
                 :search-keys="['author', 'text']"
                 search-placeholder="Search chat history"
-                :page-size="10"
+                :page-size="20"
                 min-width="560px"
                 min-height="18rem"
                 :empty-text="manageChatLoading ? 'Loading...' : 'No chat messages yet'"
@@ -2788,13 +2688,15 @@ onBeforeUnmount(() => {
             </div>
 
             <!-- Activity log table -->
-            <div v-show="managePanel === 'activity'">
+            <div v-show="managePanel === 'activity'" class="flex-1 min-h-0 flex flex-col">
               <DataTable
+                fill-height
+                class="flex-1 min-h-0"
                 :columns="activityColumns"
                 :rows="activityRows"
                 :search-keys="['player', 'character', 'action', 'details']"
                 search-placeholder="Search activity"
-                :page-size="10"
+                :page-size="20"
                 min-width="720px"
                 min-height="18rem"
                 :empty-text="manageActivityLoading ? 'Loading...' : 'No recorded activity yet'"

@@ -91,6 +91,8 @@ const tagFilter = ref('all')
 const sortMode = ref('recent')
 const currentPage = ref(1)
 const itemsLoading = ref(false)
+const loadingMoreItems = ref(false)
+const itemsGridRef = ref(null)
 const itemsError = ref('')
 const rawItems = ref([])
 const pagination = ref({
@@ -230,9 +232,7 @@ const itemResultsLabel = computed(() => {
     return 'No items loaded yet.'
   }
 
-  const start = ((pagination.value.page - 1) * pagination.value.perPage) + 1
-  const end = Math.min(pagination.value.totalItems, start + allItems.value.length - 1)
-  return `Showing ${start}-${end} of ${pagination.value.totalItems}`
+  return `${allItems.value.length} of ${pagination.value.totalItems} loaded`
 })
 const inspectorItem = computed(() => itemById.value[hoveredItemId.value]
   ?? itemById.value[selectedItemId.value]
@@ -339,8 +339,8 @@ watch(
   { immediate: true },
 )
 
-watch(currentPage, () => {
-  fetchItems()
+watch(currentPage, (next, prev) => {
+  fetchItems({ append: next > prev })
 })
 
 watch(() => itemDraft.value.description, (value) => {
@@ -377,7 +377,7 @@ onBeforeUnmount(() => {
   clearDetailItemImageSelection()
 })
 
-async function fetchItems() {
+async function fetchItems({ append = false } = {}) {
   if (!props.gameId) {
     rawItems.value = []
     pagination.value = createEmptyPaginationState()
@@ -386,7 +386,12 @@ async function fetchItems() {
   }
 
   const requestId = ++itemListRequestId
-  itemsLoading.value = true
+  if (append) {
+    loadingMoreItems.value = true
+  } else {
+    itemsLoading.value = true
+    itemsGridRef.value?.scrollTo?.({ top: 0 })
+  }
   itemsError.value = ''
 
   try {
@@ -405,21 +410,41 @@ async function fetchItems() {
       return
     }
 
-    rawItems.value = Array.isArray(data?.items) ? data.items : []
+    const nextItems = Array.isArray(data?.items) ? data.items : []
+    rawItems.value = append ? [...rawItems.value, ...nextItems] : nextItems
     pagination.value = normalizePagination(data?.pagination)
   } catch (error) {
     if (requestId !== itemListRequestId) {
       return
     }
 
-    rawItems.value = []
-    pagination.value = createEmptyPaginationState()
+    if (!append) {
+      rawItems.value = []
+      pagination.value = createEmptyPaginationState()
+    }
     itemsError.value = getErrorMessage(error, 'Failed to load compendium items')
   } finally {
     if (requestId === itemListRequestId) {
       itemsLoading.value = false
+      loadingMoreItems.value = false
     }
   }
+}
+
+function loadMoreItems() {
+  if (itemsLoading.value || loadingMoreItems.value || !pagination.value.hasNext) {
+    return
+  }
+  currentPage.value += 1
+}
+
+const SCROLL_LOAD_THRESHOLD_PX = 240
+function onItemsGridScroll(event) {
+  const el = event.target
+  if (el.scrollHeight - el.scrollTop - el.clientHeight > SCROLL_LOAD_THRESHOLD_PX) {
+    return
+  }
+  loadMoreItems()
 }
 
 function createEmptyPaginationState() {
@@ -499,18 +524,6 @@ function clearFilters() {
   sortMode.value = 'recent'
 }
 
-function changePage(nextPage) {
-  if (itemsLoading.value) {
-    return
-  }
-  if (nextPage < 1 || nextPage > Math.max(1, pagination.value.totalPages)) {
-    return
-  }
-  if (nextPage === currentPage.value) {
-    return
-  }
-  currentPage.value = nextPage
-}
 
 function selectItem(itemId) {
   selectedItemId.value = itemId
@@ -1533,10 +1546,12 @@ function itemSizeLabel(item) {
 
         <label class="block">
           <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Tag</span>
-          <select v-model="tagFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none">
-            <option value="all">All tags</option>
-            <option v-for="tag in availableTagNames" :key="tag" :value="tag">{{ tag }}</option>
-          </select>
+          <SearchableSelect
+            v-model="tagFilter"
+            :options="[{ value: 'all', label: 'All tags' }, ...availableTagNames.map(tag => ({ value: tag, label: tag }))]"
+            placeholder="Search tags…"
+            class="mt-2"
+          />
         </label>
 
         <label class="block">
@@ -1563,26 +1578,6 @@ function itemSizeLabel(item) {
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
           <div>
             <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Compendium Entries</p>
-            <p class="mt-2 text-[14px] text-[#d8dce7]/58">{{ itemResultsLabel }}</p>
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <button
-              type="button"
-              @click="changePage(currentPage - 1)"
-              :disabled="itemsLoading || !pagination.hasPrev"
-              class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-2 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              @click="changePage(currentPage + 1)"
-              :disabled="itemsLoading || !pagination.hasNext"
-              class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-2 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
           </div>
         </div>
 
@@ -1590,7 +1585,7 @@ function itemSizeLabel(item) {
           {{ itemsError }}
         </p>
 
-        <div v-if="allItems.length" class="grid min-h-0 flex-1 content-start auto-rows-min gap-4 overflow-y-auto p-5 sm:grid-cols-2 2xl:grid-cols-3 sm:p-6">
+        <div v-if="allItems.length" ref="itemsGridRef" @scroll="onItemsGridScroll" class="grid min-h-0 flex-1 content-start auto-rows-min gap-4 overflow-y-auto p-5 sm:grid-cols-2 2xl:grid-cols-3 sm:p-6">
           <button
             v-for="item in allItems"
             :key="item.id"
@@ -1661,6 +1656,11 @@ function itemSizeLabel(item) {
               <span class="ml-auto text-[#7ec8e3]/38">Right-click</span>
             </div>
           </button>
+
+          <div v-if="loadingMoreItems" class="col-span-full flex items-center justify-center gap-2.5 py-4 text-[13px] text-[#7ec8e3]/55">
+            <span class="h-4 w-4 animate-spin rounded-full border-2 border-[rgba(126,200,227,0.25)] border-t-[#8fd7ef]"></span>
+            Loading more…
+          </div>
         </div>
 
         <div v-else class="flex min-h-[320px] flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
@@ -1723,6 +1723,28 @@ function itemSizeLabel(item) {
                 <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Updated</p>
                 <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ formatDateTime(inspectorItem.updated_at) }}</p>
               </div>
+            </div>
+
+            <div v-if="inspectorItem.required_attributes.length" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
+              <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Requirements</p>
+              <ul class="mt-2.5 space-y-1.5">
+                <li v-for="(requirement, index) in inspectorItem.required_attributes" :key="`insp-req-${index}`" class="flex items-center justify-between gap-2 text-[13px] text-[#d8dce7]/82">
+                  <span>{{ formatLabel(requirement.attribute_name) }}</span>
+                  <span class="font-semibold text-[#f6f7fb]">{{ requirement.min_value }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <div v-if="inspectorItem.attribute_modifiers.length" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
+              <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Modifiers</p>
+              <ul class="mt-2.5 space-y-1.5">
+                <li v-for="(modifier, index) in inspectorItem.attribute_modifiers" :key="`insp-mod-${index}`" class="flex items-center justify-between gap-2 text-[13px] text-[#d8dce7]/82">
+                  <span>{{ formatLabel(modifier.attribute_name) }}</span>
+                  <span class="font-semibold" :class="modifier.modifier_value >= 0 ? 'text-[#8fd7ef]' : 'text-[#fca5a5]'">
+                    {{ modifier.modifier_value >= 0 ? '+' : '' }}{{ modifier.modifier_value }}{{ modifier.is_percentage ? '%' : '' }}
+                  </span>
+                </li>
+              </ul>
             </div>
 
             <div class="min-h-[5.75rem]">

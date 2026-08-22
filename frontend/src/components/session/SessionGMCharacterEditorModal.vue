@@ -322,41 +322,42 @@ function emitSave() {
     <div v-if="visible" class="fixed inset-0 z-[12500] flex items-center justify-center px-4 py-6 sm:px-6" @click.self="close">
       <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="close"></div>
 
-      <div class="relative max-h-[92vh] w-full max-w-[1080px] overflow-y-auto rounded-[2rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-5 shadow-[0_40px_120px_rgba(0,0,0,0.52)] sm:p-7">
+      <div class="relative flex max-h-[92vh] w-full max-w-[1080px] flex-col overflow-hidden rounded-[2rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
         <button
           @click="close"
           :disabled="saving"
-          class="absolute right-5 top-5 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+          class="absolute right-5 top-5 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="Close GM character editor"
         >
           <XIcon class="h-5 w-5" :stroke-width="2" />
         </button>
 
-        <div class="pr-12">
-          <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">GM Character Editor</p>
-          <div class="mt-3 flex flex-wrap items-center gap-3">
-            <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">{{ character?.name || 'Character Setup' }}</h2>
-            <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
-              {{ selectedOwner?.username || character?.owner?.username || 'Unassigned' }}
-            </span>
+        <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
+          <div class="pr-12">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">GM Character Editor</p>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+              <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">{{ character?.name || 'Character Setup' }}</h2>
+              <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
+                {{ selectedOwner?.username || character?.owner?.username || 'Unassigned' }}
+              </span>
+            </div>
+            <p class="mt-3 max-w-[48rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
+              Configure portrait, narrative profile, base attributes, inventory dimensions, custom stats, and character ownership.
+            </p>
           </div>
-          <p class="mt-3 max-w-[48rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
-            Configure portrait, narrative profile, base attributes, inventory dimensions, custom stats, and character ownership.
+
+          <p v-if="displayError" class="mt-6 rounded-[1.3rem] border border-[rgba(248,113,113,0.24)] bg-[rgba(127,29,29,0.18)] px-4 py-3 text-[13px] text-[#fecaca]">
+            {{ displayError }}
           </p>
-        </div>
 
-        <p v-if="displayError" class="mt-6 rounded-[1.3rem] border border-[rgba(248,113,113,0.24)] bg-[rgba(127,29,29,0.18)] px-4 py-3 text-[13px] text-[#fecaca]">
-          {{ displayError }}
-        </p>
-
-        <div v-if="character" class="mt-6 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside class="space-y-5 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 xl:sticky xl:top-0 xl:self-start">
+          <div v-if="character" class="mt-6 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
+            <aside class="space-y-5 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 xl:sticky xl:top-0 xl:self-start">
             <div>
               <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Portrait</p>
               <div class="mt-4 overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
                 <div class="flex h-72 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(8,16,30,0.94))]">
                   <img v-if="portraitUrl" :src="portraitUrl" :alt="character.name" class="h-full w-full object-cover object-top" @error="markImageFailed(portraitUrl)" />
-                  <span v-else class="font-[Cinzel] text-[38px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</span>
+                  <div v-else class="flex h-32 w-32 items-center justify-center rounded-full border-2 border-[rgba(143,215,239,0.3)] bg-[linear-gradient(135deg,rgba(126,200,227,0.16),rgba(233,69,96,0.06))] font-[Cinzel] text-[38px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</div>
                 </div>
               </div>
             </div>
@@ -540,8 +541,9 @@ function emitSave() {
             </div>
           </section>
         </div>
+        </div>
 
-        <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[rgba(126,200,227,0.12)] pt-5">
+        <div class="shrink-0 flex flex-wrap items-center justify-between gap-4 border-t border-[rgba(126,200,227,0.12)] bg-[rgba(7,13,26,0.98)] px-5 py-5 sm:px-7">
           <div class="flex flex-wrap gap-3">
             <button
               type="button"

@@ -11,9 +11,11 @@ const props = defineProps({
   searchKeys: { type: Array, default: null },
   paginate: { type: Boolean, default: true },
   pageSize: { type: Number, default: 10 },
+  pageSizeOptions: { type: Array, default: () => [5, 10, 20, 50] },
   minWidth: { type: String, default: '640px' },
   minHeight: { type: String, default: '' },
   emptyText: { type: String, default: 'No data' },
+  fillHeight: { type: Boolean, default: false },
 })
 
 const search = ref('')
@@ -21,6 +23,9 @@ const sortKey = ref('')
 const sortDir = ref('asc')
 const columnFilters = ref({})
 const page = ref(1)
+const pageSize = ref(props.pageSize)
+watch(() => props.pageSize, (value) => { pageSize.value = value })
+watch(pageSize, () => { page.value = 1 })
 
 const filterableColumns = computed(() => props.columns.filter(column => column.filterable))
 const hasToolbar = computed(() => props.searchable || filterableColumns.value.length > 0)
@@ -76,16 +81,41 @@ const filteredRows = computed(() => {
   return result
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / props.pageSize)))
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredRows.value.length / pageSize.value)))
+const pageNumbers = computed(() => {
+  const total = totalPages.value
+  const current = page.value
+  const delta = 1
+  const range = []
+  const withDots = []
+  let last = 0
+
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= current - delta && i <= current + delta)) {
+      range.push(i)
+    }
+  }
+
+  for (const i of range) {
+    if (last) {
+      if (i - last === 2) withDots.push(last + 1)
+      else if (i - last > 2) withDots.push('…')
+    }
+    withDots.push(i)
+    last = i
+  }
+
+  return withDots
+})
 const pagedRows = computed(() => {
   if (!props.paginate) return filteredRows.value
-  const start = (page.value - 1) * props.pageSize
-  return filteredRows.value.slice(start, start + props.pageSize)
+  const start = (page.value - 1) * pageSize.value
+  return filteredRows.value.slice(start, start + pageSize.value)
 })
 const fillerCount = computed(() => {
-  if (!props.paginate) return 0
+  if (!props.paginate || props.fillHeight) return 0
   const occupied = pagedRows.value.length || 1
-  return Math.max(0, props.pageSize - occupied)
+  return Math.max(0, pageSize.value - occupied)
 })
 
 watch(search, () => { page.value = 1 })
@@ -108,8 +138,8 @@ function rowId(row, index) {
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]">
-    <div v-if="hasToolbar || $slots.toolbar" class="flex flex-wrap items-center gap-3 border-b border-[rgba(126,200,227,0.1)] px-5 py-4">
+  <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]" :class="fillHeight ? 'flex h-full flex-col' : ''">
+    <div v-if="hasToolbar || $slots.toolbar" class="flex shrink-0 flex-wrap items-center gap-3 border-b border-[rgba(126,200,227,0.1)] px-5 py-4">
       <div v-if="searchable" class="flex min-w-[13rem] flex-1 items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2">
         <svg class="h-4 w-4 shrink-0 text-[#7ec8e3]/45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" /></svg>
         <input v-model="search" type="text" :placeholder="searchPlaceholder" class="w-full bg-transparent text-[13px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30" />
@@ -128,10 +158,10 @@ function rowId(row, index) {
       <slot name="toolbar" />
     </div>
 
-    <div class="overflow-x-auto" :style="minHeight ? { minHeight } : {}">
+    <div class="overflow-x-auto" :class="fillHeight ? 'flex-1 min-h-0 overflow-y-auto' : ''" :style="minHeight ? { minHeight } : {}">
       <table class="w-full text-left text-[13px]" :style="{ minWidth }">
         <thead>
-          <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">
+          <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45" :class="fillHeight ? 'sticky top-0 z-10 bg-[rgba(8,16,30,0.98)]' : ''">
             <th
               v-for="column in columns"
               :key="column.key"
@@ -171,10 +201,35 @@ function rowId(row, index) {
       </table>
     </div>
 
-    <div v-if="paginate" class="flex items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3">
-      <span class="text-[12px] text-[#7ec8e3]/45">Page {{ page }} / {{ totalPages }} · {{ filteredRows.length }} rows</span>
-      <div class="flex gap-2">
+    <div v-if="paginate" class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-[12px] text-[#7ec8e3]/45">{{ filteredRows.length }} rows</span>
+        <label class="flex items-center gap-1.5 text-[12px] text-[#7ec8e3]/45">
+          Rows:
+          <select
+            v-model.number="pageSize"
+            class="rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.72)] px-2 py-1 text-[12px] text-[#f6f7fb] outline-none"
+          >
+            <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5">
         <button type="button" @click="page = Math.max(1, page - 1)" :disabled="page <= 1" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+        <template v-for="(item, index) in pageNumbers" :key="`page-${index}`">
+          <span v-if="item === '…'" class="px-1.5 text-[12px] text-[#7ec8e3]/35">…</span>
+          <button
+            v-else
+            type="button"
+            @click="page = item"
+            class="min-w-[2.15rem] cursor-pointer rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200"
+            :class="item === page
+              ? 'border-[rgba(233,69,96,0.4)] bg-[rgba(233,69,96,0.18)] text-[#ffe0e7]'
+              : 'border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] hover:border-[rgba(126,200,227,0.3)]'"
+          >
+            {{ item }}
+          </button>
+        </template>
         <button type="button" @click="page = Math.min(totalPages, page + 1)" :disabled="page >= totalPages" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Next</button>
       </div>
     </div>
