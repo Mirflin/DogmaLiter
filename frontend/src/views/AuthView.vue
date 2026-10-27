@@ -203,7 +203,7 @@ async function handleRegister() {
   max-width: 27rem;
   padding: 2.25rem 2rem 2rem;
   border-radius: 2rem;
-  background: rgb(8 13 36 / 0.8);
+  background: rgb(8 13 36 / 0.86);
   box-shadow: inset 0 0 0 1px rgb(74 90 150 / 0.35);
   text-align: center;
   animation: panel-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;

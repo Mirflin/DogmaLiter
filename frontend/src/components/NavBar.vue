@@ -5,6 +5,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { API_URL } from '@/api'
 import logo from '@/assets/DLlogo.png'
 
+defineProps({
+  // Transparent over the page's own ground (landing); stays fixed at the top while scrolling.
+  overlay: { type: Boolean, default: false },
+})
+
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
@@ -25,6 +30,22 @@ const guestItems = [
   { to: '/plans', label: 'Plans' },
   { to: '/news', label: 'News' },
 ]
+
+// Over the page's own ground the bar is see-through; once the page scrolls, it gains a ground of
+// its own so the content passing underneath never collides with the links.
+const scrolled = ref(false)
+function onScroll() {
+  scrolled.value = window.scrollY > 8
+}
+onMounted(() => {
+  onScroll()
+  window.addEventListener('scroll', onScroll, { passive: true })
+})
+onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
+
+function isGuestActive(item) {
+  return !item.to.includes('#') && route.path.startsWith(item.to)
+}
 
 function updateIndicator() {
   if (!navLinks.value) return
@@ -66,7 +87,7 @@ function isActive(path) {
 </script>
 
 <template>
-  <nav class="site-nav sticky top-0 z-50 w-full bg-n0">
+  <nav class="site-nav top-0 z-50 w-full" :class="overlay ? ['site-nav--overlay', { 'is-scrolled': scrolled }] : 'sticky bg-n0'">
     <div class="site-nav__inner max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
       <div class="flex items-center gap-8">
         <router-link to="/" class="site-nav__brand flex items-center gap-3 no-underline hover:opacity-90 transition-opacity">
@@ -84,7 +105,8 @@ function isActive(path) {
             :key="item.path"
             :to="item.path"
             :data-active="isActive(item.path)"
-            :class="isActive(item.path) ? 'text-primary-ink' : 'text-ink/70 hover:text-ink hover:bg-n3'"
+            :aria-current="isActive(item.path) ? 'page' : undefined"
+            :class="isActive(item.path) ? 'site-nav__link--active' : 'text-ink/70 hover:text-ink hover:bg-n3/70'"
             class="site-nav__link px-4 py-2 text-[14px] no-underline rounded-lg transition-all duration-200"
           >
             {{ item.label }}
@@ -96,7 +118,9 @@ function isActive(path) {
             v-for="item in guestItems"
             :key="item.to"
             :to="item.to"
-            class="px-4 py-2 text-[14px] text-ink/70 no-underline rounded-lg hover:text-ink hover:bg-n3 transition-colors duration-200"
+            :aria-current="isGuestActive(item) ? 'page' : undefined"
+            :class="isGuestActive(item) ? 'site-nav__link--active' : 'text-ink/70 hover:text-ink hover:bg-n3/70'"
+            class="site-nav__link px-4 py-2 text-[14px] no-underline rounded-lg transition-all duration-200"
           >
             {{ item.label }}
           </router-link>
@@ -190,6 +214,31 @@ function isActive(path) {
 .site-nav {
   position: sticky;
   background: var(--color-n0) !important;
+}
+
+.site-nav--overlay {
+  position: fixed;
+  left: 0;
+  background: transparent !important;
+  transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+.site-nav--overlay.is-scrolled {
+  background: rgb(6 10 28 / 0.72) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.site-nav__link:active {
+  transform: scale(0.96);
+}
+
+/* The current page: a lifted pill with a lit rim, so it reads at a glance on any ground. */
+.site-nav__link--active {
+  color: var(--color-ink);
+  font-weight: 600;
+  background: rgb(88 101 221 / 0.22);
+  box-shadow: inset 0 0 0 1px rgb(164 174 255 / 0.35);
 }
 
 .site-nav__inner {

@@ -81,7 +81,7 @@ function formatDate(value) {
 </script>
 
 <template>
-  <HomeLayout>
+  <HomeLayout nav-overlay>
     <div ref="page" class="landing" :class="{ 'landing--armed': armed }">
       <LandingSky />
 
@@ -123,11 +123,18 @@ function formatDate(value) {
             </p>
           </div>
           <LandingInventoryDemo />
-          <ul class="rarity" data-reveal aria-label="Rarity tiers">
-            <li v-for="r in ['common', 'uncommon', 'rare', 'epic', 'masterwork', 'legendary', 'unique']" :key="r" :style="{ '--resin': `var(--color-r-${r})` }">
-              {{ r.charAt(0).toUpperCase() + r.slice(1) }}
-            </li>
-          </ul>
+          <div class="demo-foot" data-reveal>
+            <div>
+              <ul class="rarity" aria-label="Rarity tiers">
+                <li v-for="r in ['common', 'uncommon', 'rare', 'epic', 'masterwork', 'legendary', 'unique']" :key="r" :style="{ '--resin': `var(--color-r-${r})` }">
+                  {{ r.charAt(0).toUpperCase() + r.slice(1) }}
+                </li>
+              </ul>
+            </div>
+            <p class="section__note">
+              This is a simplified demo to try the idea. The inventory in a real game session looks different and does more, like rotating items, splitting stacks and trading.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -311,8 +318,9 @@ function formatDate(value) {
 .hero__inner {
   max-width: 1280px;
   margin: 0 auto;
-  padding: clamp(2.5rem, 6vh, 5rem) 1.5rem clamp(3.5rem, 8vh, 6rem);
-  min-height: calc(100svh - 4rem);
+  /* The nav floats over the hero, so the hero owns the full first screen. */
+  padding: calc(4rem + clamp(2.5rem, 6vh, 5rem)) 1.5rem clamp(3.5rem, 8vh, 6rem);
+  min-height: 100svh;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
   align-items: center;
@@ -440,7 +448,7 @@ function formatDate(value) {
   margin: 0 auto;
   padding: clamp(1.75rem, 4.5vw, 4rem);
   border-radius: 2rem;
-  background: rgb(8 13 36 / 0.74);
+  background: rgb(8 13 36 / 0.82);
   box-shadow: inset 0 0 0 1px rgb(74 90 150 / 0.35);
 }
 
@@ -470,6 +478,37 @@ function formatDate(value) {
   text-wrap: balance;
 }
 
+.demo-foot {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem 3rem;
+}
+
+.demo-foot .rarity {
+  margin: 0;
+}
+
+.section__note {
+  margin: 0;
+  max-width: 21rem;
+  font-size: 14px;
+  line-height: 1.55;
+  text-align: right;
+  color: var(--color-faint);
+}
+
+@media (max-width: 960px) {
+  .demo-foot {
+    flex-direction: column;
+  }
+
+  .section__note {
+    text-align: left;
+  }
+}
+
 .section__lede {
   margin: 0;
   max-width: 36rem;
@@ -487,6 +526,19 @@ function formatDate(value) {
   gap: 0.5rem 1.25rem;
   font-size: 14px;
   color: var(--color-dim);
+}
+
+.credit {
+  margin: 1rem 0 0;
+  font-size: 13px;
+  color: var(--color-faint);
+}
+
+.credit a {
+  color: var(--color-dim);
+  text-decoration: underline;
+  text-decoration-color: rgb(154 165 207 / 0.35);
+  text-underline-offset: 3px;
 }
 
 .rarity li {
@@ -703,7 +755,7 @@ function formatDate(value) {
   .hero__inner {
     grid-template-columns: minmax(0, 1fr);
     min-height: 0;
-    padding-top: 1.5rem;
+    padding-top: 5.5rem;
   }
 
   .hero__tray {
