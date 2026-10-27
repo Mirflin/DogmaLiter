@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import LandingDie from '@/components/landing/LandingDie.vue'
 import LandingInventoryDemo from '@/components/landing/LandingInventoryDemo.vue'
+import LandingSky from '@/components/landing/LandingSky.vue'
 import api, { API_URL } from '@/api'
 
 const news = ref([])
@@ -12,17 +13,17 @@ const armed = ref(false)
 const trade = ref('pending')
 
 const playerTools = [
-  { title: 'A sheet that does the maths', text: 'Base attributes, custom stats, health and armour class. Equipped gear updates the totals as you drag it on.' },
-  { title: 'A backpack with real space', text: 'Multi-cell items, rotation, stacks, durability and enchantment, plus slots for weapons, armour, rings and an amulet.' },
-  { title: 'Trades the table can trust', text: 'Offer items to another character. They sit in escrow until the other player accepts or declines.' },
-  { title: 'Chat with item links', text: 'Share an item in chat and anyone can open its full card without leaving the session.' },
+  { title: 'Your character, always up to date', text: 'Stats, health and gear on one sheet that keeps itself current.' },
+  { title: 'A backpack with real space', text: 'Items take the room they should. Pack, stack and equip by dragging.' },
+  { title: 'Trade with your party', text: 'Swap items with other players safely, right inside the session.' },
+  { title: 'Chat that knows your loot', text: 'Talk, plan and show off a find without leaving the game.' },
 ]
 
 const gmTools = [
-  { title: 'Your own compendium', text: 'Rarity tiers, tags, requirements, attribute modifiers and images for every item in the campaign.' },
-  { title: 'Loot in two clicks', text: 'Add items to a transfer cart and deliver them straight into a character’s inventory.' },
-  { title: 'Everything on record', text: 'Activity log of inventory and character actions, full chat history, and searchable player tables.' },
-  { title: 'Your table, your rules', text: 'Invite by link or code, assign assistant GMs, and switch chat, trading or standard attributes per game.' },
+  { title: 'Your own item library', text: 'Create the items of your world once and use them all campaign.' },
+  { title: 'Hand out loot in bulk', text: 'Give many items at once, straight into a character’s backpack.' },
+  { title: 'Know what happened', text: 'Trades, loot and messages stay on record for the whole game.' },
+  { title: 'Your table, your rules', text: 'Invite players with a link, pick helpers and switch features on or off.' },
 ]
 
 const steps = [
@@ -82,6 +83,8 @@ function formatDate(value) {
 <template>
   <HomeLayout>
     <div ref="page" class="landing" :class="{ 'landing--armed': armed }">
+      <LandingSky />
+
       <!-- Hero -->
       <section class="hero" data-tilt-scope>
         <div class="hero__inner">
@@ -116,7 +119,7 @@ function formatDate(value) {
           <div class="section__head" data-reveal>
             <h2 class="section__title">Every item takes its real space</h2>
             <p class="section__lede">
-              A longbow is three cells tall, armour is two by three, arrows stack. Drag gear onto your character and the stats follow. Gear you can’t wield yet stays greyed out.
+              Items have a real size, so packing your bag is part of the game. Drag gear onto your character and the stats follow.
             </p>
           </div>
           <LandingInventoryDemo />
@@ -129,7 +132,7 @@ function formatDate(value) {
       </section>
 
       <!-- Players and GMs -->
-      <section class="section section--deep">
+      <section class="section">
         <div class="section__inner">
           <h2 class="section__title" data-reveal>Players and GMs, one table</h2>
 
@@ -158,10 +161,10 @@ function formatDate(value) {
             <span class="offer__swatch num" aria-hidden="true">CT</span>
             <p v-if="trade === 'pending'" class="offer__text">
               <span class="text-orchid font-semibold">Brannoc</span> offers you
-              <span class="text-r-masterwork font-semibold">Cloak of the Tide</span>. Held in escrow until you answer.
+              <span class="text-r-masterwork font-semibold">Cloak of the Tide</span>. It stays safe until you answer.
             </p>
             <p v-else-if="trade === 'accepted'" class="offer__text">
-              <span class="text-r-masterwork font-semibold">Cloak of the Tide</span> is in Kaela’s backpack. Brannoc gets a notification.
+              <span class="text-r-masterwork font-semibold">Cloak of the Tide</span> is in Kaela’s backpack. Brannoc gets a heads-up.
             </p>
             <p v-else class="offer__text">Declined. The cloak goes back to Brannoc’s inventory.</p>
             <div class="offer__actions">
@@ -190,7 +193,7 @@ function formatDate(value) {
       </section>
 
       <!-- News -->
-      <section v-if="news.length" class="section section--deep">
+      <section v-if="news.length" class="section">
         <div class="section__inner">
           <div class="flex items-baseline justify-between gap-6" data-reveal>
             <h2 class="section__title">From the workshop</h2>
@@ -227,7 +230,13 @@ function formatDate(value) {
 <style scoped>
 .landing {
   position: relative;
-  background: var(--color-n1);
+  /* Clips the fixed sky to the landing page, so the nav and footer stay solid. */
+  clip-path: inset(0);
+}
+
+.landing > section {
+  position: relative;
+  z-index: 1;
 }
 
 /* ---------- Buttons ---------- */
@@ -310,11 +319,15 @@ function formatDate(value) {
   gap: clamp(2rem, 5vw, 5rem);
 }
 
+.hero__copy {
+  container-type: inline-size;
+}
+
 .hero__title {
   margin: 0;
   font-family: var(--font-num);
   font-weight: 700;
-  font-size: clamp(3rem, 5.8vw, 5.6rem);
+  font-size: clamp(2.4rem, 14.2cqi, 5.6rem);
   line-height: 0.92;
   letter-spacing: -0.01em;
   text-transform: uppercase;
@@ -417,17 +430,26 @@ function formatDate(value) {
 
 /* ---------- Sections ---------- */
 .section {
-  padding: clamp(4.5rem, 10vw, 8rem) 0;
+  padding: clamp(1.25rem, 3vw, 2.25rem) 1.5rem;
 }
 
-.section--deep {
-  background: var(--color-n0);
-}
-
-.section__inner {
+/* Each section sits in its own translucent panel over the night scene. */
+.section__inner,
+.close__inner {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 0 1.5rem;
+  padding: clamp(1.75rem, 4.5vw, 4rem);
+  border-radius: 2rem;
+  background: rgb(8 13 36 / 0.74);
+  box-shadow: inset 0 0 0 1px rgb(74 90 150 / 0.35);
+}
+
+@media (min-width: 961px) {
+  .section__inner,
+  .close__inner {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
 }
 
 .section__head {
@@ -626,14 +648,12 @@ function formatDate(value) {
 
 /* Close */
 .close {
-  padding: clamp(5rem, 11vw, 8rem) 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2.25rem) 1.5rem clamp(4rem, 9vw, 7rem);
   text-align: center;
-  background: var(--color-n0);
 }
 
 .close__inner {
-  max-width: 44rem;
-  margin: 0 auto;
+  padding-block: clamp(3rem, 8vw, 6rem);
 }
 
 .close__title {
@@ -718,10 +738,21 @@ function formatDate(value) {
 }
 
 @media (max-width: 520px) {
-  .hero__inner,
-  .section__inner {
+  .hero__inner {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .section,
+  .close {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .section__inner,
+  .close__inner {
+    padding: 1.5rem 1.1rem;
+    border-radius: 1.5rem;
   }
 
   .hero__tray {

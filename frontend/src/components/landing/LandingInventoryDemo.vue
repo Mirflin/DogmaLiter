@@ -260,10 +260,7 @@ function tileStyle(item, index) {
 }
 
 .demo__inspector {
-  border-radius: 1.25rem;
-  background: var(--color-n2);
-  padding: 1.25rem 1.25rem 1.1rem;
-  min-height: 100%;
+  padding: 0.5rem 0.25rem;
 }
 
 .demo__facts {

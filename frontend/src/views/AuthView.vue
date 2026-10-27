@@ -1,8 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { notify } from '@/notify'
 import { useRouter, useRoute } from 'vue-router'
+import LandingSky from '@/components/landing/LandingSky.vue'
+import logo from '@/assets/DLlogo.png'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -19,6 +21,11 @@ const regPassword = ref('')
 const regPasswordConfirm = ref('')
 const agreeToTerms = ref(false)
 const subscribeNewsletter = ref(false)
+
+// Keep the address in step with the visible form, so a refresh or a shared link opens the same one.
+watch(isRegisterMode, (register) => {
+  router.replace({ query: { ...route.query, mode: register ? 'register' : undefined } })
+})
 
 function switchToRegister() {
   isRegisterMode.value = true
@@ -75,314 +82,388 @@ async function handleRegister() {
 </script>
 
 <template>
-  <div class="auth-page min-h-screen flex items-center justify-center font-sans relative overflow-hidden px-4 py-10">
-    <div class="absolute inset-0 pointer-events-none">
-      <span v-for="n in 20" :key="n" class="particle" />
-    </div>
+  <div class="auth">
+    <LandingSky />
 
-    <div
-      class="auth-container relative w-[850px] max-w-[95vw] min-h-[620px] bg-n2/85 backdrop-blur-[20px] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(88,101,221,0.08)] flex overflow-hidden border border-line z-1"
-      :class="{ 'register-mode': isRegisterMode }"
-    >
-      <div class="form-side login-side w-1/2 py-12 px-10 flex items-center justify-center transition-all duration-700 z-2">
-        <div class="w-full max-w-[320px]">
-          <h2 class="font-heading text-[28px] font-bold text-ink mb-2 tracking-wide">Sign In</h2>
-          <p class="text-dim text-sm mb-8">Welcome back, adventurer</p>
+    <header class="auth__top">
+      <router-link to="/" class="auth__brand">
+        <img :src="logo" alt="" class="h-9 w-9 object-contain" />
+        <span>DogmaLiter</span>
+      </router-link>
+    </header>
 
-          <form @submit.prevent="handleLogin">
-            <div class="mb-5 group">
-              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Email</label>
-              <input
-                v-model="loginEmail"
-                type="email"
-                placeholder="your@email.com"
-                required
-                autocomplete="email"
-                class="w-full py-3 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
-              />
-            </div>
+    <main class="auth__main">
+      <section class="auth__panel" :aria-label="isRegisterMode ? 'Create an account' : 'Sign in'">
+        <img :src="logo" alt="DogmaLiter" class="auth__die" />
+        <h1 class="auth__title">{{ isRegisterMode ? 'Join the table' : 'Welcome back' }}</h1>
+        <p class="auth__lede">{{ isRegisterMode ? 'Create a free account for your campaigns and characters.' : 'Sign in to pick up where your party left off.' }}</p>
 
-            <div class="mb-5 group">
-              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Password</label>
-              <input
-                v-model="loginPassword"
-                type="password"
-                placeholder="Enter password"
-                required
-                autocomplete="current-password"
-                class="w-full py-3 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
-              />
-            </div>
-
-            <button type="submit" class="btn-primary w-full py-3.5 mt-2 bg-primary hover:bg-primary-hover text-white border-none rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 relative overflow-hidden active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" :disabled="auth.loading">
-              <span v-if="auth.loading" class="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span v-else class="relative z-1">Sign In</span>
-            </button>
-          </form>
+        <div class="auth__tabs" role="tablist">
+          <span class="auth__thumb" :class="{ 'is-right': isRegisterMode }" aria-hidden="true" />
+          <button type="button" role="tab" :aria-selected="!isRegisterMode" @click="switchToLogin">Sign in</button>
+          <button type="button" role="tab" :aria-selected="isRegisterMode" @click="switchToRegister">Create account</button>
         </div>
-      </div>
 
-      <div class="form-side register-side absolute right-0 top-0 bottom-0 w-1/2 py-12 px-10 flex items-center justify-center transition-all duration-700 opacity-0 pointer-events-none z-1">
-        <div class="w-full max-w-[320px]">
-          <h2 class="font-heading text-[28px] font-bold text-ink mb-2 tracking-wide">Sign Up</h2>
-          <p class="text-dim text-sm mb-8">Start your adventure</p>
+        <Transition name="swap" mode="out-in">
+          <form v-if="!isRegisterMode" key="login" class="auth__form" @submit.prevent="handleLogin">
+            <label class="field">
+              <span>Email</span>
+              <input v-model="loginEmail" type="email" placeholder="you@example.com" required autocomplete="email" />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input v-model="loginPassword" type="password" placeholder="Your password" required autocomplete="current-password" />
+            </label>
+            <button type="submit" class="auth__submit" :disabled="auth.loading">
+              <span v-if="auth.loading" class="spinner" aria-hidden="true" />
+              <span>{{ auth.loading ? 'Signing in…' : 'Sign in' }}</span>
+            </button>
+            <p class="auth__switch">New here? <button type="button" @click="switchToRegister">Create a free account</button></p>
+          </form>
 
-          <form @submit.prevent="handleRegister">
-            <div class="mb-3.5 group">
-              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Username</label>
-              <input
-                v-model="regUsername"
-                type="text"
-                placeholder="Choose a username"
-                required
-                autocomplete="username"
-                class="w-full py-2.5 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
-              />
-            </div>
-
-            <div class="mb-3.5 group">
-              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Email</label>
-              <input
-                v-model="regEmail"
-                type="email"
-                placeholder="your@email.com"
-                required
-                autocomplete="email"
-                class="w-full py-2.5 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
-              />
-            </div>
-
-            <div class="mb-3.5 group">
-              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Password</label>
-              <input
-                v-model="regPassword"
-                type="password"
-                placeholder="Min 8 characters"
-                required
-                autocomplete="new-password"
-                class="w-full py-2.5 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
-              />
-            </div>
-
-            <div class="mb-4 group">
-              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Confirm Password</label>
-              <input
-                v-model="regPasswordConfirm"
-                type="password"
-                placeholder="Repeat password"
-                required
-                autocomplete="new-password"
-                class="w-full py-2.5 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
-              />
-            </div>
-
-            <div class="mb-2.5">
-              <label class="flex items-start gap-2.5 cursor-pointer">
-                <input v-model="agreeToTerms" type="checkbox" class="mt-0.5 w-4 h-4 accent-primary cursor-pointer flex-shrink-0" />
-                <span class="text-dim text-[12px] leading-relaxed">I agree to the <router-link to="/terms" class="text-primary-ink no-underline hover:text-danger" target="_blank">Terms of Service</router-link> and <router-link to="/privacy" class="text-primary-ink no-underline hover:text-danger" target="_blank">Privacy Policy</router-link></span>
+          <form v-else key="register" class="auth__form" @submit.prevent="handleRegister">
+            <label class="field">
+              <span>Username</span>
+              <input v-model="regUsername" type="text" placeholder="At least 3 characters" required autocomplete="username" />
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input v-model="regEmail" type="email" placeholder="you@example.com" required autocomplete="email" />
+            </label>
+            <div class="auth__pair">
+              <label class="field">
+                <span>Password</span>
+                <input v-model="regPassword" type="password" placeholder="Min 8 characters" required autocomplete="new-password" />
+              </label>
+              <label class="field">
+                <span>Confirm password</span>
+                <input v-model="regPasswordConfirm" type="password" placeholder="Repeat it" required autocomplete="new-password" />
               </label>
             </div>
-
-            <div class="mb-4">
-              <label class="flex items-start gap-2.5 cursor-pointer">
-                <input v-model="subscribeNewsletter" type="checkbox" class="mt-0.5 w-4 h-4 accent-primary cursor-pointer flex-shrink-0" />
-                <span class="text-dim text-[12px] leading-relaxed">Subscribe to news and updates via email</span>
-              </label>
-            </div>
-
-            <button type="submit" class="btn-primary w-full py-3.5 bg-primary hover:bg-primary-hover text-white border-none rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 relative overflow-hidden active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" :disabled="auth.loading">
-              <span v-if="auth.loading" class="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span v-else class="relative z-1">Create Account</span>
+            <label class="check">
+              <input v-model="agreeToTerms" type="checkbox" />
+              <span>I agree to the <router-link to="/terms" target="_blank">Terms of Service</router-link> and <router-link to="/privacy" target="_blank">Privacy Policy</router-link></span>
+            </label>
+            <label class="check">
+              <input v-model="subscribeNewsletter" type="checkbox" />
+              <span>Send me news and updates by email</span>
+            </label>
+            <button type="submit" class="auth__submit" :disabled="auth.loading">
+              <span v-if="auth.loading" class="spinner" aria-hidden="true" />
+              <span>{{ auth.loading ? 'Creating account…' : 'Create account' }}</span>
             </button>
+            <p class="auth__switch">Already have an account? <button type="button" @click="switchToLogin">Sign in</button></p>
           </form>
-        </div>
-      </div>
-
-      <div class="overlay-container absolute top-0 right-0 w-1/2 h-full overflow-hidden transition-transform duration-700 z-10">
-        <div class="overlay relative w-[200%] h-full transition-transform duration-700">
-          <div class="overlay-panel absolute top-0 left-0 w-1/2 h-full flex flex-col items-center justify-center text-center p-10 bg-linear-to-br from-[#1a3a5c] via-n3 to-n3">
-            <h2 class="font-heading text-[26px] font-bold text-ink mb-3 tracking-wide relative">Already with us?</h2>
-            <p class="text-ink-soft/70 text-sm leading-relaxed mb-7 max-w-[260px] relative">Sign in to continue your adventures</p>
-            <button class="py-3 px-10 bg-transparent text-white border-2 border-white/70 rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 tracking-wide hover:bg-white/12 hover:border-white hover:shadow-[0_5px_20px_rgba(255,255,255,0.1)]" @click="switchToLogin">Sign In</button>
-          </div>
-          <div class="overlay-panel absolute top-0 right-0 w-1/2 h-full flex flex-col items-center justify-center text-center p-10 bg-linear-to-br from-[#2d1b4e] via-n3 to-n3">
-            <h2 class="font-heading text-[26px] font-bold text-ink mb-3 tracking-wide relative">New here?</h2>
-            <p class="text-ink-soft/70 text-sm leading-relaxed mb-7 max-w-[260px] relative">Create an account and dive into the world of DogmaLiter</p>
-            <button class="py-3 px-10 bg-transparent text-white border-2 border-white/70 rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 tracking-wide hover:bg-white/12 hover:border-white hover:shadow-[0_5px_20px_rgba(255,255,255,0.1)]" @click="switchToRegister">Sign Up</button>
-          </div>
-        </div>
-      </div>
-    </div>
+        </Transition>
+      </section>
+    </main>
   </div>
 </template>
 
 <style scoped>
-.auth-page {
+.auth {
   position: relative;
-  isolation: isolate;
-  background:
-    radial-gradient(circle at 50% -12%, rgba(88, 101, 221, 0.12), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(123, 135, 184, 0.08), transparent 22%),
-    linear-gradient(90deg, rgba(123, 135, 184, 0.025) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(123, 135, 184, 0.02) 1px, transparent 1px),
-    linear-gradient(180deg, #060a1c 0%, #0a1029 56%, #060a1c 100%);
-  background-size: auto, auto, 120px 120px, 120px 120px, auto;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  /* Clips the fixed sky to this page. */
+  clip-path: inset(0);
 }
 
-.auth-page::before {
-  content: '';
-  position: absolute;
-  inset: 18px;
-  pointer-events: none;
-  border: 1px solid rgba(123, 135, 184, 0.08);
-}
-
-.auth-container {
+.auth__top,
+.auth__main {
   position: relative;
-  border-color: rgba(123, 135, 184, 0.14) !important;
-  background: linear-gradient(180deg, rgba(15, 23, 52, 0.9), rgba(6, 10, 28, 0.95)) !important;
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.34) !important;
-}
-
-.auth-container::before {
-  content: '';
-  position: absolute;
-  inset: 10px;
-  pointer-events: none;
-  border: 1px solid rgba(123, 135, 184, 0.1);
-  clip-path: polygon(0 16px, 16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
-}
-
-.auth-container::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 18px);
-  opacity: 0.75;
-}
-
-.auth-container > * {
   z-index: 1;
 }
 
-.auth-container .form-side,
-.auth-container .overlay-container,
-.auth-container .overlay {
-  transition-timing-function: cubic-bezier(0.68, -0.15, 0.27, 1.15);
+.auth__top {
+  padding: 1.25rem 1.5rem 0;
 }
 
-.overlay {
-  transform: translateX(-50%);
+.auth__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+  text-decoration: none;
 }
 
-.register-mode .login-side {
-  transform: translateX(-20%);
-  opacity: 0;
-  pointer-events: none;
+.auth__main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem 4rem;
 }
 
-.register-mode .register-side {
-  opacity: 1;
-  pointer-events: all;
-  z-index: 2;
+.auth__panel {
+  width: 100%;
+  max-width: 27rem;
+  padding: 2.25rem 2rem 2rem;
+  border-radius: 2rem;
+  background: rgb(8 13 36 / 0.8);
+  box-shadow: inset 0 0 0 1px rgb(74 90 150 / 0.35);
+  text-align: center;
+  animation: panel-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.register-mode .overlay-container {
-  transform: translateX(-100%);
-}
-
-.register-mode .overlay {
-  transform: translateX(0);
-}
-
-.overlay-panel::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 30% 20%, rgba(88, 101, 221, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 70% 80%, rgba(123, 135, 184, 0.1) 0%, transparent 50%);
-  pointer-events: none;
-}
-
-.btn-primary::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, #ff6b9d, #5865dd);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.btn-primary:hover::before {
-  opacity: 1;
-}
-
-.particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  background: rgba(88, 101, 221, 0.5);
-  border-radius: 50%;
-  animation: float-particle 15s infinite linear;
-}
-.particle:nth-child(odd) { background: rgba(123, 135, 184, 0.4); }
-.particle:nth-child(1)  { left: 5%;  top: 10%; animation-delay: 0s;    animation-duration: 12s; }
-.particle:nth-child(2)  { left: 15%; top: 80%; animation-delay: 1s;    animation-duration: 18s; }
-.particle:nth-child(3)  { left: 25%; top: 30%; animation-delay: 2s;    animation-duration: 14s; }
-.particle:nth-child(4)  { left: 35%; top: 70%; animation-delay: 3s;    animation-duration: 16s; }
-.particle:nth-child(5)  { left: 45%; top: 20%; animation-delay: 4s;    animation-duration: 13s; }
-.particle:nth-child(6)  { left: 55%; top: 90%; animation-delay: 5s;    animation-duration: 17s; }
-.particle:nth-child(7)  { left: 65%; top: 40%; animation-delay: 6s;    animation-duration: 15s; }
-.particle:nth-child(8)  { left: 75%; top: 60%; animation-delay: 7s;    animation-duration: 11s; }
-.particle:nth-child(9)  { left: 85%; top: 15%; animation-delay: 8s;    animation-duration: 19s; }
-.particle:nth-child(10) { left: 95%; top: 50%; animation-delay: 9s;    animation-duration: 14s; }
-.particle:nth-child(11) { left: 10%; top: 45%; animation-delay: 0.5s;  animation-duration: 13s; }
-.particle:nth-child(12) { left: 20%; top: 65%; animation-delay: 1.5s;  animation-duration: 16s; }
-.particle:nth-child(13) { left: 30%; top: 85%; animation-delay: 2.5s;  animation-duration: 12s; }
-.particle:nth-child(14) { left: 40%; top: 35%; animation-delay: 3.5s;  animation-duration: 18s; }
-.particle:nth-child(15) { left: 50%; top: 55%; animation-delay: 4.5s;  animation-duration: 15s; }
-.particle:nth-child(16) { left: 60%; top: 25%; animation-delay: 5.5s;  animation-duration: 17s; }
-.particle:nth-child(17) { left: 70%; top: 75%; animation-delay: 6.5s;  animation-duration: 11s; }
-.particle:nth-child(18) { left: 80%; top: 5%;  animation-delay: 7.5s;  animation-duration: 14s; }
-.particle:nth-child(19) { left: 90%; top: 95%; animation-delay: 8.5s;  animation-duration: 16s; }
-.particle:nth-child(20) { left: 50%; top: 50%; animation-delay: 9.5s;  animation-duration: 13s; }
-
-@keyframes float-particle {
-  0%   { transform: translateY(0) translateX(0); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { transform: translateY(-100vh) translateX(30px); opacity: 0; }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25%      { transform: translateX(-5px); }
-  75%      { transform: translateX(5px); }
-}
-
-.animate-shake {
-  animation: shake 0.4s ease;
-}
-
-@media (max-width: 768px) {
-  .auth-container {
-    flex-direction: column;
-    min-height: auto;
-    width: 90vw;
-    max-width: 420px;
+@media (min-width: 640px) {
+  .auth__panel {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
   }
-  .form-side { width: 100%; padding: 40px 30px; }
-  .register-side { left: 0; right: 0; }
-  .overlay-container { position: relative; width: 100%; height: auto; min-height: 200px; order: -1; }
-  .register-mode .overlay-container { transform: translateY(100%); position: absolute; bottom: 0; height: auto; min-height: 200px; }
-  .overlay { width: 100%; }
-  .overlay-panel { width: 100%; padding: 30px; }
-  .overlay-left { display: none; }
-  .register-mode .overlay { transform: none; }
-  .register-mode .overlay-left { display: flex; }
-  .register-mode .overlay-right { display: none; }
+}
+
+.auth__die {
+  width: 4.5rem;
+  margin: -0.25rem auto 1rem;
+  filter: drop-shadow(0 10px 18px rgb(2 4 14 / 0.6));
+}
+
+.auth__title {
+  margin: 0;
+  font-family: var(--font-num);
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.auth__lede {
+  margin: 0.75rem auto 0;
+  max-width: 22rem;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-dim);
+}
+
+/* Segmented control */
+.auth__tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin: 1.75rem 0 1.5rem;
+  padding: 4px;
+  border-radius: 0.9rem;
+  background: var(--color-n0);
+  box-shadow: var(--shadow-well);
+}
+
+.auth__thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 0.65rem;
+  background: var(--color-n4);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth__thumb.is-right {
+  transform: translateX(100%);
+}
+
+.auth__tabs button {
+  position: relative;
+  z-index: 1;
+  min-height: 2.6rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-dim);
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.auth__tabs button[aria-selected='true'] {
+  color: var(--color-ink);
+}
+
+/* Forms */
+.auth__form {
+  display: grid;
+  gap: 1rem;
+  text-align: left;
+}
+
+.auth__pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.field span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+}
+
+.field input {
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 0.95rem;
+  border: 1px solid var(--color-n5);
+  border-radius: 0.8rem;
+  background: var(--color-n0);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.field input:hover {
+  border-color: var(--color-n6);
+}
+
+.field input:focus {
+  border-color: var(--color-primary-ink);
+  box-shadow: 0 0 0 3px rgb(164 174 255 / 0.18);
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-dim);
+  cursor: pointer;
+}
+
+.check input {
+  margin-top: 0.1rem;
+}
+
+.check a {
+  color: var(--color-primary-ink);
+  text-decoration: underline;
+  text-decoration-color: rgb(164 174 255 / 0.35);
+  text-underline-offset: 3px;
+}
+
+.check a:hover {
+  text-decoration-color: currentColor;
+}
+
+.auth__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 3.25rem;
+  margin-top: 0.5rem;
+  border: 0;
+  border-radius: 0.85rem;
+  background: var(--color-primary);
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.16s ease;
+}
+
+.auth__submit:hover {
+  background: var(--color-primary-hover);
+}
+
+.auth__submit:active {
+  transform: scale(0.98);
+}
+
+.auth__submit:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.spinner {
+  width: 1.1rem;
+  height: 1.1rem;
+  border: 2px solid rgb(255 255 255 / 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.auth__switch {
+  margin: 0.25rem 0 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-faint);
+}
+
+.auth__switch button {
+  border: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary-ink);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgb(164 174 255 / 0.35);
+  text-underline-offset: 3px;
+}
+
+.auth__switch button:hover {
+  text-decoration-color: currentColor;
+}
+
+.swap-enter-active,
+.swap-leave-active {
+  transition: opacity 0.2s ease, transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.swap-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.swap-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+@keyframes panel-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 520px) {
+  .auth__panel {
+    padding: 1.75rem 1.25rem 1.5rem;
+    border-radius: 1.5rem;
+  }
+
+  .auth__title {
+    font-size: 2.2rem;
+  }
+
+  .auth__pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth__panel {
+    animation: none;
+  }
 }
 </style>
