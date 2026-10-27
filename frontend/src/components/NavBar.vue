@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter, useRoute } from 'vue-router'
 import { API_URL } from '@/api'
@@ -15,8 +15,6 @@ const router = useRouter()
 const route = useRoute()
 const showDropdown = ref(false)
 
-const navLinks = ref(null)
-const indicatorStyle = ref({ left: '0px', width: '0px', opacity: 0 })
 
 const navItems = [
   { path: '/dashboard', label: 'Home' },
@@ -47,24 +45,6 @@ function isGuestActive(item) {
   return !item.to.includes('#') && route.path.startsWith(item.to)
 }
 
-function updateIndicator() {
-  if (!navLinks.value) return
-  const activeEl = navLinks.value.querySelector('[data-active="true"]')
-  if (activeEl) {
-    const parentRect = navLinks.value.getBoundingClientRect()
-    const rect = activeEl.getBoundingClientRect()
-    indicatorStyle.value = {
-      left: `${rect.left - parentRect.left}px`,
-      width: `${rect.width}px`,
-      opacity: 1,
-    }
-  } else {
-    indicatorStyle.value = { ...indicatorStyle.value, opacity: 0 }
-  }
-}
-
-watch(() => route.path, () => nextTick(updateIndicator))
-onMounted(() => nextTick(updateIndicator))
 
 function handleLogout() {
   auth.logout()
@@ -87,7 +67,7 @@ function isActive(path) {
 </script>
 
 <template>
-  <nav class="site-nav top-0 z-50 w-full" :class="overlay ? ['site-nav--overlay', { 'is-scrolled': scrolled }] : 'sticky bg-n0'">
+  <nav class="site-nav top-0 z-50 w-full" :class="overlay ? ['site-nav--overlay', { 'is-scrolled': scrolled }] : 'sticky'">
     <div class="site-nav__inner max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
       <div class="flex items-center gap-8">
         <router-link to="/" class="site-nav__brand flex items-center gap-3 no-underline hover:opacity-90 transition-opacity">
@@ -95,16 +75,11 @@ function isActive(path) {
           <span class="font-heading text-[19px] font-bold text-ink tracking-tight hidden sm:inline">DogmaLiter</span>
         </router-link>
 
-        <div v-if="auth.isAuthenticated" ref="navLinks" class="site-nav__links hidden md:flex items-center gap-1 relative">
-          <div
-            class="site-nav__indicator absolute bottom-0 h-[2px] bg-primary rounded-full transition-all duration-300 ease-in-out"
-            :style="{ left: indicatorStyle.left, width: indicatorStyle.width, opacity: indicatorStyle.opacity }"
-          />
+        <div v-if="auth.isAuthenticated" class="site-nav__links hidden md:flex items-center gap-1 relative">
           <router-link
             v-for="item in navItems"
             :key="item.path"
             :to="item.path"
-            :data-active="isActive(item.path)"
             :aria-current="isActive(item.path) ? 'page' : undefined"
             :class="isActive(item.path) ? 'site-nav__link--active' : 'text-ink/70 hover:text-ink hover:bg-n3/70'"
             class="site-nav__link px-4 py-2 text-[14px] no-underline rounded-lg transition-all duration-200"
@@ -213,13 +188,18 @@ function isActive(path) {
 
 .site-nav {
   position: sticky;
-  background: var(--color-n0) !important;
+  /* See-through over the night sky, with enough ground to keep the links legible. */
+  background: rgb(6 10 28 / 0.72) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .site-nav--overlay {
   position: fixed;
   left: 0;
   background: transparent !important;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
 }
 
@@ -264,12 +244,6 @@ function isActive(path) {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-}
-
-.site-nav__indicator {
-  bottom: 0.35rem;
-  height: 2px;
-  box-shadow: 0 0 18px rgba(88, 101, 221, 0.32);
 }
 
 .site-nav__link {

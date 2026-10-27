@@ -2,6 +2,11 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import LandingDragon from './LandingDragon.vue'
 
+const props = defineProps({
+  // The quieter sky behind the app's working pages: same night, no islands, dragons or meteors.
+  calm: { type: Boolean, default: false },
+})
+
 // The night over the logo's world, pinned behind the landing page while the content scrolls over it.
 // Far to near: sky, a few stars, the moon, high cloud, floating islands, dragons, a low cloud bank.
 
@@ -78,6 +83,11 @@ const meteors = [
   { top: 32, left: 6, angle: 22, length: 100, period: 19, delay: 16 },
 ]
 
+const distantRocks = [
+  { id: 'west', style: { left: '6%', top: '63%', width: 'clamp(120px, 12vw, 200px)', animationDelay: '-3s' } },
+  { id: 'east', style: { left: '70%', top: '60%', width: 'clamp(80px, 7.5vw, 130px)', animationDelay: '-8s', opacity: 0.9 } },
+]
+
 const islands = [
   { id: 'far', fill: '#18225a', rim: '#2e3d86' },
   { id: 'mid', fill: '#0b1236', rim: '#5062b4' },
@@ -111,7 +121,7 @@ function draw() {
   ctx.clearRect(0, 0, width, height)
 
   const random = mulberry32(7)
-  const count = Math.round((width * height) / 11000)
+  const count = Math.round((width * height) / (props.calm ? 17000 : 11000))
   for (let i = 0; i < count; i += 1) {
     const x = random() * width
     // Bias towards the zenith; the horizon is haze.
@@ -136,18 +146,18 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
 </script>
 
 <template>
-  <div class="sky" :class="{ 'sky--still': reduced }" aria-hidden="true">
+  <div class="sky" :class="{ 'sky--still': reduced, 'sky--calm': calm }" aria-hidden="true">
     <canvas ref="canvas" class="sky__stars" />
 
     <span
-      v-for="(t, i) in twinkles"
+      v-for="(t, i) in (calm ? twinkles.slice(0, 5) : twinkles)"
       :key="`t${i}`"
       class="sky__twinkle"
       :style="{ left: `${t.x}%`, top: `${t.y}%`, width: `${t.size}px`, height: `${t.size}px`, animationDuration: `${t.duration}s`, animationDelay: `${t.delay}s` }"
     />
 
     <svg
-      v-for="(s, i) in sparkles"
+      v-for="(s, i) in (calm ? [] : sparkles)"
       :key="`s${i}`"
       class="sky__sparkle"
       :style="{ left: `${s.x}%`, top: `${s.y}%`, width: `${s.size}px`, height: `${s.size}px`, animationDelay: `${s.delay}s` }"
@@ -197,7 +207,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
 
     <!-- Distant dragons cross one at a time, behind the islands and the cloud bank. -->
     <div
-      v-for="f in flights"
+      v-for="f in (calm ? [] : flights)"
       :key="f.id"
       class="sky__flight"
       :class="`sky__flight--${f.dir > 0 ? 'east' : 'west'}-${f.depth}`"
@@ -214,7 +224,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
     </div>
 
     <!-- Floating islands, far to near. -->
-    <svg v-for="island in islands" :key="island.id" class="sky__island" :class="`sky__island--${island.id}`" viewBox="0 -30 200 190">
+    <svg v-for="island in (calm ? [] : islands)" :key="island.id" class="sky__island" :class="`sky__island--${island.id}`" viewBox="0 -30 200 190">
       <!-- The middle island is an older place: a two-tier rock with hanging vines, a great round tree,
            broken columns and an arch with a rune still glowing in it. -->
       <template v-if="island.id === 'mid'">
@@ -246,7 +256,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
         <path :fill="island.fill" d="M0 36C30 28 70 26 100 28c40-2 75 0 100 10l-8 12-12 4-4 18-16 6-10 22-14 4-8 26-14 16-6-22-12-6-8-22-18-6-8-20-18-6-8-14-20-4Z" />
         <path fill="none" :stroke="island.rim" stroke-width="3" stroke-linecap="round" d="M2 36C30 28 70 27 100 29c40-2 74 0 97 9" />
         <g :fill="island.fill">
-          <path d="M20 34L56-20l14 16 12-12 32 50Z" />
+          <path d="M20 30.5L56-20l14 16 12-12 32 43-14 .5-18-.8H67l-23 1-14 1.4Z" />
         </g>
         <path d="M56-20l-8 12 5-2 3 5 4-6 4 2Z" :fill="island.rim" />
         <path d="M82-16l-6 9 4-1 3 3 3-4 3 1Z" :fill="island.rim" opacity=".8" />
@@ -290,18 +300,51 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
           <ellipse cx="171" cy="24" rx="9" ry="2.2" fill="#3f58b4" opacity=".8" />
         </g>
         <g :fill="island.fill">
-          <circle cx="34" cy="20" r="9" />
-          <circle cx="48" cy="15" r="12" />
-          <circle cx="62" cy="19" r="8" />
-          <path d="M116 18V-6h6v-10l5-10 5 10v10h6V18Z" />
-          <path d="M140 18V2h5l4-9 4 9h5v16Z" />
-          <circle cx="170" cy="21" r="8" />
+          <circle cx="34" cy="10.9" r="9" />
+          <circle cx="48" cy="5.4" r="12" />
+          <circle cx="62" cy="7.9" r="8" />
+          <path d="M116 15.1V-8.9h6v-10l5-10 5 10v10h6V15.1Z" />
+          <path d="M140 16.3V.3h5l4-9 4 9h5v16Z" />
+          <circle cx="170" cy="13.4" r="8" />
         </g>
         <path fill="none" :stroke="island.rim" stroke-width="3" stroke-linecap="round" d="M2 33C24 20 62 15 100 17c40-2 76 4 98 17" />
         <path fill="none" :stroke="island.fill" stroke-width="2.5" stroke-linecap="round" d="M92 136c-2 10 2 18-2 26M120 104c3 8 0 14 3 22M60 92c-3 8 0 14-4 20" />
-        <circle cx="129" cy="2" r="1.8" fill="#f6d58a" opacity=".85" />
+        <circle cx="129" cy="-.9" r="1.8" fill="#f6d58a" opacity=".85" />
       </template>
     </svg>
+
+    <!-- Calm sky only: two distant rocks above the horizon, so a short page's lower half isn't empty.
+         Plain silhouettes with one warm light each: a windmill turning slowly, and a watchtower. -->
+    <template v-if="calm">
+      <svg v-for="rock in distantRocks" :key="rock.id" class="sky__rock" :style="rock.style" viewBox="0 -50 200 210">
+        <path fill="#070c2a" d="M0 34C22 20 62 14 100 16c40-2 78 4 100 18l-10 10-10 20-16 6-10 26-18 8-12 34-14 12-8-22-12-16-14-12-12-22-18-12-16-18Z" />
+        <path fill="none" stroke="#33449a" stroke-width="3" stroke-linecap="round" d="M2 33C24 20 62 15 100 17c40-2 76 4 98 17" />
+        <g v-if="rock.id === 'west'" fill="#070c2a">
+          <circle cx="62" cy="4" r="9" />
+          <circle cx="72" cy="1" r="10" />
+          <circle cx="80" cy="6" r="7" />
+          <path d="M69.5 15.5V6h3v9.5Z" />
+          <path d="M100 15.5l4-29.5h12l4 29.5Z" />
+          <path d="M102-14l8-8 8 8Z" />
+          <g class="sky__sails">
+            <g v-for="angle in [0, 90, 180, 270]" :key="angle" :transform="`rotate(${angle} 110 -14)`">
+              <path d="M108.8-44h2.4v30h-2.4Z" />
+              <path d="M111.2-42h6v20h-6Z" opacity=".85" />
+            </g>
+          </g>
+          <circle cx="110" cy="-14" r="2.2" fill="#33449a" />
+          <rect class="sky__rock-light" x="108.5" y="-4" width="3" height="4" rx="1" fill="#f6d58a" />
+        </g>
+        <g v-else fill="#070c2a">
+          <path d="M93 15.5V-18h14v33.5Z" />
+          <path d="M91-18v-6h4v3h3v-3h4v3h3v-3h4v6Z" />
+          <circle cx="124" cy="10.3" r="5" />
+          <circle cx="131" cy="9.3" r="6" />
+          <rect class="sky__rock-light" x="98.5" y="-14" width="3" height="4.5" rx="1" fill="#f6d58a" />
+          <rect class="sky__rock-light" x="99" y="0" width="2" height="3" rx="1" fill="#f6d58a" opacity=".7" />
+        </g>
+      </svg>
+    </template>
 
     <!-- Low cloud bank in the logo's scalloped style. -->
     <div class="sky__drift sky__drift--bank">
@@ -319,7 +362,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
     </div>
 
     <span
-      v-for="(m, i) in meteors"
+      v-for="(m, i) in (calm ? [] : meteors)"
       :key="`m${i}`"
       class="sky__meteor"
       :style="{ top: `${m.top}%`, left: `${m.left}%`, width: `${m.length}px`, '--angle': `${m.angle}deg`, animationDuration: `${m.period}s`, animationDelay: `${m.delay}s` }"
@@ -438,6 +481,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
 /* Drifting cloud layers */
 .sky__drift {
   position: absolute;
+  will-change: transform;
   left: 0;
   display: flex;
   width: 200%;
@@ -493,6 +537,7 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
 .sky__island {
   position: absolute;
   overflow: visible;
+  will-change: transform;
   animation: bob 9s ease-in-out infinite alternate;
 }
 
@@ -625,13 +670,16 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
 }
 
 @keyframes drift {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from { transform: translate3d(0, 0, 0) rotate(0.02deg); }
+  to { transform: translate3d(-50%, 0, 0) rotate(0.02deg); }
 }
 
+/* These move a few hundredths of a pixel per frame. A pure translation lets browsers snap the layer
+   to whole pixels, which shows as stepping; the imperceptible rotation makes them resample it
+   smoothly instead. */
 @keyframes bob {
-  from { transform: translateY(-6px); }
-  to { transform: translateY(6px); }
+  from { transform: translate3d(0, -6px, 0) rotate(0.02deg); }
+  to { transform: translate3d(0, 6px, 0) rotate(0.02deg); }
 }
 
 @keyframes soar {
@@ -662,7 +710,65 @@ onBeforeUnmount(() => window.removeEventListener('resize', draw))
   display: none;
 }
 
+/* Calm: a smaller moon, fainter and slower high cloud, a lower cloud bank. */
+.sky--calm .sky__moon {
+  --moon: clamp(90px, 8vw, 150px);
+  /* Further past the edge than on the landing page: working pages run their content wider. */
+  right: calc(var(--moon) * -0.5);
+  opacity: 0.8;
+}
+
+.sky--calm .sky__drift--high {
+  opacity: 0.5;
+  animation-duration: 520s;
+}
+
+.sky__rock {
+  position: absolute;
+  overflow: visible;
+  will-change: transform;
+  animation: bob 12s ease-in-out infinite alternate;
+}
+
+.sky__rock-light {
+  filter: drop-shadow(0 0 2px rgb(246 213 138 / 0.85)) drop-shadow(0 0 5px rgb(246 200 112 / 0.35));
+}
+
+.sky__sails {
+  transform-box: view-box;
+  transform-origin: 110px -14px;
+  animation: sails 28s linear infinite;
+}
+
+@keyframes sails {
+  to { transform: rotate(360deg); }
+}
+
+.sky--calm {
+  /* A darker horizon than the landing page, so the lower half of a short page doesn't read as a pale void. */
+  background: linear-gradient(180deg, #050a20 0%, #0a1130 50%, #10184a 82%, #141d55 100%);
+}
+
+/* The bank keeps its full height so its crests rise above the footer. */
+.sky--calm .sky__drift--bank {
+  animation-duration: 300s;
+}
+
 @media (max-width: 960px) {
+  /* Phone footers are taller; the bank rises with them so its crests stay in view. */
+  .sky--calm .sky__drift--bank {
+    height: 250px;
+    /* A wider strip keeps the crests round instead of stretching them into arches. */
+    width: 700%;
+  }
+
+  .sky--calm .sky__moon {
+    --moon: 56px;
+    top: 4.4rem;
+    right: -26px;
+    opacity: 0.7;
+  }
+
   .sky__moon {
     --moon: 64px;
     top: 4.6rem;

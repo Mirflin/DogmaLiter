@@ -81,7 +81,7 @@ function formatDate(value) {
 </script>
 
 <template>
-  <HomeLayout nav-overlay>
+  <HomeLayout nav-overlay :backdrop="false">
     <div ref="page" class="landing" :class="{ 'landing--armed': armed }">
       <LandingSky />
 
