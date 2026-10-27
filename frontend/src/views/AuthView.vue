@@ -2,12 +2,13 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { notify } from '@/notify'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const auth = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
-const isRegisterMode = ref(false)
+const isRegisterMode = ref(route.query.mode === 'register')
 
 const loginEmail = ref('')
 const loginPassword = ref('')
@@ -74,46 +75,46 @@ async function handleRegister() {
 </script>
 
 <template>
-  <div class="auth-page min-h-screen flex items-center justify-center font-[Raleway] relative overflow-hidden px-4 py-10">
+  <div class="auth-page min-h-screen flex items-center justify-center font-sans relative overflow-hidden px-4 py-10">
     <div class="absolute inset-0 pointer-events-none">
       <span v-for="n in 20" :key="n" class="particle" />
     </div>
 
     <div
-      class="auth-container relative w-[850px] max-w-[95vw] min-h-[620px] bg-[rgba(15,15,35,0.85)] backdrop-blur-[20px] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(233,69,96,0.08)] flex overflow-hidden border border-[rgba(126,200,227,0.12)] z-1"
+      class="auth-container relative w-[850px] max-w-[95vw] min-h-[620px] bg-n2/85 backdrop-blur-[20px] rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.5),0_0_40px_rgba(88,101,221,0.08)] flex overflow-hidden border border-line z-1"
       :class="{ 'register-mode': isRegisterMode }"
     >
       <div class="form-side login-side w-1/2 py-12 px-10 flex items-center justify-center transition-all duration-700 z-2">
         <div class="w-full max-w-[320px]">
-          <h2 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] mb-2 tracking-wide">Sign In</h2>
-          <p class="text-[#7ec8e3]/60 text-sm mb-8">Welcome back, adventurer</p>
+          <h2 class="font-heading text-[28px] font-bold text-ink mb-2 tracking-wide">Sign In</h2>
+          <p class="text-dim text-sm mb-8">Welcome back, adventurer</p>
 
           <form @submit.prevent="handleLogin">
             <div class="mb-5 group">
-              <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Email</label>
+              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Email</label>
               <input
                 v-model="loginEmail"
                 type="email"
                 placeholder="your@email.com"
                 required
                 autocomplete="email"
-                class="w-full py-3 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-3 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
               />
             </div>
 
             <div class="mb-5 group">
-              <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Password</label>
+              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Password</label>
               <input
                 v-model="loginPassword"
                 type="password"
                 placeholder="Enter password"
                 required
                 autocomplete="current-password"
-                class="w-full py-3 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-3 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
               />
             </div>
 
-            <button type="submit" class="btn-primary w-full py-3.5 mt-2 bg-linear-to-br from-[#e94560] to-[#c23152] text-white border-none rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(233,69,96,0.4)] active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" :disabled="auth.loading">
+            <button type="submit" class="btn-primary w-full py-3.5 mt-2 bg-primary hover:bg-primary-hover text-white border-none rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 relative overflow-hidden active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" :disabled="auth.loading">
               <span v-if="auth.loading" class="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span v-else class="relative z-1">Sign In</span>
             </button>
@@ -123,73 +124,73 @@ async function handleRegister() {
 
       <div class="form-side register-side absolute right-0 top-0 bottom-0 w-1/2 py-12 px-10 flex items-center justify-center transition-all duration-700 opacity-0 pointer-events-none z-1">
         <div class="w-full max-w-[320px]">
-          <h2 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] mb-2 tracking-wide">Sign Up</h2>
-          <p class="text-[#7ec8e3]/60 text-sm mb-8">Start your adventure</p>
+          <h2 class="font-heading text-[28px] font-bold text-ink mb-2 tracking-wide">Sign Up</h2>
+          <p class="text-dim text-sm mb-8">Start your adventure</p>
 
           <form @submit.prevent="handleRegister">
             <div class="mb-3.5 group">
-              <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Username</label>
+              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Username</label>
               <input
                 v-model="regUsername"
                 type="text"
                 placeholder="Choose a username"
                 required
                 autocomplete="username"
-                class="w-full py-2.5 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-2.5 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
               />
             </div>
 
             <div class="mb-3.5 group">
-              <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Email</label>
+              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Email</label>
               <input
                 v-model="regEmail"
                 type="email"
                 placeholder="your@email.com"
                 required
                 autocomplete="email"
-                class="w-full py-2.5 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-2.5 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
               />
             </div>
 
             <div class="mb-3.5 group">
-              <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Password</label>
+              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Password</label>
               <input
                 v-model="regPassword"
                 type="password"
                 placeholder="Min 8 characters"
                 required
                 autocomplete="new-password"
-                class="w-full py-2.5 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-2.5 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
               />
             </div>
 
             <div class="mb-4 group">
-              <label class="block mb-1.5 text-[#7ec8e3]/50 text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-[#e94560]">Confirm Password</label>
+              <label class="block mb-1.5 text-dim text-xs font-medium tracking-wider uppercase transition-colors duration-300 group-focus-within:text-primary-ink">Confirm Password</label>
               <input
                 v-model="regPasswordConfirm"
                 type="password"
                 placeholder="Repeat password"
                 required
                 autocomplete="new-password"
-                class="w-full py-2.5 px-4 bg-[rgba(126,200,227,0.06)] border-[1.5px] border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-[#7ec8e3]/25 focus:border-[#e94560] focus:bg-[rgba(233,69,96,0.04)] focus:ring-3 focus:ring-[rgba(233,69,96,0.1)]"
+                class="w-full py-2.5 px-4 bg-n3 border-[1.5px] border-line rounded-lg text-ink text-[15px] font-[inherit] outline-none transition-all duration-300 placeholder:text-faint focus:border-primary focus:bg-primary/4 focus:ring-3 focus:ring-primary/10"
               />
             </div>
 
             <div class="mb-2.5">
               <label class="flex items-start gap-2.5 cursor-pointer">
-                <input v-model="agreeToTerms" type="checkbox" class="mt-0.5 w-4 h-4 accent-[#e94560] cursor-pointer flex-shrink-0" />
-                <span class="text-[#7ec8e3]/50 text-[12px] leading-relaxed">I agree to the <router-link to="/terms" class="text-[#e94560] no-underline hover:text-[#ff6b81]" target="_blank">Terms of Service</router-link> and <router-link to="/privacy" class="text-[#e94560] no-underline hover:text-[#ff6b81]" target="_blank">Privacy Policy</router-link></span>
+                <input v-model="agreeToTerms" type="checkbox" class="mt-0.5 w-4 h-4 accent-primary cursor-pointer flex-shrink-0" />
+                <span class="text-dim text-[12px] leading-relaxed">I agree to the <router-link to="/terms" class="text-primary-ink no-underline hover:text-danger" target="_blank">Terms of Service</router-link> and <router-link to="/privacy" class="text-primary-ink no-underline hover:text-danger" target="_blank">Privacy Policy</router-link></span>
               </label>
             </div>
 
             <div class="mb-4">
               <label class="flex items-start gap-2.5 cursor-pointer">
-                <input v-model="subscribeNewsletter" type="checkbox" class="mt-0.5 w-4 h-4 accent-[#e94560] cursor-pointer flex-shrink-0" />
-                <span class="text-[#7ec8e3]/50 text-[12px] leading-relaxed">Subscribe to news and updates via email</span>
+                <input v-model="subscribeNewsletter" type="checkbox" class="mt-0.5 w-4 h-4 accent-primary cursor-pointer flex-shrink-0" />
+                <span class="text-dim text-[12px] leading-relaxed">Subscribe to news and updates via email</span>
               </label>
             </div>
 
-            <button type="submit" class="btn-primary w-full py-3.5 bg-linear-to-br from-[#e94560] to-[#c23152] text-white border-none rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 relative overflow-hidden hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(233,69,96,0.4)] active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" :disabled="auth.loading">
+            <button type="submit" class="btn-primary w-full py-3.5 bg-primary hover:bg-primary-hover text-white border-none rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 relative overflow-hidden active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none" :disabled="auth.loading">
               <span v-if="auth.loading" class="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               <span v-else class="relative z-1">Create Account</span>
             </button>
@@ -199,15 +200,15 @@ async function handleRegister() {
 
       <div class="overlay-container absolute top-0 right-0 w-1/2 h-full overflow-hidden transition-transform duration-700 z-10">
         <div class="overlay relative w-[200%] h-full transition-transform duration-700">
-          <div class="overlay-panel absolute top-0 left-0 w-1/2 h-full flex flex-col items-center justify-center text-center p-10 bg-linear-to-br from-[#1a3a5c] via-[#0f2847] to-[#162544]">
-            <h2 class="font-[Cinzel] text-[26px] font-bold text-[#e8e8f0] mb-3 tracking-wide relative">Already with us?</h2>
-            <p class="text-[#c8d2e6]/70 text-sm leading-relaxed mb-7 max-w-[260px] relative">Sign in to continue your adventures</p>
-            <button class="py-3 px-10 bg-transparent text-white border-2 border-white/70 rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 tracking-wide hover:bg-white/12 hover:border-white hover:-translate-y-0.5 hover:shadow-[0_5px_20px_rgba(255,255,255,0.1)]" @click="switchToLogin">Sign In</button>
+          <div class="overlay-panel absolute top-0 left-0 w-1/2 h-full flex flex-col items-center justify-center text-center p-10 bg-linear-to-br from-[#1a3a5c] via-n3 to-n3">
+            <h2 class="font-heading text-[26px] font-bold text-ink mb-3 tracking-wide relative">Already with us?</h2>
+            <p class="text-ink-soft/70 text-sm leading-relaxed mb-7 max-w-[260px] relative">Sign in to continue your adventures</p>
+            <button class="py-3 px-10 bg-transparent text-white border-2 border-white/70 rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 tracking-wide hover:bg-white/12 hover:border-white hover:shadow-[0_5px_20px_rgba(255,255,255,0.1)]" @click="switchToLogin">Sign In</button>
           </div>
-          <div class="overlay-panel absolute top-0 right-0 w-1/2 h-full flex flex-col items-center justify-center text-center p-10 bg-linear-to-br from-[#2d1b4e] via-[#1a1140] to-[#0f2847]">
-            <h2 class="font-[Cinzel] text-[26px] font-bold text-[#e8e8f0] mb-3 tracking-wide relative">New here?</h2>
-            <p class="text-[#c8d2e6]/70 text-sm leading-relaxed mb-7 max-w-[260px] relative">Create an account and dive into the world of DogmaLiter</p>
-            <button class="py-3 px-10 bg-transparent text-white border-2 border-white/70 rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 tracking-wide hover:bg-white/12 hover:border-white hover:-translate-y-0.5 hover:shadow-[0_5px_20px_rgba(255,255,255,0.1)]" @click="switchToRegister">Sign Up</button>
+          <div class="overlay-panel absolute top-0 right-0 w-1/2 h-full flex flex-col items-center justify-center text-center p-10 bg-linear-to-br from-[#2d1b4e] via-n3 to-n3">
+            <h2 class="font-heading text-[26px] font-bold text-ink mb-3 tracking-wide relative">New here?</h2>
+            <p class="text-ink-soft/70 text-sm leading-relaxed mb-7 max-w-[260px] relative">Create an account and dive into the world of DogmaLiter</p>
+            <button class="py-3 px-10 bg-transparent text-white border-2 border-white/70 rounded-xl text-[15px] font-semibold font-[inherit] cursor-pointer transition-all duration-300 tracking-wide hover:bg-white/12 hover:border-white hover:shadow-[0_5px_20px_rgba(255,255,255,0.1)]" @click="switchToRegister">Sign Up</button>
           </div>
         </div>
       </div>
@@ -220,11 +221,11 @@ async function handleRegister() {
   position: relative;
   isolation: isolate;
   background:
-    radial-gradient(circle at 50% -12%, rgba(233, 69, 96, 0.12), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(126, 200, 227, 0.08), transparent 22%),
-    linear-gradient(90deg, rgba(126, 200, 227, 0.025) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(126, 200, 227, 0.02) 1px, transparent 1px),
-    linear-gradient(180deg, #070b15 0%, #0a1120 56%, #060911 100%);
+    radial-gradient(circle at 50% -12%, rgba(88, 101, 221, 0.12), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(123, 135, 184, 0.08), transparent 22%),
+    linear-gradient(90deg, rgba(123, 135, 184, 0.025) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(123, 135, 184, 0.02) 1px, transparent 1px),
+    linear-gradient(180deg, #060a1c 0%, #0a1029 56%, #060a1c 100%);
   background-size: auto, auto, 120px 120px, 120px 120px, auto;
 }
 
@@ -233,13 +234,13 @@ async function handleRegister() {
   position: absolute;
   inset: 18px;
   pointer-events: none;
-  border: 1px solid rgba(126, 200, 227, 0.08);
+  border: 1px solid rgba(123, 135, 184, 0.08);
 }
 
 .auth-container {
   position: relative;
-  border-color: rgba(126, 200, 227, 0.14) !important;
-  background: linear-gradient(180deg, rgba(12, 18, 32, 0.9), rgba(8, 12, 24, 0.95)) !important;
+  border-color: rgba(123, 135, 184, 0.14) !important;
+  background: linear-gradient(180deg, rgba(15, 23, 52, 0.9), rgba(6, 10, 28, 0.95)) !important;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.34) !important;
 }
 
@@ -248,7 +249,7 @@ async function handleRegister() {
   position: absolute;
   inset: 10px;
   pointer-events: none;
-  border: 1px solid rgba(126, 200, 227, 0.1);
+  border: 1px solid rgba(123, 135, 184, 0.1);
   clip-path: polygon(0 16px, 16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
 }
 
@@ -302,8 +303,8 @@ async function handleRegister() {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 30% 20%, rgba(233, 69, 96, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 70% 80%, rgba(126, 200, 227, 0.1) 0%, transparent 50%);
+    radial-gradient(circle at 30% 20%, rgba(88, 101, 221, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(123, 135, 184, 0.1) 0%, transparent 50%);
   pointer-events: none;
 }
 
@@ -311,7 +312,7 @@ async function handleRegister() {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #ff6b9d, #e94560);
+  background: linear-gradient(135deg, #ff6b9d, #5865dd);
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -323,11 +324,11 @@ async function handleRegister() {
   position: absolute;
   width: 4px;
   height: 4px;
-  background: rgba(233, 69, 96, 0.5);
+  background: rgba(88, 101, 221, 0.5);
   border-radius: 50%;
   animation: float-particle 15s infinite linear;
 }
-.particle:nth-child(odd) { background: rgba(126, 200, 227, 0.4); }
+.particle:nth-child(odd) { background: rgba(123, 135, 184, 0.4); }
 .particle:nth-child(1)  { left: 5%;  top: 10%; animation-delay: 0s;    animation-duration: 12s; }
 .particle:nth-child(2)  { left: 15%; top: 80%; animation-delay: 1s;    animation-duration: 18s; }
 .particle:nth-child(3)  { left: 25%; top: 30%; animation-delay: 2s;    animation-duration: 14s; }

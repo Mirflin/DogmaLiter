@@ -241,156 +241,156 @@ function close() {
   <Teleport to="body">
     <div v-if="visible" class="fixed inset-0 z-[10000] flex items-center justify-center" @click.self="close">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close"></div>
-      <div class="relative w-full max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 bg-[#0f0f23] border border-[rgba(126,200,227,0.15)] rounded-2xl shadow-[0_16px_64px_rgba(0,0,0,0.6)] p-8">
-        <button @click="close" aria-label="Close settings" class="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] hover:border-[rgba(233,69,96,0.32)] cursor-pointer transition-all duration-200"><XIcon class="h-5 w-5" :stroke-width="2" /></button>
+      <div class="relative w-full max-w-[600px] max-h-[90vh] overflow-y-auto mx-4 bg-n2 border border-line rounded-2xl shadow-[0_16px_64px_rgba(0,0,0,0.6)] p-8">
+        <button @click="close" aria-label="Close settings" class="absolute top-4 right-4 flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-n3 text-ink hover:border-primary/32 cursor-pointer transition-all duration-200"><XIcon class="h-5 w-5" :stroke-width="2" /></button>
 
-        <h2 class="font-[Cinzel] text-[24px] font-bold text-[#e8e8f0] tracking-wide mb-6">Game Settings</h2>
+        <h2 class="font-heading text-[24px] font-bold text-ink tracking-wide mb-6">Game Settings</h2>
 
         <div v-if="loading" class="text-center py-12">
-          <div class="w-8 h-8 border-2 border-[#e94560] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
 
         <div v-else-if="loadError" class="text-center py-8">
-          <p class="text-[#ff8fa3] text-[14px]">{{ loadError }}</p>
+          <p class="text-primary-ink text-[14px]">{{ loadError }}</p>
         </div>
 
         <div v-else-if="!isOwner" class="text-center py-8">
-          <p class="text-[#7ec8e3]/40 text-[14px]">Only the game owner can manage settings</p>
+          <p class="text-faint text-[14px]">Only the game owner can manage settings</p>
         </div>
 
         <div v-else class="space-y-6">
           <div>
-            <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Cover Image</label>
+            <label class="block text-dim text-[13px] font-medium mb-2">Cover Image</label>
             <div class="flex items-center gap-4">
-              <div class="w-24 h-16 rounded-lg overflow-hidden bg-[rgba(126,200,227,0.05)] border border-[rgba(126,200,227,0.1)] flex items-center justify-center">
+              <div class="w-24 h-16 rounded-lg overflow-hidden bg-n3 border border-line-soft flex items-center justify-center">
                 <img v-if="coverPreview" :src="coverPreview" class="w-full h-full object-cover" />
-                <span v-else class="text-[#7ec8e3]/20 text-[10px]">No cover</span>
+                <span v-else class="text-faint text-[10px]">No cover</span>
               </div>
-              <label class="px-4 py-2 text-[13px] text-[#e8e8f0]/60 border border-[rgba(126,200,227,0.15)] rounded-lg hover:border-[rgba(126,200,227,0.3)] cursor-pointer transition-colors">
+              <label class="px-4 py-2 text-[13px] text-ink/60 border border-line rounded-lg hover:border-line-strong cursor-pointer transition-colors">
                 Change
                 <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleCoverSelect" />
               </label>
-              <button v-if="coverFile" @click="removeCover" class="text-[#7ec8e3]/40 text-[12px] bg-transparent border-none cursor-pointer hover:text-[#e94560]">Reset</button>
+              <button v-if="coverFile" @click="removeCover" class="text-faint text-[12px] bg-transparent border-none cursor-pointer hover:text-primary-ink">Reset</button>
             </div>
           </div>
           <div>
-            <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Title</label>
-            <input v-model="title" type="text" maxlength="200" class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors" />
+            <label class="block text-dim text-[13px] font-medium mb-2">Title</label>
+            <input v-model="title" type="text" maxlength="200" class="w-full px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] outline-none focus:border-primary/40 transition-colors" />
           </div>
           <div>
-            <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Description</label>
-            <textarea v-model="description" rows="3" class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors resize-y"></textarea>
+            <label class="block text-dim text-[13px] font-medium mb-2">Description</label>
+            <textarea v-model="description" rows="3" class="w-full px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] outline-none focus:border-primary/40 transition-colors resize-y"></textarea>
           </div>
           <div>
-            <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Max Players</label>
+            <label class="block text-dim text-[13px] font-medium mb-2">Max Players</label>
             <div class="flex items-center gap-3">
-              <input v-model.number="maxPlayers" type="number" min="1" :max="auth.user?.max_players_per_game === -1 ? undefined : (auth.user?.max_players_per_game || 50)" class="w-24 px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors" />
-              <span class="text-[#7ec8e3]/30 text-[12px]">{{ auth.user?.max_players_per_game === -1 ? 'unlimited on your plan' : `max ${auth.user?.max_players_per_game || '?'} on your plan` }}</span>
+              <input v-model.number="maxPlayers" type="number" min="1" :max="auth.user?.max_players_per_game === -1 ? undefined : (auth.user?.max_players_per_game || 50)" class="w-24 px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] outline-none focus:border-primary/40 transition-colors" />
+              <span class="text-faint text-[12px]">{{ auth.user?.max_players_per_game === -1 ? 'unlimited on your plan' : `max ${auth.user?.max_players_per_game || '?'} on your plan` }}</span>
             </div>
           </div>
           <div>
-            <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Character slots per player</label>
+            <label class="block text-dim text-[13px] font-medium mb-2">Character slots per player</label>
             <div class="flex items-center gap-3">
-              <input v-model.number="characterSlotsPerPlayer" type="number" min="1" max="50" class="w-24 px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors" />
-              <span class="text-[#7ec8e3]/30 text-[12px]">Each player can own this many characters</span>
+              <input v-model.number="characterSlotsPerPlayer" type="number" min="1" max="50" class="w-24 px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] outline-none focus:border-primary/40 transition-colors" />
+              <span class="text-faint text-[12px]">Each player can own this many characters</span>
             </div>
           </div>
           <div class="space-y-3">
             <div>
-              <p class="text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Base Attributes</p>
-              <p class="text-[#7ec8e3]/30 text-[12px] mb-3">Uncheck an attribute to remove it from this game's character sheets, editors and item stats.</p>
+              <p class="text-dim text-[13px] font-medium mb-2">Base Attributes</p>
+              <p class="text-faint text-[12px] mb-3">Uncheck an attribute to remove it from this game's character sheets, editors and item stats.</p>
               <div class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                 <label v-for="attr in STANDARD_ATTR_DEFS" :key="attr.key" class="flex items-center gap-2.5 cursor-pointer group">
                   <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
-                    :class="standardAttrs[attr.key] ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                    :class="standardAttrs[attr.key] ? 'bg-primary border-primary' : 'bg-transparent border-line-strong group-hover:border-primary/50'">
                     <svg v-if="standardAttrs[attr.key]" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                     <input type="checkbox" v-model="standardAttrs[attr.key]" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
                   </span>
-                  <span class="text-[#e8e8f0]/70 text-[13px] select-none">{{ attr.label }}</span>
+                  <span class="text-ink/70 text-[13px] select-none">{{ attr.label }}</span>
                 </label>
               </div>
             </div>
             <label class="flex items-center gap-3 cursor-pointer group">
               <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
-                :class="enableHealth ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                :class="enableHealth ? 'bg-primary border-primary' : 'bg-transparent border-line-strong group-hover:border-primary/50'">
                 <svg v-if="enableHealth" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <input type="checkbox" v-model="enableHealth" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
               </span>
-              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Health</span>
+              <span class="text-ink/70 text-[13px] select-none">Health</span>
             </label>
             <label class="flex items-center gap-3 cursor-pointer group">
               <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
-                :class="enableArmorClass ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                :class="enableArmorClass ? 'bg-primary border-primary' : 'bg-transparent border-line-strong group-hover:border-primary/50'">
                 <svg v-if="enableArmorClass" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <input type="checkbox" v-model="enableArmorClass" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
               </span>
-              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Armor Class</span>
+              <span class="text-ink/70 text-[13px] select-none">Armor Class</span>
             </label>
             <label class="flex items-center gap-3 cursor-pointer group">
               <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
-                :class="enableChat ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                :class="enableChat ? 'bg-primary border-primary' : 'bg-transparent border-line-strong group-hover:border-primary/50'">
                 <svg v-if="enableChat" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <input type="checkbox" v-model="enableChat" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
               </span>
-              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Chat</span>
+              <span class="text-ink/70 text-[13px] select-none">Chat</span>
             </label>
             <!--
             <label class="flex items-center gap-3 cursor-pointer group">
               <span class="relative flex items-center justify-center w-5 h-5 rounded-md border transition-all duration-150"
-                :class="enableItemTrading ? 'bg-[#e94560] border-[#e94560]' : 'bg-transparent border-[rgba(126,200,227,0.25)] group-hover:border-[rgba(233,69,96,0.5)]'">
+                :class="enableItemTrading ? 'bg-primary border-primary' : 'bg-transparent border-line-strong group-hover:border-primary/50'">
                 <svg v-if="enableItemTrading" class="w-3 h-3 text-white" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 <input type="checkbox" v-model="enableItemTrading" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer m-0" />
               </span>
-              <span class="text-[#e8e8f0]/70 text-[13px] select-none">Item Trading</span>
+              <span class="text-ink/70 text-[13px] select-none">Item Trading</span>
             </label>
           -->
           </div>
-          <div class="border-t border-[rgba(126,200,227,0.08)] pt-5">
-            <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-3">Invite Code</label>
+          <div class="border-t border-line-soft pt-5">
+            <label class="block text-dim text-[13px] font-medium mb-3">Invite Code</label>
             <div class="flex items-center gap-3 mb-2">
-              <span :class="[codeExpired ? 'line-through text-[#7ec8e3]/25' : 'text-[#e8e8f0]']" class="font-mono text-[18px] tracking-[0.2em] font-bold">{{ inviteCode || '—' }}</span>
-              <span v-if="countdown" :class="codeExpired ? 'text-[#e94560]' : 'text-[#7ec8e3]/40'" class="text-[12px]">{{ countdown }}</span>
+              <span :class="[codeExpired ? 'line-through text-faint' : 'text-ink']" class="font-mono text-[18px] tracking-[0.2em] font-bold">{{ inviteCode || '—' }}</span>
+              <span v-if="countdown" :class="codeExpired ? 'text-primary-ink' : 'text-faint'" class="text-[12px]">{{ countdown }}</span>
             </div>
             <div class="flex gap-2">
               <button
                 @click="regenerate"
                 :disabled="regenerating"
-                class="px-4 py-2 text-[12px] font-medium text-[#e8e8f0]/60 border border-[rgba(126,200,227,0.15)] rounded-lg hover:border-[#e94560] hover:text-[#e94560] transition-all bg-transparent cursor-pointer disabled:opacity-50"
+                class="px-4 py-2 text-[12px] font-medium text-ink/60 border border-line rounded-lg hover:border-primary hover:text-primary-ink transition-all bg-transparent cursor-pointer disabled:opacity-50"
               >
                 {{ regenerating ? 'Regenerating...' : 'New Code' }}
               </button>
               <button
                 v-if="!codeExpired && inviteCode"
                 @click="copyInviteLink"
-                class="px-4 py-2 text-[12px] font-medium text-[#e8e8f0]/60 border border-[rgba(126,200,227,0.15)] rounded-lg hover:border-[#e94560] hover:text-[#e94560] transition-all bg-transparent cursor-pointer"
+                class="px-4 py-2 text-[12px] font-medium text-ink/60 border border-line rounded-lg hover:border-primary hover:text-primary-ink transition-all bg-transparent cursor-pointer"
               >
                 Copy Link
               </button>
             </div>
           </div>
-          <div class="flex items-center justify-between pt-2 border-t border-[rgba(126,200,227,0.08)]">
+          <div class="flex items-center justify-between pt-2 border-t border-line-soft">
             <button
               @click="handleDelete"
-              class="px-4 py-2.5 text-[13px] text-[#e94560] bg-transparent border border-[rgba(233,69,96,0.2)] rounded-lg hover:bg-[rgba(233,69,96,0.1)] transition-colors cursor-pointer"
+              class="px-4 py-2.5 text-[13px] text-primary-ink bg-transparent border border-primary/20 rounded-lg hover:bg-primary/10 transition-colors cursor-pointer"
             >
               Delete Game
             </button>
             <div class="flex gap-3">
-              <button @click="close" class="px-5 py-2.5 text-[13px] text-[#e8e8f0]/60 bg-transparent border border-[rgba(126,200,227,0.15)] rounded-lg hover:border-[rgba(126,200,227,0.3)] transition-colors cursor-pointer">Cancel</button>
+              <button @click="close" class="px-5 py-2.5 text-[13px] text-ink/60 bg-transparent border border-line rounded-lg hover:border-line-strong transition-colors cursor-pointer">Cancel</button>
               <button
                 @click="handleSave"
                 :disabled="saving"
-                class="px-6 py-2.5 text-[13px] font-semibold text-white bg-gradient-to-br from-[#e94560] to-[#c23152] rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all cursor-pointer border-none disabled:opacity-50"
+                class="px-6 py-2.5 text-[13px] font-semibold text-white bg-primary hover:bg-primary-hover rounded-lg transition-all cursor-pointer border-none disabled:opacity-50"
               >
                 {{ saving ? 'Saving...' : 'Save' }}
               </button>

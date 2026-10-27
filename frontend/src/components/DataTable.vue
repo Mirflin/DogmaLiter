@@ -138,15 +138,15 @@ function rowId(row, index) {
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]" :class="fillHeight ? 'flex h-full flex-col' : ''">
-    <div v-if="hasToolbar || $slots.toolbar" class="flex shrink-0 flex-wrap items-center gap-3 border-b border-[rgba(126,200,227,0.1)] px-5 py-4">
-      <div v-if="searchable" class="flex min-w-[13rem] flex-1 items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2">
-        <svg class="h-4 w-4 shrink-0 text-[#7ec8e3]/45" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" /></svg>
-        <input v-model="search" type="text" :placeholder="searchPlaceholder" class="w-full bg-transparent text-[13px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30" />
+  <div class="overflow-hidden rounded-[1.5rem] border border-line bg-n1/78" :class="fillHeight ? 'flex h-full flex-col' : ''">
+    <div v-if="hasToolbar || $slots.toolbar" class="flex shrink-0 flex-wrap items-center gap-3 border-b border-line-soft px-5 py-4">
+      <div v-if="searchable" class="flex min-w-[13rem] flex-1 items-center gap-2 rounded-xl border border-line bg-n1/72 px-3 py-2">
+        <svg class="h-4 w-4 shrink-0 text-faint" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" /></svg>
+        <input v-model="search" type="text" :placeholder="searchPlaceholder" class="w-full bg-transparent text-[13px] text-ink outline-none placeholder:text-faint" />
       </div>
 
       <label v-for="column in filterableColumns" :key="column.key" class="flex items-center gap-2">
-        <span class="text-[11px] uppercase tracking-[0.14em] text-[#7ec8e3]/45">{{ column.label }}</span>
+        <span class="text-[11px] uppercase tracking-[0.14em] text-faint">{{ column.label }}</span>
         <SearchableSelect
           v-model="columnFilters[column.key]"
           :options="filterOptions(column)"
@@ -161,14 +161,14 @@ function rowId(row, index) {
     <div class="overflow-x-auto" :class="fillHeight ? 'flex-1 min-h-0 overflow-y-auto' : ''" :style="minHeight ? { minHeight } : {}">
       <table class="w-full text-left text-[13px]" :style="{ minWidth }">
         <thead>
-          <tr class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45" :class="fillHeight ? 'sticky top-0 z-10 bg-[rgba(8,16,30,0.98)]' : ''">
+          <tr class="text-[11px] uppercase tracking-[0.16em] text-faint" :class="fillHeight ? 'sticky top-0 z-10 bg-n1/98' : ''">
             <th
               v-for="column in columns"
               :key="column.key"
               class="px-5 py-3 font-medium"
               :class="[column.align === 'right' ? 'text-right' : '', column.headerClass]"
             >
-              <button v-if="column.sortable" type="button" @click="toggleSort(column)" class="inline-flex cursor-pointer items-center gap-1 transition-colors hover:text-[#8fd7ef]">
+              <button v-if="column.sortable" type="button" @click="toggleSort(column)" class="inline-flex cursor-pointer items-center gap-1 transition-colors hover:text-sky">
                 {{ column.label }}
                 <span v-if="sortKey === column.key" class="text-[9px]">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
               </button>
@@ -180,7 +180,7 @@ function rowId(row, index) {
           <tr
             v-for="(row, index) in pagedRows"
             :key="rowId(row, index)"
-            class="h-[3.25rem] border-t border-[rgba(126,200,227,0.06)] align-middle text-[#e8e8f0]/80 hover:bg-[rgba(126,200,227,0.04)]"
+            class="h-[3.25rem] border-t border-line-soft align-middle text-ink/80 hover:bg-n2"
           >
             <td
               v-for="column in columns"
@@ -192,45 +192,45 @@ function rowId(row, index) {
             </td>
           </tr>
           <tr v-if="!pagedRows.length" class="h-[3.25rem]">
-            <td :colspan="columns.length" class="px-5 py-2 text-center text-[#7ec8e3]/40">{{ emptyText }}</td>
+            <td :colspan="columns.length" class="px-5 py-2 text-center text-faint">{{ emptyText }}</td>
           </tr>
-          <tr v-for="n in fillerCount" :key="`filler-${n}`" aria-hidden="true" class="h-[3.25rem] border-t border-[rgba(126,200,227,0.04)]">
+          <tr v-for="n in fillerCount" :key="`filler-${n}`" aria-hidden="true" class="h-[3.25rem] border-t border-line-soft">
             <td :colspan="columns.length" class="px-5 py-2">&nbsp;</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div v-if="paginate" class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-3">
+    <div v-if="paginate" class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-line-soft px-5 py-3">
       <div class="flex flex-wrap items-center gap-3">
-        <span class="text-[12px] text-[#7ec8e3]/45">{{ filteredRows.length }} rows</span>
-        <label class="flex items-center gap-1.5 text-[12px] text-[#7ec8e3]/45">
+        <span class="text-[12px] text-faint">{{ filteredRows.length }} rows</span>
+        <label class="flex items-center gap-1.5 text-[12px] text-faint">
           Rows:
           <select
             v-model.number="pageSize"
-            class="rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.72)] px-2 py-1 text-[12px] text-[#f6f7fb] outline-none"
+            class="rounded-lg border border-line bg-n1/72 px-2 py-1 text-[12px] text-ink outline-none"
           >
             <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
           </select>
         </label>
       </div>
       <div class="flex flex-wrap items-center gap-1.5">
-        <button type="button" @click="page = Math.max(1, page - 1)" :disabled="page <= 1" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
+        <button type="button" @click="page = Math.max(1, page - 1)" :disabled="page <= 1" class="cursor-pointer rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-40">Prev</button>
         <template v-for="(item, index) in pageNumbers" :key="`page-${index}`">
-          <span v-if="item === '…'" class="px-1.5 text-[12px] text-[#7ec8e3]/35">…</span>
+          <span v-if="item === '…'" class="px-1.5 text-[12px] text-faint">…</span>
           <button
             v-else
             type="button"
             @click="page = item"
             class="min-w-[2.15rem] cursor-pointer rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold transition-all duration-200"
             :class="item === page
-              ? 'border-[rgba(233,69,96,0.4)] bg-[rgba(233,69,96,0.18)] text-[#ffe0e7]'
-              : 'border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] hover:border-[rgba(126,200,227,0.3)]'"
+              ? 'border-primary/40 bg-primary/18 text-primary-soft'
+              : 'border-line bg-n3 text-ink hover:border-line-strong'"
           >
             {{ item }}
           </button>
         </template>
-        <button type="button" @click="page = Math.min(totalPages, page + 1)" :disabled="page >= totalPages" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+        <button type="button" @click="page = Math.min(totalPages, page + 1)" :disabled="page >= totalPages" class="cursor-pointer rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-40">Next</button>
       </div>
     </div>
   </div>

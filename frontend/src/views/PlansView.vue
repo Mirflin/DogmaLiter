@@ -15,8 +15,8 @@ const purchasing = ref(false)
 const billingCycle = ref('monthly')
 
 const planAccents = {
-  0: { border: 'rgba(126,200,227,0.15)', bg: 'rgba(126,200,227,0.03)', badge: null },
-  1: { border: 'rgba(233,69,96,0.3)', bg: 'rgba(233,69,96,0.04)', badge: null },
+  0: { border: 'rgba(123,135,184,0.15)', bg: 'rgba(123,135,184,0.03)', badge: null },
+  1: { border: 'rgba(88,101,221,0.3)', bg: 'rgba(88,101,221,0.04)', badge: null },
   2: { border: 'rgba(160,120,255,0.35)', bg: 'rgba(160,120,255,0.05)', badge: 'Popular' },
 }
 
@@ -115,37 +115,37 @@ onMounted(async () => {
 <template>
   <HomeLayout>
     <div class="max-w-[1200px] mx-auto px-6 py-16">
-      <h1 class="font-[Cinzel] text-[32px] md:text-[40px] font-bold text-center text-[#e8e8f0] tracking-wide mb-3">
+      <h1 class="font-heading text-[32px] md:text-[40px] font-bold text-center text-ink tracking-wide mb-3">
         Choose Your Plan
       </h1>
-      <p class="text-center text-[#7ec8e3]/50 text-[16px] mb-10 max-w-lg mx-auto">
+      <p class="text-center text-dim text-[16px] mb-10 max-w-lg mx-auto">
         Flexible pricing for every play style.
       </p>
       <div class="flex items-center justify-center gap-0 mb-12">
         <button
           @click="billingCycle = 'monthly'"
-          class="px-6 py-2.5 text-[14px] font-medium border border-[rgba(126,200,227,0.2)] rounded-l-xl cursor-pointer transition-all duration-200"
+          class="px-6 py-2.5 text-[14px] font-medium border border-line rounded-l-xl cursor-pointer transition-all duration-200"
           :class="billingCycle === 'monthly'
-            ? 'bg-[rgba(233,69,96,0.15)] text-[#e94560] border-[rgba(233,69,96,0.4)]'
-            : 'bg-transparent text-[#7ec8e3]/50 hover:text-[#e8e8f0]'"
+            ? 'bg-primary/15 text-primary-ink border-primary/40'
+            : 'bg-transparent text-dim hover:text-ink'"
         >
           Monthly
         </button>
         <button
           @click="billingCycle = 'yearly'"
-          class="relative px-6 py-2.5 text-[14px] font-medium border border-[rgba(126,200,227,0.2)] border-l-0 rounded-r-xl cursor-pointer transition-all duration-200"
+          class="relative px-6 py-2.5 text-[14px] font-medium border border-line border-l-0 rounded-r-xl cursor-pointer transition-all duration-200"
           :class="billingCycle === 'yearly'
-            ? 'bg-[rgba(233,69,96,0.15)] text-[#e94560] border-[rgba(233,69,96,0.4)]'
-            : 'bg-transparent text-[#7ec8e3]/50 hover:text-[#e8e8f0]'"
+            ? 'bg-primary/15 text-primary-ink border-primary/40'
+            : 'bg-transparent text-dim hover:text-ink'"
         >
           Yearly
-          <span class="absolute -top-3 -right-3 bg-[#e94560] text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
+          <span class="absolute -top-3 -right-3 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
             2 months free
           </span>
         </button>
       </div>
       <div v-if="loading" class="text-center py-20">
-        <div class="inline-block w-8 h-8 border-2 border-[#e94560] border-t-transparent rounded-full animate-spin" />
+        <div class="inline-block w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
       <div v-else class="grid gap-6" :class="plans.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-4'">
         <div
@@ -159,23 +159,23 @@ onMounted(async () => {
         >
           <span
             v-if="getAccent(index).badge"
-            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#a078ff] text-white text-[11px] font-bold px-3 py-1 rounded-full tracking-wide"
+            class="absolute -top-3 left-1/2 -translate-x-1/2 bg-r-epic text-white text-[11px] font-bold px-3 py-1 rounded-full tracking-wide"
           >
             {{ getAccent(index).badge }}
           </span>
           <div class="mb-6">
-            <p class="text-[#7ec8e3]/60 text-[13px] font-semibold uppercase tracking-widest mb-1">
+            <p class="text-dim text-[13px] font-semibold uppercase tracking-widest mb-1">
               {{ plan.name }}
             </p>
             <div class="flex items-baseline gap-1">
-              <span class="font-[Cinzel] text-[36px] font-bold text-[#e8e8f0]">
+              <span class="font-heading text-[36px] font-bold text-ink">
                 {{ billingCycle === 'monthly' ? formatPrice(plan.price_monthly) : (plan.price_monthly === 0 ? 'Free' : '$' + yearlyPrice(plan.price_monthly)) }}
               </span>
-              <span v-if="plan.price_monthly > 0" class="text-[#7ec8e3]/40 text-[13px]">
+              <span v-if="plan.price_monthly > 0" class="text-faint text-[13px]">
                 /{{ billingCycle === 'monthly' ? 'mo' : 'yr' }}
               </span>
             </div>
-            <p v-if="billingCycle === 'yearly' && plan.price_monthly > 0" class="text-[#7ec8e3]/30 text-[12px] mt-1">
+            <p v-if="billingCycle === 'yearly' && plan.price_monthly > 0" class="text-faint text-[12px] mt-1">
               ${{ (plan.price_monthly * 10 / 12).toFixed(2) }}/mo billed yearly
             </p>
           </div>
@@ -183,12 +183,12 @@ onMounted(async () => {
             @click="selectPlan(plan)"
             class="w-full py-3 rounded-xl text-[14px] font-semibold cursor-pointer border transition-all duration-200 mb-7"
             :class="currentPlanId === plan.id || isLowerTier(plan)
-              ? 'bg-transparent border-[rgba(126,200,227,0.2)] text-[#7ec8e3]/50 cursor-default'
+              ? 'bg-transparent border-line text-dim cursor-default'
               : index === 2
-                ? 'bg-[#a078ff] border-[#a078ff] text-white hover:bg-[#8d62ff]'
+                ? 'bg-r-epic border-r-epic text-white hover:bg-[#8d62ff]'
                 : index === 1
-                  ? 'bg-[#e94560] border-[#e94560] text-white hover:bg-[#d63b55]'
-                  : 'bg-transparent border-[rgba(126,200,227,0.25)] text-[#e8e8f0] hover:bg-[rgba(126,200,227,0.08)]'"
+                  ? 'bg-primary border-primary text-white hover:bg-primary'
+                  : 'bg-transparent border-line-strong text-ink hover:bg-n3'"
             :disabled="currentPlanId === plan.id || plan.price_monthly === 0 || purchasing || isLowerTier(plan)"
           >
             <template v-if="currentPlanId === plan.id">Current plan</template>
@@ -203,12 +203,12 @@ onMounted(async () => {
               :key="feature.label"
               class="flex items-start gap-3"
             >
-              <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-[#7ec8e3]/50" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 mt-0.5 flex-shrink-0 text-dim" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
               <div>
-                <span class="text-[#e8e8f0]/80 text-[14px]">{{ feature.label }}</span>
-                <p class="text-[#7ec8e3]/40 text-[12px] m-0">{{ feature.value }}</p>
+                <span class="text-ink/80 text-[14px]">{{ feature.label }}</span>
+                <p class="text-faint text-[12px] m-0">{{ feature.value }}</p>
               </div>
             </li>
           </ul>

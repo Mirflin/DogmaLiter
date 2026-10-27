@@ -119,40 +119,40 @@ async function submit() {
       <button
         type="button"
         @click="goBack"
-        class="mb-5 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.08)] px-4 py-2 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+        class="mb-5 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-4 py-2 text-[13px] font-semibold text-sky transition-all duration-200 hover:border-n7"
       >
         <ArrowLeftIcon class="h-4 w-4" :stroke-width="2" />
         Back
       </button>
-      <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-8">{{ isEditing ? 'Edit News Post' : 'Create News Post' }}</h1>
+      <h1 class="font-heading text-[28px] font-bold text-ink tracking-wide mb-8">{{ isEditing ? 'Edit News Post' : 'Create News Post' }}</h1>
 
       <div class="space-y-6">
         <div>
-          <label class="block text-[#e8e8f0]/60 text-[13px] font-medium mb-2">Title</label>
+          <label class="block text-ink/60 text-[13px] font-medium mb-2">Title</label>
           <input
             v-model="title"
             type="text"
             maxlength="300"
             placeholder="News title..."
-            class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] placeholder-[#7ec8e3]/25 focus:outline-none focus:border-[#e94560] transition-colors"
+            class="w-full px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] placeholder-faint focus:outline-none focus:border-primary transition-colors"
           />
         </div>
 
         <div>
-          <label class="block text-[#e8e8f0]/60 text-[13px] font-medium mb-2">Cover Image</label>
+          <label class="block text-ink/60 text-[13px] font-medium mb-2">Cover Image</label>
           <div v-if="imagePreview" class="relative mb-3">
             <img :src="imagePreview" class="w-full h-48 object-cover rounded-lg" />
             <button
               @click="removeImage"
-              class="absolute top-2 right-2 w-8 h-8 bg-[rgba(0,0,0,0.6)] rounded-full flex items-center justify-center text-white border-none cursor-pointer hover:bg-[rgba(233,69,96,0.8)] transition-colors"
+              class="absolute top-2 right-2 w-8 h-8 bg-n0/60 rounded-full flex items-center justify-center text-white border-none cursor-pointer hover:bg-primary/80 transition-colors"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-          <label v-else class="flex items-center justify-center w-full h-36 bg-[rgba(15,15,35,0.6)] border-2 border-dashed border-[rgba(126,200,227,0.15)] rounded-lg cursor-pointer hover:border-[rgba(233,69,96,0.3)] transition-colors">
+          <label v-else class="flex items-center justify-center w-full h-36 bg-n2/60 border-2 border-dashed border-line rounded-lg cursor-pointer hover:border-primary/30 transition-colors">
             <div class="text-center">
-              <svg class="w-8 h-8 mx-auto text-[#7ec8e3]/30 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" /></svg>
-              <span class="text-[#7ec8e3]/30 text-[13px]">Click to upload image</span>
+              <svg class="w-8 h-8 mx-auto text-faint mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" /></svg>
+              <span class="text-faint text-[13px]">Click to upload image</span>
             </div>
             <input type="file" accept="image/*" class="hidden" @change="onImageChange" />
           </label>
@@ -160,11 +160,11 @@ async function submit() {
 
         <div>
           <div class="flex items-center justify-between mb-2">
-            <label class="text-[#e8e8f0]/60 text-[13px] font-medium">Sections</label>
+            <label class="text-ink/60 text-[13px] font-medium">Sections</label>
             <button
               @click="addSection"
               type="button"
-              class="flex items-center gap-1.5 px-3 py-1.5 bg-[rgba(126,200,227,0.08)] text-[#7ec8e3]/70 text-[12px] font-medium rounded-lg border border-[rgba(126,200,227,0.15)] hover:border-[rgba(126,200,227,0.3)] hover:text-[#7ec8e3] transition-all duration-300 cursor-pointer"
+              class="flex items-center gap-1.5 px-3 py-1.5 bg-n3 text-dim text-[12px] font-medium rounded-lg border border-line hover:border-line-strong hover:text-sky transition-all duration-300 cursor-pointer"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
               Add Section
@@ -175,15 +175,15 @@ async function submit() {
             <div
               v-for="(section, i) in sections"
               :key="i"
-              class="bg-[rgba(15,15,35,0.4)] border border-[rgba(126,200,227,0.1)] rounded-lg p-4 relative"
+              class="bg-n2/40 border border-line-soft rounded-lg p-4 relative"
             >
               <div class="flex items-center justify-between mb-3">
-                <span class="text-[#7ec8e3]/30 text-[11px] font-medium tracking-wider uppercase">Section {{ i + 1 }}</span>
+                <span class="text-faint text-[11px] font-medium tracking-wider uppercase">Section {{ i + 1 }}</span>
                 <button
                   v-if="sections.length > 1"
                   @click="removeSection(i)"
                   type="button"
-                  class="w-6 h-6 flex items-center justify-center rounded-full bg-transparent border-none text-[#7ec8e3]/30 hover:text-[#e94560] hover:bg-[rgba(233,69,96,0.1)] transition-all cursor-pointer"
+                  class="w-6 h-6 flex items-center justify-center rounded-full bg-transparent border-none text-faint hover:text-primary-ink hover:bg-primary/10 transition-all cursor-pointer"
                 >
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
@@ -193,13 +193,13 @@ async function submit() {
                 type="text"
                 maxlength="200"
                 placeholder="Subtitle (optional)"
-                class="w-full px-3 py-2 mb-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.12)] rounded-lg text-[#e8e8f0] text-[13px] placeholder-[#7ec8e3]/25 focus:outline-none focus:border-[#e94560] transition-colors"
+                class="w-full px-3 py-2 mb-3 bg-n2/60 border border-line rounded-lg text-ink text-[13px] placeholder-faint focus:outline-none focus:border-primary transition-colors"
               />
               <textarea
                 v-model="section.text"
                 rows="6"
                 placeholder="Section text..."
-                class="w-full px-3 py-2 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.12)] rounded-lg text-[#e8e8f0] text-[13px] placeholder-[#7ec8e3]/25 focus:outline-none focus:border-[#e94560] transition-colors resize-y"
+                class="w-full px-3 py-2 bg-n2/60 border border-line rounded-lg text-ink text-[13px] placeholder-faint focus:outline-none focus:border-primary transition-colors resize-y"
               />
             </div>
           </div>
@@ -209,13 +209,13 @@ async function submit() {
           <button
             @click="submit"
             :disabled="submitting"
-            class="px-6 py-3 bg-linear-to-br from-[#e94560] to-[#c23152] text-white text-[14px] font-semibold rounded-lg border-none cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            class="px-6 py-3 bg-primary hover:bg-primary-hover text-white text-[14px] font-semibold rounded-lg border-none cursor-pointer transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {{ submitting ? 'Saving...' : (isEditing ? 'Save Changes' : 'Publish') }}
           </button>
           <button
             @click="router.push('/dashboard')"
-            class="px-6 py-3 bg-transparent text-[#e8e8f0]/60 text-[14px] font-semibold rounded-lg border border-[rgba(126,200,227,0.15)] cursor-pointer hover:border-[rgba(126,200,227,0.3)] hover:text-[#e8e8f0] transition-all duration-300"
+            class="px-6 py-3 bg-transparent text-ink/60 text-[14px] font-semibold rounded-lg border border-line cursor-pointer hover:border-line-strong hover:text-ink transition-all duration-300"
           >
             Cancel
           </button>

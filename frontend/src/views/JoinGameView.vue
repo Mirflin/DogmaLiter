@@ -66,43 +66,43 @@ async function handleJoin() {
 <template>
   <HomeLayout>
     <div class="max-w-[480px] mx-auto px-6 py-8">
-      <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-2">Join a Game</h1>
-      <p class="text-[#7ec8e3]/40 text-[14px] mb-8">Enter an invite code from your GM to join their game</p>
+      <h1 class="font-heading text-[28px] font-bold text-ink tracking-wide mb-2">Join a Game</h1>
+      <p class="text-faint text-[14px] mb-8">Enter an invite code from your GM to join their game</p>
       <div class="space-y-6">
         <div>
-          <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Invite Code</label>
+          <label class="block text-dim text-[13px] font-medium mb-2">Invite Code</label>
           <div class="flex gap-3">
             <input
               v-model="code"
               type="text"
               placeholder="e.g. A1B2C3D4E5"
               maxlength="20"
-              class="flex-1 px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[16px] font-mono tracking-[0.15em] text-center placeholder-[#7ec8e3]/30 outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors uppercase"
+              class="flex-1 px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[16px] font-mono tracking-[0.15em] text-center placeholder-faint outline-none focus:border-primary/40 transition-colors uppercase"
               @input="code = code.toUpperCase()"
               @blur="checkInvite"
             />
           </div>
         </div>
-        <div v-if="checking" class="p-4 bg-[rgba(15,15,35,0.4)] border border-[rgba(126,200,227,0.08)] rounded-xl">
-          <p class="text-[#7ec8e3]/40 text-[13px]">Checking code...</p>
+        <div v-if="checking" class="p-4 bg-n2/40 border border-line-soft rounded-xl">
+          <p class="text-faint text-[13px]">Checking code...</p>
         </div>
 
-        <div v-else-if="gameInfo" class="p-5 bg-[rgba(15,15,35,0.4)] border border-[rgba(126,200,227,0.15)] rounded-xl">
-          <p class="text-[#7ec8e3]/40 text-[11px] uppercase tracking-wider mb-1">Game Found</p>
-          <p class="text-[#e8e8f0] text-[18px] font-bold">{{ gameInfo.title }}</p>
-          <p class="text-[#7ec8e3]/40 text-[13px] mt-1">System: {{ gameInfo.system }}</p>
+        <div v-else-if="gameInfo" class="p-5 bg-n2/40 border border-line rounded-xl">
+          <p class="text-faint text-[11px] uppercase tracking-wider mb-1">Game Found</p>
+          <p class="text-ink text-[18px] font-bold">{{ gameInfo.title }}</p>
+          <p class="text-faint text-[13px] mt-1">System: {{ gameInfo.system }}</p>
         </div>
         <div class="flex gap-4 pt-2">
           <button
             @click="handleJoin"
             :disabled="loading || !code.trim()"
-            class="flex-1 py-3 bg-gradient-to-br from-[#e94560] to-[#c23152] text-white text-[14px] font-semibold rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            class="flex-1 py-3 bg-primary hover:bg-primary-hover text-white text-[14px] font-semibold rounded-lg transition-all duration-300 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
             {{ loading ? 'Joining...' : 'Join Game' }}
           </button>
           <router-link
             to="/dashboard"
-            class="px-6 py-3 text-[#e8e8f0]/60 text-[14px] font-medium no-underline border border-[rgba(126,200,227,0.15)] rounded-lg hover:border-[rgba(126,200,227,0.3)] hover:text-[#e8e8f0] transition-all duration-300 flex items-center"
+            class="px-6 py-3 text-ink/60 text-[14px] font-medium no-underline border border-line rounded-lg hover:border-line-strong hover:text-ink transition-all duration-300 flex items-center"
           >
             Cancel
           </router-link>

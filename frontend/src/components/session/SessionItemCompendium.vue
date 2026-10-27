@@ -1398,26 +1398,26 @@ function truncateText(value, limit, fallback = '') {
 
 function itemFrameClass(rarity) {
   const variants = {
-    common: 'border-[rgba(255,255,255,0.24)] bg-[linear-gradient(180deg,rgba(16,32,52,0.92),rgba(8,16,30,0.92))] text-[#f6f7fb]',
-    uncommon: 'border-[rgba(250,204,21,0.36)] bg-[linear-gradient(180deg,rgba(94,67,0,0.92),rgba(44,31,2,0.92))] text-[#fde68a]',
-    rare: 'border-[rgba(96,165,250,0.36)] bg-[linear-gradient(180deg,rgba(12,38,79,0.94),rgba(8,19,44,0.92))] text-[#bfdbfe]',
-    epic: 'border-[rgba(192,132,252,0.34)] bg-[linear-gradient(180deg,rgba(59,20,88,0.94),rgba(28,12,44,0.92))] text-[#e9d5ff]',
-    masterwork: 'border-[rgba(251,146,60,0.34)] bg-[linear-gradient(180deg,rgba(102,47,10,0.94),rgba(43,21,8,0.92))] text-[#fdba74]',
-    legendary: 'border-[rgba(74,222,128,0.34)] bg-[linear-gradient(180deg,rgba(10,78,39,0.94),rgba(8,40,22,0.92))] text-[#bbf7d0]',
-    unique: 'border-[rgba(248,113,113,0.38)] bg-[linear-gradient(180deg,rgba(111,24,24,0.94),rgba(55,14,18,0.92))] text-[#fecaca]',
+    common: 'border-ink/24 bg-[linear-gradient(180deg,rgba(16,32,52,0.92),rgba(10,16,41,0.92))] text-ink',
+    uncommon: 'border-warning/36 bg-[linear-gradient(180deg,rgba(94,67,0,0.92),rgba(44,31,2,0.92))] text-warning',
+    rare: 'border-sky/36 bg-[linear-gradient(180deg,rgba(12,38,79,0.94),rgba(8,19,44,0.92))] text-sky',
+    epic: 'border-r-epic/34 bg-[linear-gradient(180deg,rgba(59,20,88,0.94),rgba(28,12,44,0.92))] text-r-epic',
+    masterwork: 'border-warning/34 bg-[linear-gradient(180deg,rgba(102,47,10,0.94),rgba(43,21,8,0.92))] text-r-masterwork',
+    legendary: 'border-success/34 bg-[linear-gradient(180deg,rgba(10,78,39,0.94),rgba(8,40,22,0.92))] text-success',
+    unique: 'border-danger/38 bg-[linear-gradient(180deg,rgba(111,24,24,0.94),rgba(55,14,18,0.92))] text-danger-soft',
   }
   return variants[rarity] ?? variants.common
 }
 
 function rarityBadgeClass(rarity) {
   const variants = {
-    common: 'border-[rgba(255,255,255,0.24)] bg-[rgba(255,255,255,0.08)] text-[#f8fafc]',
-    uncommon: 'border-[rgba(250,204,21,0.35)] bg-[rgba(202,138,4,0.16)] text-[#fde68a]',
-    rare: 'border-[rgba(96,165,250,0.35)] bg-[rgba(37,99,235,0.16)] text-[#93c5fd]',
-    epic: 'border-[rgba(192,132,252,0.35)] bg-[rgba(126,34,206,0.18)] text-[#e9d5ff]',
-    masterwork: 'border-[rgba(251,146,60,0.35)] bg-[rgba(194,65,12,0.18)] text-[#fdba74]',
-    legendary: 'border-[rgba(74,222,128,0.35)] bg-[rgba(21,128,61,0.18)] text-[#86efac]',
-    unique: 'border-[rgba(248,113,113,0.38)] bg-[rgba(153,27,27,0.18)] text-[#fecaca]',
+    common: 'border-ink/24 bg-ink/8 text-ink',
+    uncommon: 'border-warning/35 bg-warning/16 text-warning',
+    rare: 'border-sky/35 bg-primary/16 text-sky',
+    epic: 'border-r-epic/35 bg-r-epic/18 text-r-epic',
+    masterwork: 'border-warning/35 bg-warning/18 text-r-masterwork',
+    legendary: 'border-success/35 bg-success/18 text-success',
+    unique: 'border-danger/38 bg-danger/18 text-danger-soft',
   }
   return variants[rarity] ?? variants.common
 }
@@ -1456,13 +1456,13 @@ function itemSizeLabel(item) {
 
 <template>
   <section class="flex min-h-[52rem] flex-col gap-6 xl:h-[calc(100vh-5rem)] xl:min-h-0">
-    <article class="overflow-hidden rounded-[1.9rem] border border-[rgba(126,200,227,0.14)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-5 shadow-[0_32px_90px_rgba(0,0,0,0.35)] sm:p-6">
+    <article class="overflow-hidden rounded-[1.9rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-5 shadow-[0_32px_90px_rgba(0,0,0,0.35)] sm:p-6">
       <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">GM Compendium</p>
+          <p class="text-[11px] uppercase tracking-[0.24em] text-dim">GM Compendium</p>
           <div class="mt-3 flex flex-wrap items-center gap-3">
-            <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">Item Compendium</h2>
-            <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
+            <h2 class="font-heading text-[28px] font-bold text-ink sm:text-[34px]">Item Compendium</h2>
+            <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">
               {{ compendiumStats.totalItems }} total
             </span>
           </div>
@@ -1473,16 +1473,16 @@ function itemSizeLabel(item) {
             type="button"
             @click="openCartModal"
             :disabled="!cartCount"
-            class="relative inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)] disabled:cursor-not-allowed disabled:opacity-50"
+            class="relative inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-n7 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ShoppingCart class="h-4 w-4" :stroke-width="2" />
             Transfer Cart
-            <span v-if="cartCount" class="flex h-5 min-w-5 items-center justify-center rounded-full bg-[rgba(233,69,96,0.92)] px-1.5 text-[11px] font-semibold text-white">{{ cartCount }}</span>
+            <span v-if="cartCount" class="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/92 px-1.5 text-[11px] font-semibold text-white">{{ cartCount }}</span>
           </button>
           <button
             type="button"
             @click="openCreateItemModal"
-            class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)]"
+            class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/28 bg-[linear-gradient(135deg,rgba(88,101,221,0.92),rgba(74,86,200,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200"
           >
             <FilePlus2 class="h-4 w-4" :stroke-width="2" />
             Create Item
@@ -1491,16 +1491,16 @@ function itemSizeLabel(item) {
       </div>
     </article>
 
-    <article class="rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 sm:p-6">
+    <article class="rounded-[1.75rem] border border-line bg-n1/78 p-5 sm:p-6">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Filters</p>
+          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Filters</p>
         </div>
         <button
           v-if="hasActiveFilters"
           type="button"
           @click="clearFilters"
-          class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]"
+          class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong"
         >
           Clear Filters
         </button>
@@ -1508,44 +1508,44 @@ function itemSizeLabel(item) {
 
       <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_repeat(5,minmax(0,1fr))]">
         <label class="block xl:col-span-1">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Search</span>
-          <div class="mt-2 flex items-center gap-3 rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3">
-            <Search class="h-4 w-4 text-[#7ec8e3]/45" :stroke-width="2" />
+          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Search</span>
+          <div class="mt-2 flex items-center gap-3 rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3">
+            <Search class="h-4 w-4 text-faint" :stroke-width="2" />
             <input
               v-model="searchQuery"
               type="text"
               placeholder="Search the compendium"
-              class="session-input w-full border-0 bg-transparent p-0 text-[14px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30"
+              class="session-input w-full border-0 bg-transparent p-0 text-[14px] text-ink outline-none placeholder:text-faint"
             />
           </div>
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Quality</span>
-          <select v-model="rarityFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none">
+          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Quality</span>
+          <select v-model="rarityFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
             <option value="all">All qualities</option>
             <option v-for="rarity in RARITY_OPTIONS" :key="rarity" :value="rarity">{{ formatLabel(rarity) }}</option>
           </select>
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Category</span>
-          <select v-model="categoryFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none">
+          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Category</span>
+          <select v-model="categoryFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
             <option value="all">All categories</option>
             <option v-for="category in CATEGORY_OPTIONS" :key="category" :value="category">{{ formatLabel(category) }}</option>
           </select>
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Slot</span>
-          <select v-model="slotFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none">
+          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Slot</span>
+          <select v-model="slotFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
             <option value="all">All slots</option>
             <option v-for="slot in EQUIP_SLOT_OPTIONS" :key="slot" :value="slot">{{ formatLabel(slot) }}</option>
           </select>
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Tag</span>
+          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Tag</span>
           <SearchableSelect
             v-model="tagFilter"
             :options="[{ value: 'all', label: 'All tags' }, ...availableTagNames.map(tag => ({ value: tag, label: tag }))]"
@@ -1555,8 +1555,8 @@ function itemSizeLabel(item) {
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Sort</span>
-          <select v-model="sortMode" class="session-input mt-2 w-full rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none">
+          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Sort</span>
+          <select v-model="sortMode" class="session-input mt-2 w-full rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
             <option v-for="option in SORT_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
         </label>
@@ -1566,7 +1566,7 @@ function itemSizeLabel(item) {
         <span
           v-for="badge in activeFilterBadges"
           :key="badge"
-          class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] text-[#d8dce7]/72"
+          class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[12px] text-ink-soft/72"
         >
           {{ badge }}
         </span>
@@ -1574,14 +1574,14 @@ function itemSizeLabel(item) {
     </article>
 
     <div class="grid min-h-0 flex-1 content-stretch gap-6 xl:grid-cols-[minmax(0,1.45fr)_390px]">
-      <article class="flex min-h-[42rem] flex-col overflow-hidden rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] xl:h-full xl:min-h-0">
-        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
+      <article class="flex min-h-[42rem] flex-col overflow-hidden rounded-[1.75rem] border border-line bg-n1/78 xl:h-full xl:min-h-0">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-5 py-4 sm:px-6">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Compendium Entries</p>
+            <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Compendium Entries</p>
           </div>
         </div>
 
-        <p v-if="itemsError" class="mx-5 mt-5 rounded-[1.2rem] border border-[rgba(248,113,113,0.2)] bg-[rgba(127,29,29,0.18)] px-4 py-3 text-[13px] text-[#fecaca] sm:mx-6">
+        <p v-if="itemsError" class="mx-5 mt-5 rounded-[1.2rem] border border-danger/20 bg-danger/18 px-4 py-3 text-[13px] text-danger-soft sm:mx-6">
           {{ itemsError }}
         </p>
 
@@ -1596,17 +1596,17 @@ function itemSizeLabel(item) {
             @mouseenter="hoveredItemId = item.id"
             @mouseleave="hoveredItemId = ''"
             @focus="selectedItemId = item.id"
-            class="group relative cursor-pointer rounded-[1.45rem] border bg-[rgba(7,17,31,0.72)] p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[rgba(126,200,227,0.24)]"
+            class="group relative cursor-pointer rounded-[1.45rem] border bg-n1/72 p-4 text-left transition-all duration-200 hover:border-line"
             :class="[
-              selectedItemId === item.id ? 'border-[rgba(233,69,96,0.32)] shadow-[0_12px_36px_rgba(233,69,96,0.12)]' : 'border-[rgba(126,200,227,0.12)]',
-              isInCart(item) ? 'ring-2 ring-[rgba(233,69,96,0.45)]' : '',
+              selectedItemId === item.id ? 'border-primary/32 shadow-[0_12px_36px_rgba(88,101,221,0.12)]' : 'border-line',
+              isInCart(item) ? 'ring-2 ring-primary/45' : '',
             ]"
           >
             <div class="flex items-start gap-4">
               <div class="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.3rem] border text-[24px] font-bold uppercase" :class="itemFrameClass(item.rarity)">
                 <img v-if="itemImageUrl(item)" :src="itemImageUrl(item)" :alt="item.name" class="h-full w-full object-cover" @error="markImageFailed(itemImageUrl(item))" />
                 <span v-else>{{ itemGlyph(item) }}</span>
-                <span class="absolute right-2 top-2 rounded-full border border-[rgba(255,255,255,0.16)] bg-[rgba(7,17,31,0.82)] px-2 py-0.5 text-[10px] font-semibold text-[#f6f7fb]">
+                <span class="absolute right-2 top-2 rounded-full border border-ink/16 bg-n1/82 px-2 py-0.5 text-[10px] font-semibold text-ink">
                   {{ itemSizeLabel(item) }}
                 </span>
                 <span
@@ -1616,8 +1616,8 @@ function itemSizeLabel(item) {
                   @click.stop.prevent="toggleCartItem(item)"
                   class="absolute bottom-2 left-2 z-10 flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg border shadow-[0_4px_12px_rgba(0,0,0,0.4)] transition-all duration-200"
                   :class="isInCart(item)
-                    ? 'border-[rgba(233,69,96,0.55)] bg-[rgba(233,69,96,0.92)] text-white'
-                    : 'border-[rgba(126,200,227,0.35)] bg-[rgba(7,17,31,0.92)] text-transparent hover:border-[rgba(126,200,227,0.7)]'"
+                    ? 'border-primary/55 bg-primary/92 text-white'
+                    : 'border-line-strong bg-n1/92 text-transparent hover:border-n7'"
                 >
                   <Check class="h-3.5 w-3.5" :stroke-width="3" />
                 </span>
@@ -1625,51 +1625,51 @@ function itemSizeLabel(item) {
 
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-start gap-2">
-                  <h3 class="min-w-0 flex-1 break-words whitespace-normal text-[16px] font-semibold leading-snug text-[#f6f7fb] line-clamp-2 [overflow-wrap:anywhere]">{{ item.name }}</h3>
+                  <h3 class="min-w-0 flex-1 break-words whitespace-normal text-[16px] font-semibold leading-snug text-ink line-clamp-2 [overflow-wrap:anywhere]">{{ item.name }}</h3>
                   <span class="shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(item.rarity)">
                     {{ formatLabel(item.rarity) }}
                   </span>
                 </div>
 
-                <p class="mt-2 line-clamp-3 break-words whitespace-pre-line text-[13px] leading-relaxed text-[#d8dce7]/58">
+                <p class="mt-2 line-clamp-3 break-words whitespace-pre-line text-[13px] leading-relaxed text-ink-soft/58">
                   {{ truncateText(item.description, ITEM_CARD_DESCRIPTION_PREVIEW_LIMIT, 'No description yet.') }}
                 </p>
 
                 <div class="mt-3 flex flex-wrap gap-2">
-                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-[#8fd7ef]">
+                  <span class="rounded-full border border-line bg-n3 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-sky">
                     {{ formatLabel(item.category) }}
                   </span>
-                  <span v-if="item.equip_slot" class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-[#d8dce7]/68">
+                  <span v-if="item.equip_slot" class="rounded-full border border-line bg-ink/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-ink-soft/68">
                     {{ formatLabel(item.equip_slot) }}
                   </span>
-                  <span v-for="tag in item.tags.slice(0, 3)" :key="`${item.id}-${tag}`" class="rounded-full border border-[rgba(233,69,96,0.16)] bg-[rgba(233,69,96,0.08)] px-2.5 py-1 text-[11px] text-[#ffe0e7]">
+                  <span v-for="tag in item.tags.slice(0, 3)" :key="`${item.id}-${tag}`" class="rounded-full border border-primary/16 bg-primary/8 px-2.5 py-1 text-[11px] text-primary-soft">
                     {{ tag }}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-[rgba(126,200,227,0.08)] pt-3 text-[12px] text-[#d8dce7]/56">
+            <div class="mt-4 flex flex-wrap items-center gap-3 border-t border-line-soft pt-3 text-[12px] text-ink-soft/56">
               <span>{{ item.required_attributes.length }} requirements</span>
               <span>{{ item.attribute_modifiers.length }} modifiers</span>
               <span>Updated {{ formatDateTime(item.updated_at) }}</span>
-              <span class="ml-auto text-[#7ec8e3]/38">Right-click</span>
+              <span class="ml-auto text-faint">Right-click</span>
             </div>
           </button>
 
-          <div v-if="loadingMoreItems" class="col-span-full flex items-center justify-center gap-2.5 py-4 text-[13px] text-[#7ec8e3]/55">
-            <span class="h-4 w-4 animate-spin rounded-full border-2 border-[rgba(126,200,227,0.25)] border-t-[#8fd7ef]"></span>
+          <div v-if="loadingMoreItems" class="col-span-full flex items-center justify-center gap-2.5 py-4 text-[13px] text-dim">
+            <span class="h-4 w-4 animate-spin rounded-full border-2 border-line-strong border-t-sky"></span>
             Loading more…
           </div>
         </div>
 
         <div v-else class="flex min-h-[320px] flex-1 flex-col items-center justify-center gap-4 px-6 py-12 text-center">
-          <div class="flex h-16 w-16 items-center justify-center rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#8fd7ef]">
+          <div class="flex h-16 w-16 items-center justify-center rounded-full border border-line bg-n3 text-sky">
             <Package class="h-7 w-7" :stroke-width="2" />
           </div>
           <div>
-            <h3 class="font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ itemsLoading ? 'Loading items' : 'No items found' }}</h3>
-            <p class="mt-3 max-w-[34rem] text-[14px] leading-relaxed text-[#d8dce7]/58">
+            <h3 class="font-heading text-[24px] font-bold text-ink">{{ itemsLoading ? 'Loading items' : 'No items found' }}</h3>
+            <p class="mt-3 max-w-[34rem] text-[14px] leading-relaxed text-ink-soft/58">
               {{ itemsLoading
                 ? 'The server is preparing the current page.'
                 : (hasActiveFilters
@@ -1682,65 +1682,65 @@ function itemSizeLabel(item) {
 
       <aside class="space-y-6 min-h-0">
 
-        <article class="flex min-h-[42rem] flex-col overflow-y-auto rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 sm:p-6 xl:h-full xl:min-h-0">
+        <article class="flex min-h-[42rem] flex-col overflow-y-auto rounded-[1.75rem] border border-line bg-n1/78 p-5 sm:p-6 xl:h-full xl:min-h-0">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Inspector</p>
-            <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Pinned preview for the currently selected compendium entry.</p>
+            <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Inspector</p>
+            <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Pinned preview for the currently selected compendium entry.</p>
           </div>
 
           <div v-if="inspectorItem" class="mt-5 flex flex-1 flex-col gap-5">
-            <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
+            <div class="overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
               <div class="flex h-64 items-center justify-center" :class="itemFrameClass(inspectorItem.rarity)">
                 <img v-if="resolvedItemImageUrl(inspectorItem)" :src="resolvedItemImageUrl(inspectorItem)" :alt="inspectorItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(inspectorItem))" />
-                <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(inspectorItem) }}</span>
+                <span v-else class="font-heading text-[40px] font-bold">{{ itemGlyph(inspectorItem) }}</span>
               </div>
             </div>
 
             <div>
               <div class="flex flex-wrap items-center gap-2">
-                <h3 class="min-w-0 flex-1 break-words whitespace-normal font-[Cinzel] text-[28px] font-bold leading-tight text-[#f6f7fb] line-clamp-2 [overflow-wrap:anywhere]">{{ inspectorItem.name }}</h3>
+                <h3 class="min-w-0 flex-1 break-words whitespace-normal font-heading text-[28px] font-bold leading-tight text-ink line-clamp-2 [overflow-wrap:anywhere]">{{ inspectorItem.name }}</h3>
                 <span class="shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(inspectorItem.rarity)">
                   {{ formatLabel(inspectorItem.rarity) }}
                 </span>
               </div>
-              <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-[#d8dce7]/62">{{ truncateText(inspectorItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'No description yet.') }}</p>
+              <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-ink-soft/62">{{ truncateText(inspectorItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'No description yet.') }}</p>
             </div>
 
             <div class="grid gap-3 sm:grid-cols-2">
-              <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Category</p>
-                <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ formatLabel(inspectorItem.category) }}</p>
+              <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+                <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Category</p>
+                <p class="mt-2 text-[15px] font-semibold text-ink">{{ formatLabel(inspectorItem.category) }}</p>
               </div>
-              <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Size</p>
-                <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ itemSizeLabel(inspectorItem) }}</p>
+              <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+                <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Size</p>
+                <p class="mt-2 text-[15px] font-semibold text-ink">{{ itemSizeLabel(inspectorItem) }}</p>
               </div>
-              <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Equip Slot</p>
-                <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ inspectorItem.equip_slot ? formatLabel(inspectorItem.equip_slot) : 'Not equippable' }}</p>
+              <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+                <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Equip Slot</p>
+                <p class="mt-2 text-[15px] font-semibold text-ink">{{ inspectorItem.equip_slot ? formatLabel(inspectorItem.equip_slot) : 'Not equippable' }}</p>
               </div>
-              <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Updated</p>
-                <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ formatDateTime(inspectorItem.updated_at) }}</p>
+              <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+                <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Updated</p>
+                <p class="mt-2 text-[15px] font-semibold text-ink">{{ formatDateTime(inspectorItem.updated_at) }}</p>
               </div>
             </div>
 
-            <div v-if="inspectorItem.required_attributes.length" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-              <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Requirements</p>
+            <div v-if="inspectorItem.required_attributes.length" class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Requirements</p>
               <ul class="mt-2.5 space-y-1.5">
-                <li v-for="(requirement, index) in inspectorItem.required_attributes" :key="`insp-req-${index}`" class="flex items-center justify-between gap-2 text-[13px] text-[#d8dce7]/82">
+                <li v-for="(requirement, index) in inspectorItem.required_attributes" :key="`insp-req-${index}`" class="flex items-center justify-between gap-2 text-[13px] text-ink-soft/82">
                   <span>{{ formatLabel(requirement.attribute_name) }}</span>
-                  <span class="font-semibold text-[#f6f7fb]">{{ requirement.min_value }}</span>
+                  <span class="font-semibold text-ink">{{ requirement.min_value }}</span>
                 </li>
               </ul>
             </div>
 
-            <div v-if="inspectorItem.attribute_modifiers.length" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-              <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Modifiers</p>
+            <div v-if="inspectorItem.attribute_modifiers.length" class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Modifiers</p>
               <ul class="mt-2.5 space-y-1.5">
-                <li v-for="(modifier, index) in inspectorItem.attribute_modifiers" :key="`insp-mod-${index}`" class="flex items-center justify-between gap-2 text-[13px] text-[#d8dce7]/82">
+                <li v-for="(modifier, index) in inspectorItem.attribute_modifiers" :key="`insp-mod-${index}`" class="flex items-center justify-between gap-2 text-[13px] text-ink-soft/82">
                   <span>{{ formatLabel(modifier.attribute_name) }}</span>
-                  <span class="font-semibold" :class="modifier.modifier_value >= 0 ? 'text-[#8fd7ef]' : 'text-[#fca5a5]'">
+                  <span class="font-semibold" :class="modifier.modifier_value >= 0 ? 'text-sky' : 'text-danger'">
                     {{ modifier.modifier_value >= 0 ? '+' : '' }}{{ modifier.modifier_value }}{{ modifier.is_percentage ? '%' : '' }}
                   </span>
                 </li>
@@ -1748,36 +1748,36 @@ function itemSizeLabel(item) {
             </div>
 
             <div class="min-h-[5.75rem]">
-              <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Custom Tags</p>
+              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Custom Tags</p>
               <div v-if="inspectorItem.tags.length" class="mt-3 flex min-h-[2.5rem] flex-wrap content-start gap-2">
-                <span v-for="tag in inspectorItem.tags" :key="`${inspectorItem.id}-${tag}`" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-3 py-1.5 text-[12px] text-[#ffe0e7]">
+                <span v-for="tag in inspectorItem.tags" :key="`${inspectorItem.id}-${tag}`" class="rounded-full border border-primary/18 bg-primary/8 px-3 py-1.5 text-[12px] text-primary-soft">
                   {{ tag }}
                 </span>
               </div>
               <div v-else class="mt-3 flex min-h-[2.5rem] items-center">
-                <p class="text-[14px] text-[#d8dce7]/58">No custom tags assigned to this item.</p>
+                <p class="text-[14px] text-ink-soft/58">No custom tags assigned to this item.</p>
               </div>
             </div>
           </div>
 
-          <div v-else class="mt-6 flex flex-1 items-center text-[14px] leading-relaxed text-[#d8dce7]/58">Select an item from the current page to inspect it here.</div>
+          <div v-else class="mt-6 flex flex-1 items-center text-[14px] leading-relaxed text-ink-soft/58">Select an item from the current page to inspect it here.</div>
         </article>
       </aside>
     </div>
 
     <Teleport to="body">
       <div v-if="itemContextMenu.visible && contextMenuItem" class="fixed inset-0 z-[12480]" @click="closeItemContextMenu" @contextmenu.prevent="closeItemContextMenu">
-        <div class="fixed z-[12490] w-[220px] overflow-hidden rounded-[1.3rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]" :style="itemContextMenuStyle" @click.stop @contextmenu.prevent>
-          <button type="button" class="flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:bg-[rgba(126,200,227,0.08)]" @click="openItemDetailModal(contextMenuItem, 'view')">
-            <Eye class="h-4 w-4 text-[#8fd7ef]" :stroke-width="2" />
+        <div class="fixed z-[12490] w-[220px] overflow-hidden rounded-[1.3rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-2 shadow-[0_20px_50px_rgba(0,0,0,0.45)]" :style="itemContextMenuStyle" @click.stop @contextmenu.prevent>
+          <button type="button" class="flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-ink transition-all duration-200 hover:bg-n3" @click="openItemDetailModal(contextMenuItem, 'view')">
+            <Eye class="h-4 w-4 text-sky" :stroke-width="2" />
             Open Details
           </button>
-          <button type="button" class="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:bg-[rgba(233,69,96,0.12)]" @click="openItemDetailModal(contextMenuItem, 'edit')">
-            <Pencil class="h-4 w-4 text-[#ffe0e7]" :stroke-width="2" />
+          <button type="button" class="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-ink transition-all duration-200 hover:bg-primary/12" @click="openItemDetailModal(contextMenuItem, 'edit')">
+            <Pencil class="h-4 w-4 text-primary-soft" :stroke-width="2" />
             Edit Item
           </button>
-          <button type="button" class="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:bg-[rgba(248,113,113,0.12)]" @click="requestItemDeletion(contextMenuItem)">
-            <Trash2 class="h-4 w-4 text-[#fca5a5]" :stroke-width="2" />
+          <button type="button" class="mt-1 flex w-full cursor-pointer items-center gap-3 rounded-[1rem] px-3 py-3 text-left text-[13px] font-semibold text-danger-soft transition-all duration-200 hover:bg-danger/12" @click="requestItemDeletion(contextMenuItem)">
+            <Trash2 class="h-4 w-4 text-danger" :stroke-width="2" />
             Delete Item
           </button>
         </div>
@@ -1786,28 +1786,28 @@ function itemSizeLabel(item) {
 
     <Teleport to="body">
       <div v-if="deleteCandidateItem" class="fixed inset-0 z-[12520] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="cancelItemDeletion"></div>
+        <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="cancelItemDeletion"></div>
 
-        <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-[rgba(248,113,113,0.24)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
+        <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-danger/24 bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
           <div class="flex items-center gap-3">
-            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] text-[#fca5a5]">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-danger/24 bg-danger/12 text-danger">
               <Trash2 class="h-6 w-6" :stroke-width="2" />
             </div>
             <div class="min-w-0">
-              <p class="text-[11px] uppercase tracking-[0.24em] text-[#fca5a5]/70">Delete Item</p>
-              <h3 class="mt-1 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ deleteCandidateItem.name }}</h3>
+              <p class="text-[11px] uppercase tracking-[0.24em] text-danger/70">Delete Item</p>
+              <h3 class="mt-1 break-words font-heading text-[22px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ deleteCandidateItem.name }}</h3>
             </div>
           </div>
 
-          <p class="mt-4 text-[14px] leading-relaxed text-[#d8dce7]/68">
+          <p class="mt-4 text-[14px] leading-relaxed text-ink-soft/68">
             This permanently removes the item from the compendium and from every character inventory. This action cannot be undone.
           </p>
 
           <div class="mt-6 flex flex-wrap justify-end gap-3">
-            <button type="button" @click="cancelItemDeletion" :disabled="deleteCandidateSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="button" @click="cancelItemDeletion" :disabled="deleteCandidateSubmitting" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">
               Cancel
             </button>
-            <button type="button" @click="confirmCandidateDeletion" :disabled="deleteCandidateSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[linear-gradient(135deg,rgba(248,113,113,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+            <button type="button" @click="confirmCandidateDeletion" :disabled="deleteCandidateSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-danger/28 bg-[linear-gradient(135deg,rgba(242,122,133,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60">
               <Trash2 class="h-4 w-4" :stroke-width="2" />
               {{ deleteCandidateSubmitting ? 'Deleting...' : 'Delete Item' }}
             </button>
@@ -1818,31 +1818,31 @@ function itemSizeLabel(item) {
 
     <Teleport to="body">
       <div v-if="showCartModal" class="fixed inset-0 z-[12530] p-3 sm:p-4">
-        <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeCartModal"></div>
+        <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="closeCartModal"></div>
 
-        <div class="relative mx-auto flex h-full w-full max-w-[62rem] flex-col overflow-hidden rounded-[2rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
+        <div class="relative mx-auto flex h-full w-full max-w-[62rem] flex-col overflow-hidden rounded-[2rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
           <button
             type="button"
             @click="closeCartModal"
             :disabled="cartSubmitting"
-            class="absolute right-5 top-5 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+            class="absolute right-5 top-5 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Close transfer cart"
           >
             <X class="h-5 w-5" :stroke-width="2" />
           </button>
 
-          <div class="border-b border-[rgba(126,200,227,0.1)] px-5 py-5 pr-16 sm:px-6">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Deliver Items</p>
+          <div class="border-b border-line-soft px-5 py-5 pr-16 sm:px-6">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Deliver Items</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
-              <h2 class="font-[Cinzel] text-[26px] font-bold text-[#f6f7fb] sm:text-[32px]">Transfer Cart</h2>
-              <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">{{ cartCount }} item(s)</span>
+              <h2 class="font-heading text-[26px] font-bold text-ink sm:text-[32px]">Transfer Cart</h2>
+              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">{{ cartCount }} item(s)</span>
             </div>
-            <p class="mt-3 max-w-[44rem] text-[13px] leading-relaxed text-[#d8dce7]/58">Tune each item's quantity, enchantment, and optional durability, then choose a character to receive the whole cart.</p>
+            <p class="mt-3 max-w-[44rem] text-[13px] leading-relaxed text-ink-soft/58">Tune each item's quantity, enchantment, and optional durability, then choose a character to receive the whole cart.</p>
           </div>
 
           <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">
             <div v-if="cartItems.length" class="space-y-4">
-              <article v-for="line in cartItems" :key="line.item.id" class="rounded-[1.4rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-4">
+              <article v-for="line in cartItems" :key="line.item.id" class="rounded-[1.4rem] border border-line bg-n1/78 p-4">
                 <div class="flex items-start gap-4">
                   <div class="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[1.1rem] border text-[18px] font-bold uppercase" :class="itemFrameClass(line.item.rarity)">
                     <img v-if="itemImageUrl(line.item)" :src="itemImageUrl(line.item)" :alt="line.item.name" class="h-full w-full object-cover" @error="markImageFailed(itemImageUrl(line.item))" />
@@ -1852,36 +1852,36 @@ function itemSizeLabel(item) {
                   <div class="min-w-0 flex-1">
                     <div class="flex items-start justify-between gap-3">
                       <div class="min-w-0">
-                        <h3 class="break-words text-[15px] font-semibold leading-snug text-[#f6f7fb] [overflow-wrap:anywhere]">{{ line.item.name }}</h3>
-                        <p class="mt-1 text-[12px] text-[#d8dce7]/55">{{ formatLabel(line.item.rarity) }} · {{ formatLabel(line.item.category) }} · {{ itemSizeLabel(line.item) }}</p>
+                        <h3 class="break-words text-[15px] font-semibold leading-snug text-ink [overflow-wrap:anywhere]">{{ line.item.name }}</h3>
+                        <p class="mt-1 text-[12px] text-ink-soft/55">{{ formatLabel(line.item.rarity) }} · {{ formatLabel(line.item.category) }} · {{ itemSizeLabel(line.item) }}</p>
                       </div>
-                      <button type="button" @click="removeCartLine(line.item.id)" :disabled="cartSubmitting" class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] text-[#fca5a5] transition-all duration-200 hover:border-[rgba(248,113,113,0.4)] disabled:cursor-not-allowed disabled:opacity-60" aria-label="Remove from cart">
+                      <button type="button" @click="removeCartLine(line.item.id)" :disabled="cartSubmitting" class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-danger/24 bg-danger/10 text-danger transition-all duration-200 hover:border-danger/40 disabled:cursor-not-allowed disabled:opacity-60" aria-label="Remove from cart">
                         <Trash2 class="h-4 w-4" :stroke-width="2" />
                       </button>
                     </div>
 
                     <div class="mt-3 grid gap-3 sm:grid-cols-3">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Quantity</span>
-                        <input v-model.number="line.quantity" type="number" min="1" max="9999" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Quantity</span>
+                        <input v-model.number="line.quantity" type="number" min="1" max="9999" class="session-input mt-1.5 w-full rounded-[1rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Durability</span>
-                        <input v-model.number="line.durability" type="number" min="0" :max="line.maxDurability" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Durability</span>
+                        <input v-model.number="line.durability" type="number" min="0" :max="line.maxDurability" class="session-input mt-1.5 w-full rounded-[1rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Max durability</span>
-                        <input v-model.number="line.maxDurability" type="number" min="1" class="session-input mt-1.5 w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Max durability</span>
+                        <input v-model.number="line.maxDurability" type="number" min="1" class="session-input mt-1.5 w-full rounded-[1rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                     </div>
 
                     <div class="mt-3 flex flex-wrap items-center gap-3">
-                      <label class="flex cursor-pointer items-center gap-2.5 rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5">
-                        <input v-model="line.hasEnchantment" type="checkbox" class="h-4 w-4 cursor-pointer accent-[#e94560]" />
-                        <span class="text-[12px] font-semibold text-[#d8dce7]/78">Enchantment</span>
+                      <label class="flex cursor-pointer items-center gap-2.5 rounded-[1rem] border border-line bg-n1/72 px-3 py-2.5">
+                        <input v-model="line.hasEnchantment" type="checkbox" class="h-4 w-4 cursor-pointer accent-primary" />
+                        <span class="text-[12px] font-semibold text-ink-soft/78">Enchantment</span>
                       </label>
                       <label v-if="line.hasEnchantment" class="block min-w-[8rem] flex-1">
-                        <input v-model.number="line.enchantment" type="number" min="-999" max="999" placeholder="Enchantment level" class="session-input w-full rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                        <input v-model.number="line.enchantment" type="number" min="-999" max="999" placeholder="Enchantment level" class="session-input w-full rounded-[1rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                     </div>
                   </div>
@@ -1890,61 +1890,61 @@ function itemSizeLabel(item) {
             </div>
 
             <div v-else class="flex min-h-[12rem] flex-col items-center justify-center gap-3 text-center">
-              <ShoppingCart class="h-8 w-8 text-[#7ec8e3]/40" :stroke-width="1.8" />
-              <p class="text-[14px] text-[#d8dce7]/58">Your cart is empty.</p>
+              <ShoppingCart class="h-8 w-8 text-faint" :stroke-width="1.8" />
+              <p class="text-[14px] text-ink-soft/58">Your cart is empty.</p>
             </div>
           </div>
 
-          <div class="border-t border-[rgba(126,200,227,0.1)] px-5 py-5 sm:px-6">
+          <div class="border-t border-line-soft px-5 py-5 sm:px-6">
             <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
               <div>
                 <div class="flex items-center justify-between gap-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Recipients</span>
-                  <span v-if="cartTargetCharacterIds.length" class="text-[11px] font-semibold text-[#8fd7ef]">{{ cartTargetCharacterIds.length }} selected</span>
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Recipients</span>
+                  <span v-if="cartTargetCharacterIds.length" class="text-[11px] font-semibold text-sky">{{ cartTargetCharacterIds.length }} selected</span>
                 </div>
-                <div class="mt-2 flex items-center gap-3 rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3">
-                  <Search class="h-4 w-4 text-[#7ec8e3]/45" :stroke-width="2" />
-                  <input v-model="cartCharacterSearch" type="text" placeholder="Search characters" class="session-input w-full border-0 bg-transparent p-0 text-[14px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30" />
+                <div class="mt-2 flex items-center gap-3 rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3">
+                  <Search class="h-4 w-4 text-faint" :stroke-width="2" />
+                  <input v-model="cartCharacterSearch" type="text" placeholder="Search characters" class="session-input w-full border-0 bg-transparent p-0 text-[14px] text-ink outline-none placeholder:text-faint" />
                 </div>
-                <div class="mt-3 max-h-[12rem] overflow-y-auto rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(7,17,31,0.5)]">
+                <div class="mt-3 max-h-[12rem] overflow-y-auto rounded-[1.2rem] border border-line-soft bg-n1/50">
                   <button
                     v-for="character in cartCharacterOptions"
                     :key="character.id"
                     type="button"
                     @click="toggleCartCharacter(character.id)"
-                    class="flex w-full cursor-pointer items-center gap-3 border-b border-[rgba(126,200,227,0.06)] px-4 py-3 text-left transition-all duration-200 last:border-b-0 hover:bg-[rgba(126,200,227,0.06)]"
-                    :class="cartTargetCharacterIdSet.has(character.id) ? 'bg-[rgba(233,69,96,0.12)]' : ''"
+                    class="flex w-full cursor-pointer items-center gap-3 border-b border-line-soft px-4 py-3 text-left transition-all duration-200 last:border-b-0 hover:bg-n3"
+                    :class="cartTargetCharacterIdSet.has(character.id) ? 'bg-primary/12' : ''"
                   >
                     <span
                       class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border transition-all duration-200"
                       :class="cartTargetCharacterIdSet.has(character.id)
-                        ? 'border-[rgba(233,69,96,0.55)] bg-[rgba(233,69,96,0.92)] text-white'
-                        : 'border-[rgba(126,200,227,0.3)] bg-[rgba(7,17,31,0.7)] text-transparent'"
+                        ? 'border-primary/55 bg-primary/92 text-white'
+                        : 'border-line-strong bg-n1/70 text-transparent'"
                     >
                       <Check class="h-3.5 w-3.5" :stroke-width="3" />
                     </span>
-                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#8fd7ef]">
+                    <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-n3 text-sky">
                       <User class="h-4 w-4" :stroke-width="2" />
                     </div>
                     <div class="min-w-0 flex-1">
-                      <p class="truncate text-[14px] font-semibold text-[#f6f7fb]">{{ character.name }}</p>
-                      <p v-if="character.owner?.username" class="truncate text-[12px] text-[#d8dce7]/52">{{ character.owner.username }}</p>
+                      <p class="truncate text-[14px] font-semibold text-ink">{{ character.name }}</p>
+                      <p v-if="character.owner?.username" class="truncate text-[12px] text-ink-soft/52">{{ character.owner.username }}</p>
                     </div>
                   </button>
-                  <p v-if="!cartCharacterOptions.length" class="px-4 py-4 text-[13px] text-[#d8dce7]/50">No characters match your search.</p>
+                  <p v-if="!cartCharacterOptions.length" class="px-4 py-4 text-[13px] text-ink-soft/50">No characters match your search.</p>
                 </div>
               </div>
 
               <div class="flex flex-col justify-end gap-3">
-                <p class="text-[13px] leading-relaxed text-[#d8dce7]/58">
-                  Delivering <span class="font-semibold text-[#f6f7fb]">{{ cartCount }}</span> item(s) to
-                  <span class="font-semibold text-[#f6f7fb]">{{ cartTargetCharacterIds.length }}</span> character(s).
+                <p class="text-[13px] leading-relaxed text-ink-soft/58">
+                  Delivering <span class="font-semibold text-ink">{{ cartCount }}</span> item(s) to
+                  <span class="font-semibold text-ink">{{ cartTargetCharacterIds.length }}</span> character(s).
                 </p>
                 <div class="flex gap-3">
-                  <button type="button" @click="clearCart" :disabled="cartSubmitting || !cartCount" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-50">
+                  <button type="button" @click="clearCart" :disabled="cartSubmitting || !cartCount" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-50">
                     Clear
                   </button>
-                  <button type="button" @click="deliverCart" :disabled="cartSubmitting || !cartCount || !cartTargetCharacterIds.length" class="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0">
+                  <button type="button" @click="deliverCart" :disabled="cartSubmitting || !cartCount || !cartTargetCharacterIds.length" class="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-primary/28 bg-[linear-gradient(135deg,rgba(88,101,221,0.92),rgba(74,86,200,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0">
                     <Send class="h-4 w-4" :stroke-width="2" />
                     {{ cartSubmitting ? 'Delivering...' : 'Deliver Items' }}
                   </button>
@@ -1958,24 +1958,24 @@ function itemSizeLabel(item) {
 
     <Teleport to="body">
       <div v-if="showItemDetailModal && detailPreviewItem" class="fixed inset-0 z-[12510] p-3 sm:p-4">
-        <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeItemDetailModal"></div>
+        <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="closeItemDetailModal"></div>
 
-        <div class="relative flex h-full w-full flex-col overflow-hidden rounded-[2rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
+        <div class="relative flex h-full w-full flex-col overflow-hidden rounded-[2rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
           <button
             type="button"
             @click="closeItemDetailModal"
             :disabled="detailItemSubmitting || detailDeleteSubmitting"
-            class="absolute right-5 top-5 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+            class="absolute right-5 top-5 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Close item detail modal"
           >
             <X class="h-5 w-5" :stroke-width="2" />
           </button>
 
-          <div class="border-b border-[rgba(126,200,227,0.1)] px-5 py-5 pr-16 sm:px-6">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Compendium Entry</p>
+          <div class="border-b border-line-soft px-5 py-5 pr-16 sm:px-6">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Compendium Entry</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
-              <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">{{ itemDetailMode === 'edit' ? 'Edit Compendium Entry' : 'Compendium Entry Details' }}</h2>
-              <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
+              <h2 class="font-heading text-[28px] font-bold text-ink sm:text-[34px]">{{ itemDetailMode === 'edit' ? 'Edit Compendium Entry' : 'Compendium Entry Details' }}</h2>
+              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">
                 {{ detailPreviewItem.name }}
               </span>
             </div>
@@ -1984,7 +1984,7 @@ function itemSizeLabel(item) {
                 type="button"
                 @click="itemDetailMode === 'edit' ? cancelDetailItemEdit() : beginDetailItemEdit()"
                 :disabled="detailItemSubmitting || detailDeleteSubmitting"
-                class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
+                class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Pencil class="h-4 w-4" :stroke-width="2" />
                 {{ itemDetailMode === 'edit' ? 'Discard Changes' : 'Edit Item' }}
@@ -1994,86 +1994,86 @@ function itemSizeLabel(item) {
 
           <div class="grid min-h-0 flex-1 gap-6 overflow-hidden px-5 pb-5 pt-5 sm:px-6 lg:grid-cols-[390px_minmax(0,1fr)]">
             <aside class="min-h-0 space-y-5 overflow-y-auto pr-1">
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
-                <div class="overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
+                <div class="overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
                   <div class="flex h-64 items-center justify-center" :class="itemFrameClass(detailPreviewItem.rarity)">
                     <img v-if="resolvedItemImageUrl(detailPreviewItem)" :src="resolvedItemImageUrl(detailPreviewItem)" :alt="detailPreviewItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(detailPreviewItem))" />
-                    <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(detailPreviewItem) }}</span>
+                    <span v-else class="font-heading text-[40px] font-bold">{{ itemGlyph(detailPreviewItem) }}</span>
                   </div>
                 </div>
 
                 <div class="mt-5">
                   <div class="flex flex-wrap items-center gap-2">
-                    <h3 class="min-w-0 flex-1 break-words whitespace-normal font-[Cinzel] text-[28px] font-bold leading-tight text-[#f6f7fb] line-clamp-2 [overflow-wrap:anywhere]">{{ detailPreviewItem.name }}</h3>
+                    <h3 class="min-w-0 flex-1 break-words whitespace-normal font-heading text-[28px] font-bold leading-tight text-ink line-clamp-2 [overflow-wrap:anywhere]">{{ detailPreviewItem.name }}</h3>
                     <span class="shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(detailPreviewItem.rarity)">
                       {{ formatLabel(detailPreviewItem.rarity) }}
                     </span>
                   </div>
-                  <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-[#d8dce7]/62">{{ truncateText(detailPreviewItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'No description yet.') }}</p>
+                  <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-ink-soft/62">{{ truncateText(detailPreviewItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'No description yet.') }}</p>
                 </div>
 
                 <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Category</p>
-                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ formatLabel(detailPreviewItem.category) }}</p>
+                  <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Category</p>
+                    <p class="mt-2 text-[15px] font-semibold text-ink">{{ formatLabel(detailPreviewItem.category) }}</p>
                   </div>
-                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Size</p>
-                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ itemSizeLabel(detailPreviewItem) }}</p>
+                  <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Size</p>
+                    <p class="mt-2 text-[15px] font-semibold text-ink">{{ itemSizeLabel(detailPreviewItem) }}</p>
                   </div>
-                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3 sm:col-span-2">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Equip Slot</p>
-                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ detailPreviewItem.equip_slot ? formatLabel(detailPreviewItem.equip_slot) : 'Not equippable' }}</p>
+                  <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3 sm:col-span-2">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Equip Slot</p>
+                    <p class="mt-2 text-[15px] font-semibold text-ink">{{ detailPreviewItem.equip_slot ? formatLabel(detailPreviewItem.equip_slot) : 'Not equippable' }}</p>
                   </div>
                 </div>
 
                 <div class="mt-5 min-h-[5.75rem]">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Custom Tags</p>
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Custom Tags</p>
                   <div v-if="detailPreviewItem.tags.length" class="mt-3 flex min-h-[2.5rem] flex-wrap content-start gap-2">
-                    <span v-for="tag in detailPreviewItem.tags" :key="`detail-tag-${tag}`" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-3 py-1.5 text-[12px] text-[#ffe0e7]">
+                    <span v-for="tag in detailPreviewItem.tags" :key="`detail-tag-${tag}`" class="rounded-full border border-primary/18 bg-primary/8 px-3 py-1.5 text-[12px] text-primary-soft">
                       {{ tag }}
                     </span>
                   </div>
                   <div v-else class="mt-3 flex min-h-[2.5rem] items-center">
-                    <p class="text-[14px] text-[#d8dce7]/58">No custom tags assigned to this item.</p>
+                    <p class="text-[14px] text-ink-soft/58">No custom tags assigned to this item.</p>
                   </div>
                 </div>
               </article>
             </aside>
 
             <section class="min-h-0 space-y-5 overflow-y-auto pr-1">
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
                   <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Name</span>
+                    <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
                     <input
                       v-model="detailItemDraft.name"
                       type="text"
                       :maxlength="ITEM_NAME_LIMIT"
                       :disabled="detailFormDisabled"
-                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30 disabled:cursor-not-allowed disabled:opacity-65"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-faint disabled:cursor-not-allowed disabled:opacity-65"
                     />
-                    <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ detailItemDraft.name.length }}/{{ ITEM_NAME_LIMIT }}</p>
+                    <p class="mt-2 text-[12px] text-ink-soft/54">{{ detailItemDraft.name.length }}/{{ ITEM_NAME_LIMIT }}</p>
                   </label>
 
                   <div class="grid gap-4 sm:grid-cols-3">
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Quality</span>
-                      <select v-model="detailItemDraft.rarity" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Quality</span>
+                      <select v-model="detailItemDraft.rarity" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65">
                         <option v-for="rarity in RARITY_OPTIONS" :key="rarity" :value="rarity">{{ formatLabel(rarity) }}</option>
                       </select>
                     </label>
 
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Category</span>
-                      <select v-model="detailItemDraft.category" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Category</span>
+                      <select v-model="detailItemDraft.category" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65">
                         <option v-for="category in CATEGORY_OPTIONS" :key="category" :value="category">{{ formatLabel(category) }}</option>
                       </select>
                     </label>
 
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Equip Slot</span>
-                      <select v-model="detailItemDraft.equipSlot" :disabled="detailFormDisabled || detailItemDraft.category !== 'equipment'" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-45">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Equip Slot</span>
+                      <select v-model="detailItemDraft.equipSlot" :disabled="detailFormDisabled || detailItemDraft.category !== 'equipment'" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-45">
                         <option v-for="slot in EQUIP_SLOT_OPTIONS" :key="slot" :value="slot">{{ formatLabel(slot) }}</option>
                       </select>
                     </label>
@@ -2081,88 +2081,88 @@ function itemSizeLabel(item) {
                 </div>
 
                 <label class="mt-5 block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Description</span>
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Description</span>
                   <textarea
                     v-model="detailItemDraft.description"
                     rows="6"
                     :maxlength="ITEM_DESCRIPTION_LIMIT"
                     :disabled="detailFormDisabled"
-                    class="session-input mt-2 w-full resize-y rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30 disabled:cursor-not-allowed disabled:opacity-65"
+                    class="session-input mt-2 w-full resize-y rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-faint disabled:cursor-not-allowed disabled:opacity-65"
                   ></textarea>
-                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ detailItemDraft.description.length }}/{{ ITEM_DESCRIPTION_LIMIT }} · 1 line break max</p>
+                  <p class="mt-2 text-[12px] text-ink-soft/54">{{ detailItemDraft.description.length }}/{{ ITEM_DESCRIPTION_LIMIT }} · 1 line break max</p>
                 </label>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Image Upload</p>
-                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Select a replacement image to upload after the item details are saved. Leaving this empty keeps the current image.</p>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Image Upload</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Select a replacement image to upload after the item details are saved. Leaving this empty keeps the current image.</p>
                 </div>
 
                 <input ref="detailItemImageInputRef" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleDetailItemImageSelected" />
 
                 <div class="mt-5 flex flex-wrap gap-3">
-                  <button type="button" @click="openDetailItemImagePicker" :disabled="detailFormDisabled" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" @click="openDetailItemImagePicker" :disabled="detailFormDisabled" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">
                     {{ detailItemImageFile ? 'Replace Selected Image' : 'Select Replacement Image' }}
                   </button>
-                  <button v-if="detailItemImageFile" type="button" @click="clearDetailItemImageSelection" :disabled="detailFormDisabled" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button v-if="detailItemImageFile" type="button" @click="clearDetailItemImageSelection" :disabled="detailFormDisabled" class="cursor-pointer rounded-xl border border-danger/20 bg-danger/12 px-4 py-2.5 text-[13px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/35 disabled:cursor-not-allowed disabled:opacity-60">
                     Remove Selection
                   </button>
                 </div>
 
-                <div class="mt-4 rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Selected File</p>
-                  <p class="mt-2 text-[14px] text-[#f6f7fb]">{{ detailItemImageMetaLabel }}</p>
-                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">JPEG, PNG, or WebP up to 5MB.</p>
+                <div class="mt-4 rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Selected File</p>
+                  <p class="mt-2 text-[14px] text-ink">{{ detailItemImageMetaLabel }}</p>
+                  <p class="mt-2 text-[12px] text-ink-soft/54">JPEG, PNG, or WebP up to 5MB.</p>
                 </div>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Footprint</p>
-                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">These values still define the occupied inventory cells for this item.</p>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Footprint</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">These values still define the occupied inventory cells for this item.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <label class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Width</span>
-                    <input v-model.number="detailItemDraft.gridWidth" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
+                  <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Width</span>
+                    <input v-model.number="detailItemDraft.gridWidth" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                   </label>
-                  <label class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Height</span>
-                    <input v-model.number="detailItemDraft.gridHeight" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
+                  <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Height</span>
+                    <input v-model.number="detailItemDraft.gridHeight" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                   </label>
                 </div>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Tags</p>
-                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Game-scoped tags remain unique. Add a new one or attach an existing campaign tag.</p>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Tags</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Game-scoped tags remain unique. Add a new one or attach an existing campaign tag.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
                   <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Create New Tag</span>
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Create New Tag</span>
                     <input
                       v-model="detailNewTagDraft"
                       type="text"
                       maxlength="60"
                       :disabled="detailFormDisabled"
                       placeholder="Example: Quest Reward"
-                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30 disabled:cursor-not-allowed disabled:opacity-65"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none placeholder:text-faint disabled:cursor-not-allowed disabled:opacity-65"
                       @keydown.enter.prevent="addDetailDraftTagFromInput"
                     />
                   </label>
 
-                  <button type="button" @click="addDetailDraftTagFromInput" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center justify-center gap-2 self-end rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-3 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" @click="addDetailDraftTagFromInput" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center justify-center gap-2 self-end rounded-xl border border-primary/22 bg-primary/12 px-4 py-3 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Create Tag
                   </button>
                 </div>
 
                 <div class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Selected Tags</p>
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Selected Tags</p>
                   <div v-if="detailItemDraft.tags.length" class="mt-3 flex flex-wrap gap-2">
                     <button
                       v-for="tag in detailItemDraft.tags"
@@ -2170,17 +2170,17 @@ function itemSizeLabel(item) {
                       type="button"
                       @click="removeDetailDraftTag(tag)"
                       :disabled="detailFormDisabled"
-                      class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-3 py-1.5 text-[12px] text-[#ffe0e7] disabled:cursor-not-allowed disabled:opacity-60"
+                      class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-primary/24 bg-primary/12 px-3 py-1.5 text-[12px] text-primary-soft disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {{ tag }}
                       <X class="h-3.5 w-3.5" :stroke-width="2" />
                     </button>
                   </div>
-                  <p v-else class="mt-3 text-[14px] text-[#d8dce7]/58">No tags assigned yet.</p>
+                  <p v-else class="mt-3 text-[14px] text-ink-soft/58">No tags assigned yet.</p>
                 </div>
 
                 <div v-if="detailTagSuggestions.length" class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Existing Game Tags</p>
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Existing Game Tags</p>
                   <div class="mt-3 flex flex-wrap gap-2">
                     <button
                       v-for="tag in detailTagSuggestions"
@@ -2188,7 +2188,7 @@ function itemSizeLabel(item) {
                       type="button"
                       @click="toggleDetailDraftTag(tag)"
                       :disabled="detailFormDisabled"
-                      class="cursor-pointer rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] text-[#d8dce7]/72 transition-all duration-200 hover:border-[rgba(126,200,227,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
+                      class="cursor-pointer rounded-full border border-line bg-n3 px-3 py-1.5 text-[12px] text-ink-soft/72 transition-all duration-200 hover:border-line disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {{ tag }}
                     </button>
@@ -2196,105 +2196,105 @@ function itemSizeLabel(item) {
                 </div>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Requirements</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Edit the stat gates that must be met before the item can be used.</p>
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Requirements</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Edit the stat gates that must be met before the item can be used.</p>
                   </div>
-                  <button type="button" @click="addDetailRequirementRow" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" @click="addDetailRequirementRow" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Add Requirement
                   </button>
                 </div>
 
                 <div v-if="detailItemDraft.requiredAttributes.length" class="mt-5 space-y-3">
-                  <article v-for="(requirement, index) in detailItemDraft.requiredAttributes" :key="`detail-requirement-${index}`" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4">
+                  <article v-for="(requirement, index) in detailItemDraft.requiredAttributes" :key="`detail-requirement-${index}`" class="rounded-[1.2rem] border border-line bg-n1/62 p-4">
                     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Attribute</span>
                         <SearchableSelect v-model="requirement.attribute_name" :options="attributeOptions" :disabled="detailFormDisabled" class="mt-2" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Minimum</span>
-                        <input v-model.number="requirement.min_value" :disabled="detailFormDisabled" type="number" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Minimum</span>
+                        <input v-model.number="requirement.min_value" :disabled="detailFormDisabled" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                       </label>
                       <div class="flex items-end justify-start lg:justify-end">
-                        <button type="button" @click="removeDetailRequirementRow(index)" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                        <button type="button" @click="removeDetailRequirementRow(index)" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center rounded-xl border border-danger/20 bg-danger/12 px-3 py-2.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/35 disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
                       </div>
                     </div>
                   </article>
                 </div>
 
-                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No requirements yet.</p>
+                <p v-else class="mt-5 text-[14px] text-ink-soft/58">No requirements yet.</p>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Modifiers</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Tune the bonuses or penalties this item grants.</p>
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Modifiers</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Tune the bonuses or penalties this item grants.</p>
                   </div>
-                  <button type="button" @click="addDetailModifierRow" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" @click="addDetailModifierRow" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Add Modifier
                   </button>
                 </div>
 
                 <div v-if="detailItemDraft.attributeModifiers.length" class="mt-5 space-y-3">
-                  <article v-for="(modifier, index) in detailItemDraft.attributeModifiers" :key="`detail-modifier-${index}`" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4">
+                  <article v-for="(modifier, index) in detailItemDraft.attributeModifiers" :key="`detail-modifier-${index}`" class="rounded-[1.2rem] border border-line bg-n1/62 p-4">
                     <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Attribute</span>
                         <SearchableSelect v-model="modifier.attribute_name" :options="attributeOptions" :disabled="detailFormDisabled" class="mt-2" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Value</span>
-                        <input v-model.number="modifier.modifier_value" :disabled="detailFormDisabled" type="number" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65" />
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Value</span>
+                        <input v-model.number="modifier.modifier_value" :disabled="detailFormDisabled" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Mode</span>
-                        <select v-model="modifier.is_percentage" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-65">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Mode</span>
+                        <select v-model="modifier.is_percentage" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65">
                           <option :value="false">Flat</option>
                           <option :value="true">Percent</option>
                         </select>
                       </label>
                       <div class="flex items-end justify-start xl:justify-end">
-                        <button type="button" @click="removeDetailModifierRow(index)" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                        <button type="button" @click="removeDetailModifierRow(index)" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center rounded-xl border border-danger/20 bg-danger/12 px-3 py-2.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/35 disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
                       </div>
                     </div>
                   </article>
                 </div>
 
-                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No modifiers yet.</p>
+                <p v-else class="mt-5 text-[14px] text-ink-soft/58">No modifiers yet.</p>
               </article>
             </section>
           </div>
 
-          <div class="flex flex-col gap-4 border-t border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
+          <div class="flex flex-col gap-4 border-t border-line-soft px-5 py-4 sm:px-6">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <p class="max-w-[48rem] text-[13px] leading-relaxed text-[#d8dce7]/56">
+              <p class="max-w-[48rem] text-[13px] leading-relaxed text-ink-soft/56">
                 {{ confirmItemDeletion
                   ? 'Press delete again to confirm. The item will be removed from the compendium and from every character inventory and equipped slot.'
                   : 'Use edit mode to change fields, then save. Deletion is permanent for this game.' }}
               </p>
 
               <div class="flex flex-wrap gap-3">
-                <button type="button" @click="deleteCurrentItem" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                <button type="button" @click="deleteCurrentItem" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-danger/24 bg-danger/12 px-4 py-2.5 text-[13px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/38 disabled:cursor-not-allowed disabled:opacity-60">
                   <Trash2 class="h-4 w-4" :stroke-width="2" />
                   {{ detailDeleteSubmitting ? 'Deleting...' : (confirmItemDeletion ? 'Confirm Delete' : 'Delete Item') }}
                 </button>
-                <button v-if="confirmItemDeletion" type="button" @click="confirmItemDeletion = false" :disabled="detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                <button v-if="confirmItemDeletion" type="button" @click="confirmItemDeletion = false" :disabled="detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">
                   Cancel Delete
                 </button>
               </div>
             </div>
 
             <div class="flex flex-wrap justify-end gap-3">
-              <button type="button" @click="closeItemDetailModal" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="button" @click="closeItemDetailModal" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">
                 Close
               </button>
-              <button v-if="itemDetailMode === 'edit'" type="button" @click="saveDetailItem" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.9),rgba(194,49,82,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)] disabled:cursor-not-allowed disabled:opacity-60">
+              <button v-if="itemDetailMode === 'edit'" type="button" @click="saveDetailItem" :disabled="detailItemSubmitting || detailDeleteSubmitting" class="cursor-pointer rounded-xl border border-primary/28 bg-[linear-gradient(135deg,rgba(88,101,221,0.9),rgba(74,86,200,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60">
                 {{ detailItemSubmitting ? 'Saving...' : 'Save Changes' }}
               </button>
             </div>
@@ -2305,63 +2305,63 @@ function itemSizeLabel(item) {
 
     <Teleport to="body">
       <div v-if="showCreateItemModal" class="fixed inset-0 z-[12500] p-3 sm:p-4">
-        <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeCreateItemModal"></div>
+        <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="closeCreateItemModal"></div>
 
-        <div class="relative flex h-full w-full flex-col overflow-hidden rounded-[2rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
+        <div class="relative flex h-full w-full flex-col overflow-hidden rounded-[2rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
           <button
             type="button"
             @click="closeCreateItemModal"
             :disabled="createItemSubmitting"
-            class="absolute right-5 top-5 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+            class="absolute right-5 top-5 z-10 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32 disabled:cursor-not-allowed disabled:opacity-60"
             aria-label="Close item creation modal"
           >
             <X class="h-5 w-5" :stroke-width="2" />
           </button>
 
-          <div class="border-b border-[rgba(126,200,227,0.1)] px-5 py-5 pr-16 sm:px-6">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">GM Item Forge</p>
+          <div class="border-b border-line-soft px-5 py-5 pr-16 sm:px-6">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">GM Item Forge</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
-              <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">Create Compendium Entry</h2>
+              <h2 class="font-heading text-[28px] font-bold text-ink sm:text-[34px]">Create Compendium Entry</h2>
             </div>
-            <p class="mt-3 max-w-[52rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
+            <p class="mt-3 max-w-[52rem] text-[14px] leading-relaxed text-ink-soft/62">
               Upload an image, define the stats, and preview the final item card before it is created.
             </p>
           </div>
 
           <div class="grid min-h-0 flex-1 gap-6 overflow-hidden px-5 pb-5 pt-5 sm:px-6 lg:grid-cols-[minmax(0,1.5fr)_390px]">
             <section class="min-h-0 space-y-5 overflow-y-auto pr-1">
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
                   <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Name</span>
+                    <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
                     <input
                       v-model="itemDraft.name"
                       type="text"
                       :maxlength="ITEM_NAME_LIMIT"
                       :disabled="createItemSubmitting"
-                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-faint"
                     />
-                    <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ itemNameLength }}/{{ ITEM_NAME_LIMIT }}</p>
+                    <p class="mt-2 text-[12px] text-ink-soft/54">{{ itemNameLength }}/{{ ITEM_NAME_LIMIT }}</p>
                   </label>
 
                   <div class="grid gap-4 sm:grid-cols-3">
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Quality</span>
-                      <select v-model="itemDraft.rarity" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Quality</span>
+                      <select v-model="itemDraft.rarity" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
                         <option v-for="rarity in RARITY_OPTIONS" :key="rarity" :value="rarity">{{ formatLabel(rarity) }}</option>
                       </select>
                     </label>
 
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Category</span>
-                      <select v-model="itemDraft.category" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Category</span>
+                      <select v-model="itemDraft.category" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
                         <option v-for="category in CATEGORY_OPTIONS" :key="category" :value="category">{{ formatLabel(category) }}</option>
                       </select>
                     </label>
 
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Equip Slot</span>
-                      <select v-model="itemDraft.equipSlot" :disabled="itemDraft.category !== 'equipment'" class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none disabled:cursor-not-allowed disabled:opacity-45">
+                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Equip Slot</span>
+                      <select v-model="itemDraft.equipSlot" :disabled="itemDraft.category !== 'equipment'" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-45">
                         <option v-for="slot in EQUIP_SLOT_OPTIONS" :key="slot" :value="slot">{{ formatLabel(slot) }}</option>
                       </select>
                     </label>
@@ -2369,119 +2369,119 @@ function itemSizeLabel(item) {
                 </div>
 
                 <label class="mt-5 block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Description</span>
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Description</span>
                   <textarea
                     v-model="itemDraft.description"
                     rows="6"
                     :maxlength="ITEM_DESCRIPTION_LIMIT"
                     :disabled="createItemSubmitting"
-                    class="session-input mt-2 w-full resize-y rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30"
+                    class="session-input mt-2 w-full resize-y rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[15px] text-ink outline-none placeholder:text-faint"
                   ></textarea>
-                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">{{ itemDescriptionLength }}/{{ ITEM_DESCRIPTION_LIMIT }} · 1 line break max</p>
+                  <p class="mt-2 text-[12px] text-ink-soft/54">{{ itemDescriptionLength }}/{{ ITEM_DESCRIPTION_LIMIT }} · 1 line break max</p>
                 </label>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Image Upload</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">The item is created first, then the selected image is uploaded and linked automatically.</p>
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Image Upload</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">The item is created first, then the selected image is uploaded and linked automatically.</p>
                   </div>
                 </div>
 
                 <input ref="itemImageInputRef" type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleItemImageSelected" />
 
                 <div class="mt-5 flex flex-wrap gap-3">
-                  <button type="button" @click="openItemImagePicker" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" @click="openItemImagePicker" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">
                     {{ itemImageFile ? 'Replace Image' : 'Select Image' }}
                   </button>
-                  <button v-if="itemImageFile" type="button" @click="clearItemImageSelection" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button v-if="itemImageFile" type="button" @click="clearItemImageSelection" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-danger/20 bg-danger/12 px-4 py-2.5 text-[13px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/35 disabled:cursor-not-allowed disabled:opacity-60">
                     Remove Image
                   </button>
                 </div>
 
-                <div class="mt-4 rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Selected File</p>
-                  <p class="mt-2 text-[14px] text-[#f6f7fb]">{{ itemImageMetaLabel }}</p>
-                  <p class="mt-2 text-[12px] text-[#d8dce7]/54">JPEG, PNG, or WebP up to 5MB.</p>
+                <div class="mt-4 rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Selected File</p>
+                  <p class="mt-2 text-[14px] text-ink">{{ itemImageMetaLabel }}</p>
+                  <p class="mt-2 text-[12px] text-ink-soft/54">JPEG, PNG, or WebP up to 5MB.</p>
                 </div>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Footprint</p>
-                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">These values still control the inventory footprint, while the preview keeps the classic item card layout.</p>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Footprint</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">These values still control the inventory footprint, while the preview keeps the classic item card layout.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <label class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Width</span>
-                    <input v-model.number="itemDraft.gridWidth" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                  <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Width</span>
+                    <input v-model.number="itemDraft.gridWidth" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                   </label>
-                  <label class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Height</span>
-                    <input v-model.number="itemDraft.gridHeight" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                  <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Height</span>
+                    <input v-model.number="itemDraft.gridHeight" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                   </label>
-                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3 sm:col-span-2">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Preview Summary</span>
-                    <p class="mt-3 text-[18px] font-semibold text-[#f6f7fb]">{{ itemSizeLabel(draftPreviewItem) }}</p>
-                    <p class="mt-2 text-[13px] leading-relaxed text-[#d8dce7]/56">Adjust width and height to match the intended inventory footprint.</p>
+                  <div class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3 sm:col-span-2">
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Preview Summary</span>
+                    <p class="mt-3 text-[18px] font-semibold text-ink">{{ itemSizeLabel(draftPreviewItem) }}</p>
+                    <p class="mt-2 text-[13px] leading-relaxed text-ink-soft/56">Adjust width and height to match the intended inventory footprint.</p>
                   </div>
                 </div>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Tags</p>
-                  <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Create a new game tag or attach existing ones before the item is saved.</p>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Tags</p>
+                  <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Create a new game tag or attach existing ones before the item is saved.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
                   <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Create New Tag</span>
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Create New Tag</span>
                     <input
                       v-model="newTagDraft"
                       type="text"
                       maxlength="60"
                       :disabled="createItemSubmitting"
                       placeholder="Example: Boss Loot"
-                      class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none placeholder:text-[#7ec8e3]/30"
+                      class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none placeholder:text-faint"
                       @keydown.enter.prevent="addDraftTagFromInput"
                     />
                   </label>
 
-                  <button type="button" @click="addDraftTagFromInput" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center justify-center gap-2 self-end rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-3 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" @click="addDraftTagFromInput" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center justify-center gap-2 self-end rounded-xl border border-primary/22 bg-primary/12 px-4 py-3 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Create Tag
                   </button>
                 </div>
 
                 <div class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Selected Tags</p>
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Selected Tags</p>
                   <div v-if="itemDraft.tags.length" class="mt-3 flex flex-wrap gap-2">
                     <button
                       v-for="tag in itemDraft.tags"
                       :key="`selected-${tag}`"
                       type="button"
                       @click="removeDraftTag(tag)"
-                      class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-3 py-1.5 text-[12px] text-[#ffe0e7]"
+                      class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-primary/24 bg-primary/12 px-3 py-1.5 text-[12px] text-primary-soft"
                     >
                       {{ tag }}
                       <X class="h-3.5 w-3.5" :stroke-width="2" />
                     </button>
                   </div>
-                  <p v-else class="mt-3 text-[14px] text-[#d8dce7]/58">No tags assigned yet.</p>
+                  <p v-else class="mt-3 text-[14px] text-ink-soft/58">No tags assigned yet.</p>
                 </div>
 
                 <div v-if="selectedTagSuggestions.length" class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Existing Game Tags</p>
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Existing Game Tags</p>
                   <div class="mt-3 flex flex-wrap gap-2">
                     <button
                       v-for="tag in selectedTagSuggestions"
                       :key="`suggestion-${tag}`"
                       type="button"
                       @click="toggleDraftTag(tag)"
-                      class="cursor-pointer rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] text-[#d8dce7]/72 transition-all duration-200 hover:border-[rgba(126,200,227,0.24)]"
+                      class="cursor-pointer rounded-full border border-line bg-n3 px-3 py-1.5 text-[12px] text-ink-soft/72 transition-all duration-200 hover:border-line"
                     >
                       {{ tag }}
                     </button>
@@ -2489,136 +2489,136 @@ function itemSizeLabel(item) {
                 </div>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Requirements</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Add explicit stat gates row by row.</p>
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Requirements</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Add explicit stat gates row by row.</p>
                   </div>
-                  <button type="button" @click="addRequirementRow" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" @click="addRequirementRow" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Add Requirement
                   </button>
                 </div>
 
                 <div v-if="itemDraft.requiredAttributes.length" class="mt-5 space-y-3">
-                  <article v-for="(requirement, index) in itemDraft.requiredAttributes" :key="`requirement-${index}`" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4">
+                  <article v-for="(requirement, index) in itemDraft.requiredAttributes" :key="`requirement-${index}`" class="rounded-[1.2rem] border border-line bg-n1/62 p-4">
                     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Attribute</span>
                         <SearchableSelect v-model="requirement.attribute_name" :options="attributeOptions" class="mt-2" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Minimum</span>
-                        <input v-model.number="requirement.min_value" type="number" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Minimum</span>
+                        <input v-model.number="requirement.min_value" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                       <div class="flex items-end justify-start lg:justify-end">
-                        <button type="button" @click="removeRequirementRow(index)" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                        <button type="button" @click="removeRequirementRow(index)" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center rounded-xl border border-danger/20 bg-danger/12 px-3 py-2.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/35 disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
                       </div>
                     </div>
                   </article>
                 </div>
 
-                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No requirements yet.</p>
+                <p v-else class="mt-5 text-[14px] text-ink-soft/58">No requirements yet.</p>
               </article>
 
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Modifiers</p>
-                    <p class="mt-2 text-[14px] leading-relaxed text-[#d8dce7]/58">Configure bonuses and penalties row by row.</p>
+                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Modifiers</p>
+                    <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Configure bonuses and penalties row by row.</p>
                   </div>
-                  <button type="button" @click="addModifierRow" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.38)] disabled:cursor-not-allowed disabled:opacity-60">
+                  <button type="button" @click="addModifierRow" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
                     <Plus class="h-4 w-4" :stroke-width="2" />
                     Add Modifier
                   </button>
                 </div>
 
                 <div v-if="itemDraft.attributeModifiers.length" class="mt-5 space-y-3">
-                  <article v-for="(modifier, index) in itemDraft.attributeModifiers" :key="`modifier-${index}`" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4">
+                  <article v-for="(modifier, index) in itemDraft.attributeModifiers" :key="`modifier-${index}`" class="rounded-[1.2rem] border border-line bg-n1/62 p-4">
                     <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Attribute</span>
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Attribute</span>
                         <SearchableSelect v-model="modifier.attribute_name" :options="attributeOptions" class="mt-2" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Value</span>
-                        <input v-model.number="modifier.modifier_value" type="number" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Value</span>
+                        <input v-model.number="modifier.modifier_value" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Mode</span>
-                        <select v-model="modifier.is_percentage" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none">
+                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Mode</span>
+                        <select v-model="modifier.is_percentage" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none">
                           <option :value="false">Flat</option>
                           <option :value="true">Percent</option>
                         </select>
                       </label>
                       <div class="flex items-end justify-start xl:justify-end">
-                        <button type="button" @click="removeModifierRow(index)" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center rounded-xl border border-[rgba(248,113,113,0.2)] bg-[rgba(248,113,113,0.12)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.35)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                        <button type="button" @click="removeModifierRow(index)" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center rounded-xl border border-danger/20 bg-danger/12 px-3 py-2.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/35 disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
                       </div>
                     </div>
                   </article>
                 </div>
 
-                <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No modifiers yet.</p>
+                <p v-else class="mt-5 text-[14px] text-ink-soft/58">No modifiers yet.</p>
               </article>
             </section>
 
             <aside class="min-h-0 overflow-y-auto">
-              <article class="rounded-[1.6rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Live Preview</p>
-                <div class="mt-5 overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
+              <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
+                <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Live Preview</p>
+                <div class="mt-5 overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
                   <div class="flex h-64 items-center justify-center" :class="itemFrameClass(draftPreviewItem.rarity)">
                     <img v-if="resolvedItemImageUrl(draftPreviewItem)" :src="resolvedItemImageUrl(draftPreviewItem)" :alt="draftPreviewItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(draftPreviewItem))" />
-                    <span v-else class="font-[Cinzel] text-[40px] font-bold">{{ itemGlyph(draftPreviewItem) }}</span>
+                    <span v-else class="font-heading text-[40px] font-bold">{{ itemGlyph(draftPreviewItem) }}</span>
                   </div>
                 </div>
 
                 <div class="mt-5">
                   <div class="flex flex-wrap items-center gap-2">
-                    <h3 class="min-w-0 flex-1 break-words whitespace-normal font-[Cinzel] text-[28px] font-bold leading-tight text-[#f6f7fb] line-clamp-2 [overflow-wrap:anywhere]">{{ draftPreviewItem.name }}</h3>
+                    <h3 class="min-w-0 flex-1 break-words whitespace-normal font-heading text-[28px] font-bold leading-tight text-ink line-clamp-2 [overflow-wrap:anywhere]">{{ draftPreviewItem.name }}</h3>
                     <span class="shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]" :class="rarityBadgeClass(draftPreviewItem.rarity)">
                       {{ formatLabel(draftPreviewItem.rarity) }}
                     </span>
                   </div>
-                  <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-[#d8dce7]/62">{{ truncateText(draftPreviewItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'The description preview appears here as you type.') }}</p>
+                  <p class="mt-3 break-words whitespace-pre-line text-[14px] leading-relaxed text-ink-soft/62">{{ truncateText(draftPreviewItem.description, ITEM_DETAIL_DESCRIPTION_PREVIEW_LIMIT, 'The description preview appears here as you type.') }}</p>
                 </div>
 
                 <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Category</p>
-                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ formatLabel(draftPreviewItem.category) }}</p>
+                  <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Category</p>
+                    <p class="mt-2 text-[15px] font-semibold text-ink">{{ formatLabel(draftPreviewItem.category) }}</p>
                   </div>
-                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Grid Size</p>
-                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ itemSizeLabel(draftPreviewItem) }}</p>
+                  <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Size</p>
+                    <p class="mt-2 text-[15px] font-semibold text-ink">{{ itemSizeLabel(draftPreviewItem) }}</p>
                   </div>
-                  <div class="rounded-[1.2rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3 sm:col-span-2">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Equip Slot</p>
-                    <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ draftPreviewItem.equip_slot ? formatLabel(draftPreviewItem.equip_slot) : 'Not equippable' }}</p>
+                  <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3 sm:col-span-2">
+                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Equip Slot</p>
+                    <p class="mt-2 text-[15px] font-semibold text-ink">{{ draftPreviewItem.equip_slot ? formatLabel(draftPreviewItem.equip_slot) : 'Not equippable' }}</p>
                   </div>
                 </div>
 
                 <div class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Custom Tags</p>
+                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Custom Tags</p>
                   <div v-if="draftPreviewItem.tags.length" class="mt-3 flex flex-wrap gap-2">
-                    <span v-for="tag in draftPreviewItem.tags" :key="`preview-tag-${tag}`" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-3 py-1.5 text-[12px] text-[#ffe0e7]">
+                    <span v-for="tag in draftPreviewItem.tags" :key="`preview-tag-${tag}`" class="rounded-full border border-primary/18 bg-primary/8 px-3 py-1.5 text-[12px] text-primary-soft">
                       {{ tag }}
                     </span>
                   </div>
-                  <p v-else class="mt-3 text-[14px] text-[#d8dce7]/58">No tags selected yet.</p>
+                  <p v-else class="mt-3 text-[14px] text-ink-soft/58">No tags selected yet.</p>
                 </div>
               </article>
             </aside>
           </div>
 
-          <div class="flex flex-col gap-4 border-t border-[rgba(126,200,227,0.1)] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <p class="max-w-[42rem] text-[13px] leading-relaxed text-[#d8dce7]/56">The selected image uploads immediately after the item record is created. If the upload fails, the item still exists and can be retried later.</p>
+          <div class="flex flex-col gap-4 border-t border-line-soft px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <p class="max-w-[42rem] text-[13px] leading-relaxed text-ink-soft/56">The selected image uploads immediately after the item record is created. If the upload fails, the item still exists and can be retried later.</p>
 
             <div class="flex flex-wrap gap-3">
-              <button type="button" @click="closeCreateItemModal" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="button" @click="closeCreateItemModal" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">
                 Cancel
               </button>
-              <button type="button" @click="createItem" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.9),rgba(194,49,82,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)] disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="button" @click="createItem" :disabled="createItemSubmitting" class="cursor-pointer rounded-xl border border-primary/28 bg-[linear-gradient(135deg,rgba(88,101,221,0.9),rgba(74,86,200,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60">
                 {{ createItemSubmitting ? 'Creating...' : 'Create Item' }}
               </button>
             </div>

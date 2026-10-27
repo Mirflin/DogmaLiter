@@ -181,11 +181,11 @@ onUnmounted(() => clearInterval(countdownTimer))
 <template>
   <HomeLayout>
     <div class="max-w-[640px] mx-auto px-6 py-8">
-      <h1 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide mb-2">Create Game</h1>
-      <p class="text-[#7ec8e3]/40 text-[14px] mb-8">Set up a new game session for your players</p>
-      <div v-if="limitReached()" class="mb-6 p-4 bg-[rgba(233,69,96,0.1)] border border-[rgba(233,69,96,0.3)] rounded-lg">
-        <p class="text-[#e94560] text-[14px] font-medium">You've reached the game limit for your plan.</p>
-        <router-link to="/plans" class="text-[#e94560] text-[13px] underline hover:text-[#ff6b81]">Upgrade your plan</router-link>
+      <h1 class="font-heading text-[28px] font-bold text-ink tracking-wide mb-2">Create Game</h1>
+      <p class="text-faint text-[14px] mb-8">Set up a new game session for your players</p>
+      <div v-if="limitReached()" class="mb-6 p-4 bg-primary/10 border border-primary/30 rounded-lg">
+        <p class="text-primary-ink text-[14px] font-medium">You've reached the game limit for your plan.</p>
+        <router-link to="/plans" class="text-primary-ink text-[13px] underline hover:text-danger">Upgrade your plan</router-link>
       </div>
       <div v-if="successData" class="text-center py-12">
         <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-[rgba(76,175,80,0.15)] flex items-center justify-center">
@@ -193,25 +193,25 @@ onUnmounted(() => clearInterval(countdownTimer))
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 class="text-[#e8e8f0] text-[22px] font-bold mb-2">Game Created!</h2>
-        <p class="text-[#7ec8e3]/50 text-[14px] mb-6">"{{ successData.title }}" is ready</p>
+        <h2 class="text-ink text-[22px] font-bold mb-2">Game Created!</h2>
+        <p class="text-dim text-[14px] mb-6">"{{ successData.title }}" is ready</p>
 
-        <div class="mb-8 p-5 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-xl inline-block">
-          <p class="text-[#7ec8e3]/40 text-[12px] mb-2 uppercase tracking-wider">Invite Code</p>
-          <p :class="['text-[28px] font-mono font-bold tracking-[0.3em]', codeExpired ? 'text-[#7ec8e3]/20 line-through' : 'text-[#e8e8f0]']">{{ successData.invite_code }}</p>
+        <div class="mb-8 p-5 bg-n2/60 border border-line rounded-xl inline-block">
+          <p class="text-faint text-[12px] mb-2 uppercase tracking-wider">Invite Code</p>
+          <p :class="['text-[28px] font-mono font-bold tracking-[0.3em]', codeExpired ? 'text-faint line-through' : 'text-ink']">{{ successData.invite_code }}</p>
 
           <div v-if="codeExpired" class="mt-3">
-            <p class="text-[#e94560] text-[12px] mb-2">Code expired</p>
-            <p class="text-[#7ec8e3]/40 text-[11px]">You can regenerate it from game settings</p>
+            <p class="text-primary-ink text-[12px] mb-2">Code expired</p>
+            <p class="text-faint text-[11px]">You can regenerate it from game settings</p>
           </div>
 
           <div v-else class="mt-3">
-            <p class="text-[#7ec8e3]/40 text-[11px] mb-2">
-              Expires in <span :class="countdown <= 60 ? 'text-[#e94560]' : 'text-[#e8e8f0]'" class="font-mono font-semibold">{{ countdownDisplay }}</span>
+            <p class="text-faint text-[11px] mb-2">
+              Expires in <span :class="countdown <= 60 ? 'text-primary-ink' : 'text-ink'" class="font-mono font-semibold">{{ countdownDisplay }}</span>
             </p>
             <button
               @click="copyInviteLink"
-              class="px-4 py-1.5 text-[12px] text-[#7ec8e3]/60 border border-[rgba(126,200,227,0.15)] rounded hover:border-[#e94560] hover:text-[#e94560] transition-all cursor-pointer bg-transparent"
+              class="px-4 py-1.5 text-[12px] text-dim border border-line rounded hover:border-primary hover:text-primary-ink transition-all cursor-pointer bg-transparent"
             >
               Copy Invite Link
             </button>
@@ -221,7 +221,7 @@ onUnmounted(() => clearInterval(countdownTimer))
         <div>
           <button
             @click="goToGames"
-            class="px-8 py-3 bg-gradient-to-br from-[#e94560] to-[#c23152] text-white text-[14px] font-semibold rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300 cursor-pointer border-none"
+            class="px-8 py-3 bg-primary hover:bg-primary-hover text-white text-[14px] font-semibold rounded-lg transition-all duration-300 cursor-pointer border-none"
           >
             Go to My Games
           </button>
@@ -229,119 +229,119 @@ onUnmounted(() => clearInterval(countdownTimer))
       </div>
       <div v-else class="space-y-6">
         <div>
-          <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Game Title *</label>
+          <label class="block text-dim text-[13px] font-medium mb-2">Game Title *</label>
           <input
             v-model="title"
             type="text"
             maxlength="200"
             placeholder="Enter game title..."
-            class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] placeholder-[#7ec8e3]/30 outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors"
+            class="w-full px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] placeholder-faint outline-none focus:border-primary/40 transition-colors"
           />
         </div>
         <div>
-          <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Description</label>
+          <label class="block text-dim text-[13px] font-medium mb-2">Description</label>
           <textarea
             v-model="description"
             rows="3"
             placeholder="Describe your game world, setting, or campaign..."
-            class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] placeholder-[#7ec8e3]/30 outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors resize-y min-h-[80px]"
+            class="w-full px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] placeholder-faint outline-none focus:border-primary/40 transition-colors resize-y min-h-[80px]"
           ></textarea>
         </div>
         <div>
-          <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Cover Image</label>
+          <label class="block text-dim text-[13px] font-medium mb-2">Cover Image</label>
           <div v-if="coverPreview" class="relative mb-3">
-            <img :src="coverPreview" alt="Cover preview" class="w-full h-48 object-cover rounded-lg border border-[rgba(126,200,227,0.15)]" />
+            <img :src="coverPreview" alt="Cover preview" class="w-full h-48 object-cover rounded-lg border border-line" />
             <button
               @click="removeCover"
-              class="absolute top-2 right-2 w-8 h-8 bg-[rgba(0,0,0,0.7)] border border-[rgba(233,69,96,0.4)] rounded-full flex items-center justify-center cursor-pointer hover:bg-[rgba(233,69,96,0.3)] transition-colors"
+              class="absolute top-2 right-2 w-8 h-8 bg-n0/70 border border-primary/40 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/30 transition-colors"
             >
-              <svg class="w-4 h-4 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg class="w-4 h-4 text-primary-ink" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
-          <label v-else class="flex flex-col items-center justify-center w-full h-36 bg-[rgba(15,15,35,0.6)] border-2 border-dashed border-[rgba(126,200,227,0.15)] rounded-lg cursor-pointer hover:border-[rgba(233,69,96,0.3)] transition-colors">
-            <svg class="w-8 h-8 text-[#7ec8e3]/30 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
-            <span class="text-[#7ec8e3]/30 text-[13px]">Click to upload cover image</span>
-            <span class="text-[#7ec8e3]/20 text-[11px] mt-1">JPEG, PNG or WebP, max 5MB</span>
+          <label v-else class="flex flex-col items-center justify-center w-full h-36 bg-n2/60 border-2 border-dashed border-line rounded-lg cursor-pointer hover:border-primary/30 transition-colors">
+            <svg class="w-8 h-8 text-faint mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+            <span class="text-faint text-[13px]">Click to upload cover image</span>
+            <span class="text-faint text-[11px] mt-1">JPEG, PNG or WebP, max 5MB</span>
             <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden" @change="handleCoverSelect" />
           </label>
         </div>
         <div>
-          <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">
+          <label class="block text-dim text-[13px] font-medium mb-2">
             Max Players
-            <span class="text-[#7ec8e3]/30 ml-1">(including GM, {{ auth.user?.max_players_per_game === -1 ? 'unlimited on your plan' : `max ${auth.user?.max_players_per_game || '?'} on your plan` }})</span>
+            <span class="text-faint ml-1">(including GM, {{ auth.user?.max_players_per_game === -1 ? 'unlimited on your plan' : `max ${auth.user?.max_players_per_game || '?'} on your plan` }})</span>
           </label>
           <input
             v-model.number="maxPlayers"
             type="number"
             min="2"
             :max="auth.user?.max_players_per_game === -1 ? undefined : (auth.user?.max_players_per_game || 20)"
-            class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors"
+            class="w-full px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] outline-none focus:border-primary/40 transition-colors"
           />
         </div>
         <div>
-          <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">
+          <label class="block text-dim text-[13px] font-medium mb-2">
             Character slots per player
-            <span class="text-[#7ec8e3]/30 ml-1">(each player can own this many characters)</span>
+            <span class="text-faint ml-1">(each player can own this many characters)</span>
           </label>
           <input
             v-model.number="characterSlotsPerPlayer"
             type="number"
             min="1"
             max="50"
-            class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[14px] outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors"
+            class="w-full px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[14px] outline-none focus:border-primary/40 transition-colors"
           />
         </div>
-        <div class="space-y-4 p-5 bg-[rgba(15,15,35,0.4)] border border-[rgba(126,200,227,0.08)] rounded-xl">
-          <p class="text-[#7ec8e3]/60 text-[13px] font-medium mb-1">Game Options</p>
+        <div class="space-y-4 p-5 bg-n2/40 border border-line-soft rounded-xl">
+          <p class="text-dim text-[13px] font-medium mb-1">Game Options</p>
 
           <div>
-            <p class="text-[#e8e8f0]/80 text-[14px] mb-1">Base Attributes</p>
-            <p class="text-[#7ec8e3]/30 text-[12px] mb-3">Turn off any attribute your system doesn't use.</p>
+            <p class="text-ink/80 text-[14px] mb-1">Base Attributes</p>
+            <p class="text-faint text-[12px] mb-3">Turn off any attribute your system doesn't use.</p>
             <div class="space-y-2.5">
               <label v-for="attr in STANDARD_ATTR_DEFS" :key="attr.key" class="flex items-center justify-between cursor-pointer group">
-                <span class="text-[#e8e8f0]/75 text-[13px] group-hover:text-[#e8e8f0] transition-colors">{{ attr.label }}</span>
+                <span class="text-ink/75 text-[13px] group-hover:text-ink transition-colors">{{ attr.label }}</span>
                 <div class="relative">
                   <input type="checkbox" v-model="standardAttrs[attr.key]" class="sr-only peer" />
-                  <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
-                  <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+                  <div class="w-10 h-5 bg-n4 rounded-full peer-checked:bg-primary transition-colors"></div>
+                  <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-ink rounded-full transition-transform peer-checked:translate-x-5"></div>
                 </div>
               </label>
             </div>
           </div>
 
           <label class="flex items-center justify-between cursor-pointer group">
-            <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">In-Game Chat</span>
+            <span class="text-ink/80 text-[14px] group-hover:text-ink transition-colors">In-Game Chat</span>
             <div class="relative">
               <input type="checkbox" v-model="enableChat" class="sr-only peer" />
-              <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
-              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+              <div class="w-10 h-5 bg-n4 rounded-full peer-checked:bg-primary transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-ink rounded-full transition-transform peer-checked:translate-x-5"></div>
             </div>
           </label>
 
           <label class="flex items-center justify-between cursor-pointer group">
-            <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">Health (players track their HP)</span>
+            <span class="text-ink/80 text-[14px] group-hover:text-ink transition-colors">Health (players track their HP)</span>
             <div class="relative">
               <input type="checkbox" v-model="enableHealth" class="sr-only peer" />
-              <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
-              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+              <div class="w-10 h-5 bg-n4 rounded-full peer-checked:bg-primary transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-ink rounded-full transition-transform peer-checked:translate-x-5"></div>
             </div>
           </label>
 
           <label class="flex items-center justify-between cursor-pointer group">
-            <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">Armor Class (GM only)</span>
+            <span class="text-ink/80 text-[14px] group-hover:text-ink transition-colors">Armor Class (GM only)</span>
             <div class="relative">
               <input type="checkbox" v-model="enableArmorClass" class="sr-only peer" />
-              <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
-              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+              <div class="w-10 h-5 bg-n4 rounded-full peer-checked:bg-primary transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-ink rounded-full transition-transform peer-checked:translate-x-5"></div>
             </div>
           </label>
           <!--
           <label class="flex items-center justify-between cursor-pointer group">
-            <span class="text-[#e8e8f0]/80 text-[14px] group-hover:text-[#e8e8f0] transition-colors">Item Trading</span>
+            <span class="text-ink/80 text-[14px] group-hover:text-ink transition-colors">Item Trading</span>
             <div class="relative">
               <input type="checkbox" v-model="enableItemTrading" class="sr-only peer" />
-              <div class="w-10 h-5 bg-[rgba(126,200,227,0.15)] rounded-full peer-checked:bg-[#e94560] transition-colors"></div>
-              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-[#e8e8f0] rounded-full transition-transform peer-checked:translate-x-5"></div>
+              <div class="w-10 h-5 bg-n4 rounded-full peer-checked:bg-primary transition-colors"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-ink rounded-full transition-transform peer-checked:translate-x-5"></div>
             </div>
           </label>
         -->
@@ -350,13 +350,13 @@ onUnmounted(() => clearInterval(countdownTimer))
           <button
             @click="handleCreate"
             :disabled="loading || limitReached()"
-            class="flex-1 py-3 bg-gradient-to-br from-[#e94560] to-[#c23152] text-white text-[14px] font-semibold rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+            class="flex-1 py-3 bg-primary hover:bg-primary-hover text-white text-[14px] font-semibold rounded-lg transition-all duration-300 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
           >
             {{ loading ? 'Creating...' : 'Create Game' }}
           </button>
           <router-link
             to="/games"
-            class="px-6 py-3 text-[#e8e8f0]/60 text-[14px] font-medium no-underline border border-[rgba(126,200,227,0.15)] rounded-lg hover:border-[rgba(126,200,227,0.3)] hover:text-[#e8e8f0] transition-all duration-300 flex items-center"
+            class="px-6 py-3 text-ink/60 text-[14px] font-medium no-underline border border-line rounded-lg hover:border-line-strong hover:text-ink transition-all duration-300 flex items-center"
           >
             Cancel
           </router-link>

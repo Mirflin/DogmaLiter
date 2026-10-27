@@ -75,47 +75,47 @@ function close() {
   <Teleport to="body">
     <div v-if="visible" class="fixed inset-0 z-[10000] flex items-center justify-center" @click.self="close">
       <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="close"></div>
-      <div class="relative w-full max-w-[480px] mx-4 bg-[#0f0f23] border border-[rgba(126,200,227,0.15)] rounded-2xl shadow-[0_16px_64px_rgba(0,0,0,0.6)] p-8">
-        <button @click="close" class="absolute top-4 right-4 text-[#7ec8e3]/40 hover:text-[#e8e8f0] bg-transparent border-none cursor-pointer text-xl leading-none">&times;</button>
+      <div class="relative w-full max-w-[480px] mx-4 bg-n2 border border-line rounded-2xl shadow-[0_16px_64px_rgba(0,0,0,0.6)] p-8">
+        <button @click="close" class="absolute top-4 right-4 text-faint hover:text-ink bg-transparent border-none cursor-pointer text-xl leading-none">&times;</button>
 
-        <h2 class="font-[Cinzel] text-[24px] font-bold text-[#e8e8f0] tracking-wide mb-2">Join a Game</h2>
-        <p class="text-[#7ec8e3]/40 text-[14px] mb-6">Enter an invite code from your GM</p>
+        <h2 class="font-heading text-[24px] font-bold text-ink tracking-wide mb-2">Join a Game</h2>
+        <p class="text-faint text-[14px] mb-6">Enter an invite code from your GM</p>
         <div class="space-y-5">
           <div>
-            <label class="block text-[#7ec8e3]/60 text-[13px] font-medium mb-2">Invite Code</label>
+            <label class="block text-dim text-[13px] font-medium mb-2">Invite Code</label>
             <input
               v-model="code"
               type="text"
               placeholder="e.g. A1B2C3D4E5"
               maxlength="20"
-              class="w-full px-4 py-3 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.15)] rounded-lg text-[#e8e8f0] text-[16px] font-mono tracking-[0.15em] text-center placeholder-[#7ec8e3]/30 outline-none focus:border-[rgba(233,69,96,0.4)] transition-colors uppercase"
+              class="w-full px-4 py-3 bg-n2/60 border border-line rounded-lg text-ink text-[16px] font-mono tracking-[0.15em] text-center placeholder-faint outline-none focus:border-primary/40 transition-colors uppercase"
               @input="code = code.toUpperCase()"
               @blur="checkInvite"
               @keyup.enter="handleJoin"
             />
           </div>
 
-          <div v-if="checking" class="p-4 bg-[rgba(15,15,35,0.4)] border border-[rgba(126,200,227,0.08)] rounded-xl">
-            <p class="text-[#7ec8e3]/40 text-[13px]">Checking code...</p>
+          <div v-if="checking" class="p-4 bg-n2/40 border border-line-soft rounded-xl">
+            <p class="text-faint text-[13px]">Checking code...</p>
           </div>
 
-          <div v-else-if="gameInfo" class="p-4 bg-[rgba(15,15,35,0.4)] border border-[rgba(126,200,227,0.15)] rounded-xl">
-            <p class="text-[#7ec8e3]/40 text-[11px] uppercase tracking-wider mb-1">Game Found</p>
-            <p class="text-[#e8e8f0] text-[16px] font-bold">{{ gameInfo.title }}</p>
-            <p v-if="gameInfo.member_count" class="text-[#7ec8e3]/40 text-[13px] mt-1">{{ gameInfo.member_count }} members</p>
+          <div v-else-if="gameInfo" class="p-4 bg-n2/40 border border-line rounded-xl">
+            <p class="text-faint text-[11px] uppercase tracking-wider mb-1">Game Found</p>
+            <p class="text-ink text-[16px] font-bold">{{ gameInfo.title }}</p>
+            <p v-if="gameInfo.member_count" class="text-faint text-[13px] mt-1">{{ gameInfo.member_count }} members</p>
           </div>
 
           <div class="flex gap-3 pt-1">
             <button
               @click="handleJoin"
               :disabled="loading || !code.trim()"
-              class="flex-1 py-3 bg-gradient-to-br from-[#e94560] to-[#c23152] text-white text-[14px] font-semibold rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+              class="flex-1 py-3 bg-primary hover:bg-primary-hover text-white text-[14px] font-semibold rounded-lg transition-all duration-300 cursor-pointer border-none disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               {{ loading ? 'Joining...' : 'Join Game' }}
             </button>
             <button
               @click="close"
-              class="px-5 py-3 text-[#e8e8f0]/60 text-[14px] font-medium border border-[rgba(126,200,227,0.15)] rounded-lg hover:border-[rgba(126,200,227,0.3)] hover:text-[#e8e8f0] transition-all duration-300 bg-transparent cursor-pointer"
+              class="px-5 py-3 text-ink/60 text-[14px] font-medium border border-line rounded-lg hover:border-line-strong hover:text-ink transition-all duration-300 bg-transparent cursor-pointer"
             >
               Cancel
             </button>

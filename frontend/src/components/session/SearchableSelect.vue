@@ -137,7 +137,7 @@ onBeforeUnmount(() => {
       @keydown.up.prevent="moveHighlight(-1)"
       @keydown.enter.prevent="selectHighlighted"
       @keydown.esc.prevent="closeDropdown"
-      class="session-input w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] pl-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none transition-colors focus:border-[rgba(233,69,96,0.4)] disabled:cursor-not-allowed disabled:opacity-65"
+      class="session-input w-full rounded-xl border border-line bg-n3 pl-3 py-2.5 text-[14px] text-ink outline-none transition-colors focus:border-primary/40 disabled:cursor-not-allowed disabled:opacity-65"
       :class="clearable && modelValue ? 'pr-9' : 'pr-3'"
     />
 
@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
       type="button"
       aria-label="Clear selection"
       @mousedown.prevent="clear"
-      class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-[16px] leading-none text-[#7ec8e3]/55 transition-colors hover:bg-[rgba(233,69,96,0.16)] hover:text-[#fca5a5]"
+      class="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded-md text-[16px] leading-none text-dim transition-colors hover:bg-primary/16 hover:text-danger"
     >
       ×
     </button>
@@ -156,7 +156,7 @@ onBeforeUnmount(() => {
         v-if="open"
         ref="dropdownRef"
         :style="dropdownStyle"
-        class="z-[13000] max-h-56 overflow-y-auto rounded-xl border border-[rgba(126,200,227,0.2)] bg-[#0b1730] shadow-[0_18px_48px_rgba(0,0,0,0.55)]"
+        class="z-[13000] max-h-56 overflow-y-auto rounded-xl border border-line bg-[#0b1730] shadow-[0_18px_48px_rgba(0,0,0,0.55)]"
       >
         <button
           v-for="(option, index) in filteredOptions"
@@ -166,13 +166,13 @@ onBeforeUnmount(() => {
           @mouseenter="highlightedIndex = index"
           class="block w-full cursor-pointer px-3 py-2 text-left text-[14px] transition-colors"
           :class="[
-            index === highlightedIndex ? 'bg-[rgba(126,200,227,0.14)]' : 'bg-transparent',
-            option.value === modelValue ? 'text-[#e94560] font-semibold' : 'text-[#e8e8f0]',
+            index === highlightedIndex ? 'bg-n4' : 'bg-transparent',
+            option.value === modelValue ? 'text-primary-ink font-semibold' : 'text-ink',
           ]"
         >
           {{ option.label }}
         </button>
-        <div v-if="!filteredOptions.length" class="px-3 py-2 text-[13px] text-[#7ec8e3]/45">No matches</div>
+        <div v-if="!filteredOptions.length" class="px-3 py-2 text-[13px] text-faint">No matches</div>
       </div>
     </Teleport>
   </div>

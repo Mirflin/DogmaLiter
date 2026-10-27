@@ -44,18 +44,18 @@ function parseSections(content) {
     <div class="max-w-[900px] mx-auto px-6 py-8">
       <button
         @click="router.push('/news')"
-        class="flex items-center gap-2 text-[#7ec8e3]/50 text-[13px] mb-6 bg-transparent border-none cursor-pointer hover:text-[#7ec8e3] transition-colors"
+        class="flex items-center gap-2 text-dim text-[13px] mb-6 bg-transparent border-none cursor-pointer hover:text-sky transition-colors"
       >
         <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
         Back to News
       </button>
 
       <div v-if="loading" class="text-center py-16">
-        <div class="w-8 h-8 border-2 border-[#e94560] border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
       </div>
 
       <div v-else-if="error" class="text-center py-16">
-        <p class="text-[#e94560] text-[14px]">{{ error }}</p>
+        <p class="text-primary-ink text-[14px]">{{ error }}</p>
       </div>
 
       <article v-else-if="post">
@@ -64,16 +64,16 @@ function parseSections(content) {
         </div>
 
         <div class="flex items-center gap-3 mb-4">
-          <span class="text-[#7ec8e3]/40 text-[12px]">{{ formatDate(post.published_at) }}</span>
-          <span v-if="post.author" class="text-[#7ec8e3]/30 text-[12px]">by {{ post.author.username }}</span>
+          <span class="text-faint text-[12px]">{{ formatDate(post.published_at) }}</span>
+          <span v-if="post.author" class="text-faint text-[12px]">by {{ post.author.username }}</span>
         </div>
 
-        <h1 class="font-[Cinzel] text-[28px] md:text-[36px] font-bold text-[#e8e8f0] tracking-wide mb-8 leading-tight">{{ post.title }}</h1>
+        <h1 class="font-heading text-[28px] md:text-[36px] font-bold text-ink tracking-wide mb-8 leading-tight">{{ post.title }}</h1>
 
         <div class="space-y-8">
           <div v-for="(section, i) in parseSections(post.content)" :key="i">
-            <h2 v-if="section.subtitle" class="font-[Cinzel] text-[20px] md:text-[24px] font-semibold text-[#e8e8f0]/90 tracking-wide mb-3">{{ section.subtitle }}</h2>
-            <p class="text-[#e8e8f0]/70 text-[15px] leading-relaxed whitespace-pre-line">{{ section.text }}</p>
+            <h2 v-if="section.subtitle" class="font-heading text-[20px] md:text-[24px] font-semibold text-ink/90 tracking-wide mb-3">{{ section.subtitle }}</h2>
+            <p class="text-ink/70 text-[15px] leading-relaxed whitespace-pre-line">{{ section.text }}</p>
           </div>
         </div>
       </article>

@@ -75,12 +75,12 @@ provide('inventoryCharacterAttributes', computed(() => props.characterAttributes
 provide('inventoryAttributesEnabled', computed(() => props.attributesEnabled))
 provide('inventoryDisabledStandardAttrs', computed(() => props.disabledStandardAttrs))
 
-const SLOT_DEFAULT = 'border-[rgba(126,200,227,0.34)] bg-[linear-gradient(180deg,rgba(30,49,96,0.96),rgba(15,25,49,0.98))] shadow-[inset_0_0_0_1px_rgba(126,200,227,0.06)]'
-const SLOT_ACTIVE = 'border-[rgba(74,222,128,0.85)] bg-[linear-gradient(180deg,rgba(21,128,61,0.5),rgba(13,70,38,0.72))] shadow-[inset_0_0_0_1px_rgba(74,222,128,0.2),0_0_0_1px_rgba(74,222,128,0.12)]'
-const SLOT_BLOCKED = 'border-[rgba(248,113,113,0.85)] bg-[linear-gradient(180deg,rgba(88,27,42,0.88),rgba(45,12,23,0.94))] shadow-[inset_0_0_0_1px_rgba(248,113,113,0.2)]'
-const CELL_DEFAULT = 'border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(34,55,102,0.58),rgba(15,28,57,0.76))]'
-const CELL_ACTIVE = 'border-[rgba(74,222,128,0.85)] bg-[linear-gradient(180deg,rgba(21,128,61,0.55),rgba(13,70,38,0.72))] shadow-[inset_0_0_0_1px_rgba(74,222,128,0.22)]'
-const CELL_BLOCKED = 'border-[rgba(248,113,113,0.85)] bg-[linear-gradient(180deg,rgba(127,29,29,0.6),rgba(60,12,18,0.8))] shadow-[inset_0_0_0_1px_rgba(248,113,113,0.22)]'
+const SLOT_DEFAULT = 'border-line-strong bg-[linear-gradient(180deg,rgba(30,49,96,0.96),rgba(15,25,49,0.98))] shadow-[inset_0_0_0_1px_rgba(123,135,184,0.06)]'
+const SLOT_ACTIVE = 'border-success/85 bg-[linear-gradient(180deg,rgba(21,128,61,0.5),rgba(13,70,38,0.72))] shadow-[inset_0_0_0_1px_rgba(74,222,128,0.2),0_0_0_1px_rgba(74,222,128,0.12)]'
+const SLOT_BLOCKED = 'border-danger/85 bg-[linear-gradient(180deg,rgba(88,27,42,0.88),rgba(45,12,23,0.94))] shadow-[inset_0_0_0_1px_rgba(242,122,133,0.2)]'
+const CELL_DEFAULT = 'border-line bg-[linear-gradient(180deg,rgba(34,55,102,0.58),rgba(15,28,57,0.76))]'
+const CELL_ACTIVE = 'border-success/85 bg-[linear-gradient(180deg,rgba(21,128,61,0.55),rgba(13,70,38,0.72))] shadow-[inset_0_0_0_1px_rgba(74,222,128,0.22)]'
+const CELL_BLOCKED = 'border-danger/85 bg-[linear-gradient(180deg,rgba(127,29,29,0.6),rgba(60,12,18,0.8))] shadow-[inset_0_0_0_1px_rgba(242,122,133,0.22)]'
 
 const boardRef = ref(null)
 const gridRef = ref(null)
@@ -474,13 +474,13 @@ function formatLabel(value) {
 
 function rarityTextClass(rarity) {
   const variants = {
-    common: 'text-[#e2e8f0]',
-    uncommon: 'text-[#fde68a]',
-    rare: 'text-[#93c5fd]',
-    epic: 'text-[#e9d5ff]',
-    masterwork: 'text-[#fdba74]',
-    legendary: 'text-[#86efac]',
-    unique: 'text-[#fca5a5]',
+    common: 'text-ink',
+    uncommon: 'text-warning',
+    rare: 'text-sky',
+    epic: 'text-r-epic',
+    masterwork: 'text-r-masterwork',
+    legendary: 'text-success',
+    unique: 'text-danger',
   }
   return variants[rarity] || variants.common
 }
@@ -657,7 +657,7 @@ function equipmentEntry(slot) {
     ref="boardRef"
     @dblclick="onBoardDblClick"
     :class="mounted ? 'opacity-100' : 'opacity-0'"
-    class="relative mx-auto w-full max-w-full transition-opacity duration-500 ease-out rounded-[clamp(0.22rem,0.5vw,0.34rem)] border border-[rgba(126,200,227,0.28)] bg-[radial-gradient(circle_at_top,rgba(233,69,96,0.12),transparent_26%),linear-gradient(180deg,rgba(16,24,44,0.98),rgba(9,15,29,1)),linear-gradient(135deg,rgba(126,200,227,0.05),transparent_42%)] p-[0.48rem] shadow-[inset_0_0_0_1px_rgba(126,200,227,0.06),0_18px_34px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:inset-[clamp(0.3rem,0.8vw,0.55rem)] before:rounded-[clamp(0.16rem,0.4vw,0.28rem)] before:border before:border-[rgba(126,200,227,0.14)] before:content-[''] md:p-[0.7rem] lg:w-fit lg:p-[clamp(0.55rem,1.4vw,0.95rem)] [--inv-cell:clamp(1.58rem,8.8vw,2.15rem)] min-[480px]:[--inv-cell:clamp(1.72rem,8vw,2.6rem)] md:[--inv-cell:clamp(1.9rem,6.2vw,3.85rem)] lg:[--inv-cell:clamp(1.9rem,5.9vw,4.95rem)] [--inv-gap:calc(var(--inv-cell)*0.28)] [--inv-weapon-col:calc(var(--inv-cell)*2.6)] [--inv-trinket-col:calc(var(--inv-cell)*0.98)] [--inv-center-col:calc(var(--inv-cell)*2.08)] [--inv-weapon-h:calc(var(--inv-cell)*3.76)] [--inv-glove-h:calc(var(--inv-cell)*1.88)] [--inv-head:calc(var(--inv-cell)*2)] [--inv-chest-h:calc(var(--inv-cell)*2.42)] [--inv-belt-h:calc(var(--inv-cell)*1.03)] [--inv-ring:calc(var(--inv-cell)*0.91)] [--inv-amulet:var(--inv-cell)]"
+    class="relative mx-auto w-full max-w-full transition-opacity duration-500 ease-out rounded-[clamp(0.22rem,0.5vw,0.34rem)] border border-line-strong bg-[radial-gradient(circle_at_top,rgba(88,101,221,0.12),transparent_26%),linear-gradient(180deg,rgba(16,24,44,0.98),rgba(9,15,29,1)),linear-gradient(135deg,rgba(123,135,184,0.05),transparent_42%)] p-[0.48rem] shadow-[inset_0_0_0_1px_rgba(123,135,184,0.06),0_18px_34px_rgba(0,0,0,0.28)] before:pointer-events-none before:absolute before:inset-[clamp(0.3rem,0.8vw,0.55rem)] before:rounded-[clamp(0.16rem,0.4vw,0.28rem)] before:border before:border-line before:content-[''] md:p-[0.7rem] lg:w-fit lg:p-[clamp(0.55rem,1.4vw,0.95rem)] [--inv-cell:clamp(1.58rem,8.8vw,2.15rem)] min-[480px]:[--inv-cell:clamp(1.72rem,8vw,2.6rem)] md:[--inv-cell:clamp(1.9rem,6.2vw,3.85rem)] lg:[--inv-cell:clamp(1.9rem,5.9vw,4.95rem)] [--inv-gap:calc(var(--inv-cell)*0.28)] [--inv-weapon-col:calc(var(--inv-cell)*2.6)] [--inv-trinket-col:calc(var(--inv-cell)*0.98)] [--inv-center-col:calc(var(--inv-cell)*2.08)] [--inv-weapon-h:calc(var(--inv-cell)*3.76)] [--inv-glove-h:calc(var(--inv-cell)*1.88)] [--inv-head:calc(var(--inv-cell)*2)] [--inv-chest-h:calc(var(--inv-cell)*2.42)] [--inv-belt-h:calc(var(--inv-cell)*1.03)] [--inv-ring:calc(var(--inv-cell)*0.91)] [--inv-amulet:var(--inv-cell)]"
   >
     <div class="relative z-[1] flex flex-col gap-[0.4rem] p-[0.42rem] min-[480px]:p-[0.55rem] md:gap-[0.6rem] md:p-[0.78rem] lg:gap-[clamp(0.45rem,1vw,0.8rem)] lg:p-[clamp(0.6rem,1.5vw,1rem)]">
       <section class="shrink-0">
@@ -835,7 +835,7 @@ function equipmentEntry(slot) {
       <section class="mx-auto w-fit max-w-full max-md:w-full">
         <div
           ref="gridRef"
-          class="session-inventory-grid grid w-fit gap-0 rounded-[clamp(0.1rem,0.25vw,0.18rem)] border border-[rgba(126,200,227,0.32)] bg-[linear-gradient(180deg,rgba(12,25,49,0.98),rgba(8,16,31,1))] p-[clamp(0.14rem,0.35vw,0.28rem)] shadow-[inset_0_0_0_1px_rgba(126,200,227,0.04)] grid-cols-[repeat(var(--inv-cols),minmax(0,var(--inv-cell)))] grid-rows-[repeat(var(--inv-rows),minmax(0,var(--inv-cell)))] max-md:max-w-full"
+          class="session-inventory-grid grid w-fit gap-0 rounded-[clamp(0.1rem,0.25vw,0.18rem)] border border-line-strong bg-[linear-gradient(180deg,rgba(12,25,49,0.98),rgba(8,16,31,1))] p-[clamp(0.14rem,0.35vw,0.28rem)] shadow-[inset_0_0_0_1px_rgba(123,135,184,0.04)] grid-cols-[repeat(var(--inv-cols),minmax(0,var(--inv-cell)))] grid-rows-[repeat(var(--inv-rows),minmax(0,var(--inv-cell)))] max-md:max-w-full"
           :style="{
             '--inv-cols': safeInventoryWidth,
             '--inv-rows': safeInventoryHeight,
@@ -865,13 +865,13 @@ function equipmentEntry(slot) {
 
   <Teleport to="body">
     <div v-if="detailEntry" class="fixed inset-0 z-[12700] flex items-center justify-center p-4">
-      <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeItemDetail"></div>
+      <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="closeItemDetail"></div>
 
-      <div class="relative flex max-h-full w-full max-w-[40rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+      <div class="relative flex max-h-full w-full max-w-[40rem] flex-col overflow-hidden rounded-[1.6rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
         <button
           type="button"
           @click="closeItemDetail"
-          class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]"
+          class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32"
           aria-label="Close item details"
         >
           <X class="h-5 w-5" :stroke-width="2" />
@@ -879,90 +879,90 @@ function equipmentEntry(slot) {
 
         <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div class="h-28 w-28 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
+            <div class="h-28 w-28 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-line bg-n1/66">
               <img v-if="detailImageUrl" :src="detailImageUrl" :alt="detailEntry.item?.name" class="h-full w-full object-cover" @error="markImageFailed(detailImageUrl)" />
-              <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[32px] font-bold text-[#7ec8e3]/40">
+              <div v-else class="flex h-full w-full items-center justify-center font-heading text-[32px] font-bold text-faint">
                 {{ (detailEntry.item?.name || '?').charAt(0).toUpperCase() }}
               </div>
             </div>
 
             <div class="min-w-0 flex-1 pr-8">
-              <h3 class="break-words text-[20px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ detailEntry.item?.name || 'Unnamed item' }}</h3>
+              <h3 class="break-words text-[20px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ detailEntry.item?.name || 'Unnamed item' }}</h3>
               <div class="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.16em]">
                 <span class="font-bold" :class="rarityTextClass(detailEntry.item?.rarity)">{{ formatLabel(detailEntry.item?.rarity || 'common') }}</span>
-                <span class="text-[#7ec8e3]/45">{{ formatLabel(detailEntry.item?.category || 'other') }}</span>
-                <span class="text-[#7ec8e3]/45">{{ detailEntry.item?.grid_width || 1 }}x{{ detailEntry.item?.grid_height || 1 }}</span>
-                <span v-if="detailEntry.item?.equip_slot" class="text-[#7ec8e3]/45">{{ formatLabel(detailEntry.item.equip_slot) }}</span>
+                <span class="text-faint">{{ formatLabel(detailEntry.item?.category || 'other') }}</span>
+                <span class="text-faint">{{ detailEntry.item?.grid_width || 1 }}x{{ detailEntry.item?.grid_height || 1 }}</span>
+                <span v-if="detailEntry.item?.equip_slot" class="text-faint">{{ formatLabel(detailEntry.item.equip_slot) }}</span>
               </div>
-              <div class="mt-2 flex flex-wrap gap-3 text-[12px] text-[#d8dce7]/70">
-                <span>Quantity: <span class="font-semibold text-[#f6f7fb]">{{ detailEntry.quantity || 1 }}</span></span>
-                <span v-if="detailEntry.enchantment">Enchantment: <span class="font-semibold text-[#8fd7ef]">+{{ detailEntry.enchantment }}</span></span>
+              <div class="mt-2 flex flex-wrap gap-3 text-[12px] text-ink-soft/70">
+                <span>Quantity: <span class="font-semibold text-ink">{{ detailEntry.quantity || 1 }}</span></span>
+                <span v-if="detailEntry.enchantment">Enchantment: <span class="font-semibold text-sky">+{{ detailEntry.enchantment }}</span></span>
               </div>
               <div class="mt-3">
-                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Description</p>
-                <p class="mt-1 break-words whitespace-pre-line text-[13px] leading-relaxed text-[#d8dce7]/72 [overflow-wrap:anywhere]">{{ detailEntry.item?.description?.trim() || 'No description provided.' }}</p>
+                <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Description</p>
+                <p class="mt-1 break-words whitespace-pre-line text-[13px] leading-relaxed text-ink-soft/72 [overflow-wrap:anywhere]">{{ detailEntry.item?.description?.trim() || 'No description provided.' }}</p>
               </div>
             </div>
           </div>
 
           <div v-if="detailRequirements.length" class="mt-5">
-            <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Requirements</p>
+            <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Requirements</p>
             <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
               <li
                 v-for="(requirement, index) in detailRequirements"
                 :key="`req-${index}`"
                 class="flex items-center justify-between gap-2 rounded-lg border px-3 py-1.5 text-[12px]"
-                :class="requirement.met ? 'border-[rgba(74,222,128,0.2)] bg-[rgba(21,128,61,0.12)] text-[#86efac]' : 'border-[rgba(248,113,113,0.2)] bg-[rgba(127,29,29,0.14)] text-[#fca5a5]'"
+                :class="requirement.met ? 'border-success/20 bg-success/12 text-success' : 'border-danger/20 bg-danger/14 text-danger'"
               >
                 <span>{{ requirement.label }} {{ requirement.required }}</span>
                 <span class="opacity-80">you: {{ requirement.current }}</span>
               </li>
             </ul>
-            <p v-if="!detailMeetsRequirements" class="mt-1.5 text-[11px] font-semibold text-[#fca5a5]">Requirements not met</p>
+            <p v-if="!detailMeetsRequirements" class="mt-1.5 text-[11px] font-semibold text-danger">Requirements not met</p>
           </div>
 
           <div v-if="detailModifiers.length" class="mt-5">
-            <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Grants</p>
+            <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Grants</p>
             <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
-              <li v-for="(modifier, index) in detailModifiers" :key="`mod-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[12px] text-[#d8dce7]/82">
+              <li v-for="(modifier, index) in detailModifiers" :key="`mod-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] text-ink-soft/82">
                 <span>{{ modifier.label }}</span>
-                <span class="font-semibold" :class="modifier.value >= 0 ? 'text-[#8fd7ef]' : 'text-[#fca5a5]'">{{ modifier.value >= 0 ? '+' : '' }}{{ modifier.value }}{{ modifier.percent ? '%' : '' }}</span>
+                <span class="font-semibold" :class="modifier.value >= 0 ? 'text-sky' : 'text-danger'">{{ modifier.value >= 0 ? '+' : '' }}{{ modifier.value }}{{ modifier.percent ? '%' : '' }}</span>
               </li>
             </ul>
           </div>
 
           <div v-if="detailEntry.item?.tags?.length" class="mt-5">
-            <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Tags</p>
+            <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Tags</p>
             <div class="mt-2 flex flex-wrap gap-1.5">
-              <span v-for="tag in detailEntry.item.tags" :key="tag" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-2.5 py-1 text-[12px] text-[#ffe0e7]">{{ tag }}</span>
+              <span v-for="tag in detailEntry.item.tags" :key="tag" class="rounded-full border border-primary/18 bg-primary/8 px-2.5 py-1 text-[12px] text-primary-soft">{{ tag }}</span>
             </div>
           </div>
 
           <div class="mt-5">
-            <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Durability</p>
-            <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-[rgba(7,17,31,0.8)]">
+            <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Durability</p>
+            <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-n1/80">
               <div class="h-full rounded-full bg-blue-200" :style="{ width: `${Math.max(0, Math.min(100, detailMaxDurability ? (detailDurability / detailMaxDurability) * 100 : 0))}%` }"></div>
             </div>
             <div v-if="canEdit" class="mt-3 grid gap-3 sm:grid-cols-2">
               <label class="block">
-                <span class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Current</span>
-                <input v-model.number="detailDurability" type="number" min="0" :max="detailMaxDurability" class="session-input mt-1.5 w-full rounded-[0.9rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                <span class="text-[11px] uppercase tracking-[0.16em] text-faint">Current</span>
+                <input v-model.number="detailDurability" type="number" min="0" :max="detailMaxDurability" class="session-input mt-1.5 w-full rounded-[0.9rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
               </label>
               <label class="block">
-                <span class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">Max</span>
-                <input disabled v-model.number="detailMaxDurability" type="number" min="1" class="session-input mt-1.5 w-full rounded-[0.9rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none" />
+                <span class="text-[11px] uppercase tracking-[0.16em] text-faint">Max</span>
+                <input disabled v-model.number="detailMaxDurability" type="number" min="1" class="session-input mt-1.5 w-full rounded-[0.9rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
               </label>
             </div>
-            <p v-else class="mt-2 text-[13px] text-[#d8dce7]/70">{{ detailDurability }} / {{ detailMaxDurability }}</p>
+            <p v-else class="mt-2 text-[13px] text-ink-soft/70">{{ detailDurability }} / {{ detailMaxDurability }}</p>
           </div>
         </div>
 
-        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-[rgba(126,200,227,0.1)] px-5 py-4 sm:px-6">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-line-soft px-5 py-4 sm:px-6">
           <div class="flex flex-wrap gap-3">
             <button
               type="button"
               @click="shareItemDetail"
-              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-sky transition-all duration-200 hover:border-n7"
             >
               <Send class="h-4 w-4" :stroke-width="2" />
               Share to chat
@@ -971,7 +971,7 @@ function equipmentEntry(slot) {
               v-if="canEdit && (detailEntry.quantity || 1) > 1"
               type="button"
               @click="splitItemDetail"
-              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-n7"
             >
               Unstack
             </button>
@@ -979,17 +979,17 @@ function equipmentEntry(slot) {
               v-if="canEdit"
               type="button"
               @click="deleteItemDetail"
-              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)]"
+              class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-danger/28 bg-danger/12 px-4 py-2.5 text-[13px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/45"
             >
               <Trash2 class="h-4 w-4" :stroke-width="2" />
               {{ detailConfirmDelete ? 'Confirm delete' : 'Delete item' }}
             </button>
           </div>
           <div v-if="canEdit" class="flex gap-3">
-            <button type="button" @click="closeItemDetail" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]">
+            <button type="button" @click="closeItemDetail" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong">
               Cancel
             </button>
-            <button type="button" @click="saveItemDetail" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5">
+            <button type="button" @click="saveItemDetail" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/28 bg-[linear-gradient(135deg,rgba(88,101,221,0.92),rgba(74,86,200,0.92))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200">
               Save changes
             </button>
           </div>

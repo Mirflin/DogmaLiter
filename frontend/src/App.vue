@@ -5,29 +5,29 @@ const notificationTheme = {
   ...slateTheme,
   '--nv-z': '14000',
   '--nv-width': '360px',
-  '--nv-radius': '18px',
-  '--nv-shadow': '0 18px 48px rgba(0, 0, 0, 0.35)',
+  '--nv-radius': '12px',
+  '--nv-shadow': '0 12px 32px -8px rgba(2, 4, 14, 0.8)',
   '--nv-border-width': '1px',
-  '--nv-global-bg': 'rgba(12, 18, 32, 0.96)',
-  '--nv-global-border': 'rgba(126, 200, 227, 0.16)',
-  '--nv-global-fg': '#e8e8f0',
-  '--nv-global-accent': '#7ec8e3',
-  '--nv-success-bg': 'rgba(10, 32, 24, 0.96)',
-  '--nv-success-border': 'rgba(109, 236, 169, 0.28)',
-  '--nv-success-accent': '#6deca9',
-  '--nv-success-fg': '#e8e8f0',
-  '--nv-error-bg': 'rgba(40, 12, 20, 0.96)',
-  '--nv-error-border': 'rgba(233, 69, 96, 0.28)',
-  '--nv-error-accent': '#ff8fa3',
-  '--nv-error-fg': '#ffe3e8',
-  '--nv-info-bg': 'rgba(12, 24, 40, 0.96)',
-  '--nv-info-border': 'rgba(126, 200, 227, 0.22)',
-  '--nv-info-accent': '#7ec8e3',
-  '--nv-info-fg': '#e8f5fb',
-  '--nv-warning-bg': 'rgba(40, 26, 8, 0.96)',
-  '--nv-warning-border': 'rgba(245, 158, 11, 0.24)',
-  '--nv-warning-accent': '#f59e0b',
-  '--nv-warning-fg': '#fff3d6',
+  '--nv-global-bg': '#141e41',
+  '--nv-global-border': '#24325f',
+  '--nv-global-fg': '#e6eaff',
+  '--nv-global-accent': '#a4aeff',
+  '--nv-success-bg': '#141e41',
+  '--nv-success-border': 'rgba(98, 214, 157, 0.4)',
+  '--nv-success-accent': '#62d69d',
+  '--nv-success-fg': '#e6eaff',
+  '--nv-error-bg': '#141e41',
+  '--nv-error-border': 'rgba(242, 122, 133, 0.45)',
+  '--nv-error-accent': '#f27a85',
+  '--nv-error-fg': '#e6eaff',
+  '--nv-info-bg': '#141e41',
+  '--nv-info-border': '#33427a',
+  '--nv-info-accent': '#62b6ee',
+  '--nv-info-fg': '#e6eaff',
+  '--nv-warning-bg': '#141e41',
+  '--nv-warning-border': 'rgba(239, 195, 94, 0.4)',
+  '--nv-warning-accent': '#efc35e',
+  '--nv-warning-fg': '#e6eaff',
 }
 
 const notivueStyles = {
@@ -53,9 +53,7 @@ body,
 }
 
 body {
-  @apply text-[#e8e8f0] antialiased;
   margin: 0;
   padding: 0;
-  font-family: 'Raleway', sans-serif;
 }
 </style>

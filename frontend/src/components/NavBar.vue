@@ -20,6 +20,12 @@ const navItems = [
   { path: '/plans', label: 'Subscriptions' },
 ]
 
+const guestItems = [
+  { to: '/#inventory', label: 'How it works' },
+  { to: '/plans', label: 'Plans' },
+  { to: '/news', label: 'News' },
+]
+
 function updateIndicator() {
   if (!navLinks.value) return
   const activeEl = navLinks.value.querySelector('[data-active="true"]')
@@ -60,17 +66,17 @@ function isActive(path) {
 </script>
 
 <template>
-  <nav class="site-nav sticky top-0 z-50 w-full bg-[rgba(10,10,26,0.95)] backdrop-blur-md border-b border-[rgba(126,200,227,0.1)]">
+  <nav class="site-nav sticky top-0 z-50 w-full bg-n0">
     <div class="site-nav__inner max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
       <div class="flex items-center gap-8">
         <router-link to="/" class="site-nav__brand flex items-center gap-3 no-underline hover:opacity-90 transition-opacity">
           <img :src="logo" alt="DogmaLiter" class="site-nav__brand-mark h-10 w-10 object-contain" />
-          <span class="font-[Cinzel] text-[20px] font-bold text-[#e94560] tracking-wider hidden sm:inline">DogmaLiter</span>
+          <span class="font-heading text-[19px] font-bold text-ink tracking-tight hidden sm:inline">DogmaLiter</span>
         </router-link>
 
         <div v-if="auth.isAuthenticated" ref="navLinks" class="site-nav__links hidden md:flex items-center gap-1 relative">
           <div
-            class="site-nav__indicator absolute bottom-0 h-[2px] bg-[#e94560] rounded-full transition-all duration-300 ease-in-out"
+            class="site-nav__indicator absolute bottom-0 h-[2px] bg-primary rounded-full transition-all duration-300 ease-in-out"
             :style="{ left: indicatorStyle.left, width: indicatorStyle.width, opacity: indicatorStyle.opacity }"
           />
           <router-link
@@ -78,7 +84,7 @@ function isActive(path) {
             :key="item.path"
             :to="item.path"
             :data-active="isActive(item.path)"
-            :class="isActive(item.path) ? 'text-[#e94560]' : 'text-[#e8e8f0]/70 hover:text-[#e8e8f0] hover:bg-[rgba(126,200,227,0.08)]'"
+            :class="isActive(item.path) ? 'text-primary-ink' : 'text-ink/70 hover:text-ink hover:bg-n3'"
             class="site-nav__link px-4 py-2 text-[14px] no-underline rounded-lg transition-all duration-200"
           >
             {{ item.label }}
@@ -86,6 +92,14 @@ function isActive(path) {
         </div>
 
         <div v-else class="hidden md:flex items-center gap-1">
+          <router-link
+            v-for="item in guestItems"
+            :key="item.to"
+            :to="item.to"
+            class="px-4 py-2 text-[14px] text-ink/70 no-underline rounded-lg hover:text-ink hover:bg-n3 transition-colors duration-200"
+          >
+            {{ item.label }}
+          </router-link>
         </div>
       </div>
 
@@ -93,15 +107,15 @@ function isActive(path) {
         <div v-if="auth.isAuthenticated" class="relative">
           <button
             @click="showDropdown = !showDropdown"
-            class="site-nav__account-button flex items-center gap-2 px-3 py-2 bg-transparent border-none cursor-pointer rounded-lg hover:bg-[rgba(126,200,227,0.08)] transition-all duration-200"
+            class="site-nav__account-button flex items-center gap-2 px-3 py-2 bg-transparent border-none cursor-pointer rounded-lg hover:bg-n3 transition-all duration-200"
           >
-            <div class="w-8 h-8 rounded-full bg-[rgba(233,69,96,0.2)] border border-[rgba(233,69,96,0.4)] flex items-center justify-center">
+            <div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
               <img v-if="avatarUrl" :src="avatarUrl" alt="Avatar" class="w-full h-full object-cover rounded-full" />
-              <span v-else class="text-[#e94560] text-[13px] font-bold">{{ auth.user?.username?.charAt(0)?.toUpperCase() }}</span>
+              <span v-else class="text-primary-ink text-[13px] font-bold">{{ auth.user?.username?.charAt(0)?.toUpperCase() }}</span>
             </div>
-            <span class="text-[#e8e8f0] text-[14px] font-medium">{{ auth.user?.username }}</span>
-            <span v-if="auth.user?.role === 'admin'" class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#e94560] bg-[rgba(233,69,96,0.15)] border border-[rgba(233,69,96,0.3)] rounded">Admin</span>
-            <svg class="w-4 h-4 text-[#7ec8e3]/50 transition-transform duration-200" :class="{ 'rotate-180': showDropdown }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <span class="text-ink text-[14px] font-medium">{{ auth.user?.username }}</span>
+            <span v-if="auth.user?.role === 'admin'" class="px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-ink bg-primary/15 border border-primary/30 rounded">Admin</span>
+            <svg class="w-4 h-4 text-dim transition-transform duration-200" :class="{ 'rotate-180': showDropdown }" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -109,37 +123,37 @@ function isActive(path) {
           <Transition name="dropdown">
             <div
               v-if="showDropdown"
-              class="site-nav__dropdown absolute right-0 top-[calc(100%+8px)] w-52 bg-[rgba(15,15,35,0.97)] backdrop-blur-xl border border-[rgba(126,200,227,0.15)] rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden"
+              class="site-nav__dropdown absolute right-0 top-[calc(100%+8px)] w-52 bg-n2/97 backdrop-blur-xl border border-line rounded-xl shadow-[0_15px_40px_rgba(0,0,0,0.5)] overflow-hidden"
             >
               <router-link
                 to="/profile"
                 @click="showDropdown = false"
-                class="flex items-center gap-3 px-4 py-3 text-[14px] text-[#e8e8f0]/80 no-underline hover:bg-[rgba(126,200,227,0.08)] hover:text-[#e8e8f0] transition-all duration-200"
+                class="flex items-center gap-3 px-4 py-3 text-[14px] text-ink/80 no-underline hover:bg-n3 hover:text-ink transition-all duration-200"
               >
-                <svg class="w-4 h-4 text-[#7ec8e3]/50" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                <svg class="w-4 h-4 text-dim" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 My Profile
               </router-link>
               <router-link
                 to="/settings"
                 @click="showDropdown = false"
-                class="flex items-center gap-3 px-4 py-3 text-[14px] text-[#e8e8f0]/80 no-underline hover:bg-[rgba(126,200,227,0.08)] hover:text-[#e8e8f0] transition-all duration-200"
+                class="flex items-center gap-3 px-4 py-3 text-[14px] text-ink/80 no-underline hover:bg-n3 hover:text-ink transition-all duration-200"
               >
-                <svg class="w-4 h-4 text-[#7ec8e3]/50" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z" /><circle cx="12" cy="12" r="3" /></svg>
+                <svg class="w-4 h-4 text-dim" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.573-1.066z" /><circle cx="12" cy="12" r="3" /></svg>
                 Settings
               </router-link>
               <router-link
                 v-if="auth.user?.role === 'admin'"
                 to="/admin"
                 @click="showDropdown = false"
-                class="flex items-center gap-3 px-4 py-3 text-[14px] text-[#e8e8f0]/80 no-underline hover:bg-[rgba(126,200,227,0.08)] hover:text-[#e8e8f0] transition-all duration-200"
+                class="flex items-center gap-3 px-4 py-3 text-[14px] text-ink/80 no-underline hover:bg-n3 hover:text-ink transition-all duration-200"
               >
-                <svg class="w-4 h-4 text-[#7ec8e3]/50" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                <svg class="w-4 h-4 text-dim" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                 Admin Dashboard
               </router-link>
-              <div class="border-t border-[rgba(126,200,227,0.1)]" />
+              <div class="border-t border-line-soft" />
               <button
                 @click="handleLogout"
-                class="w-full flex items-center gap-3 px-4 py-3 text-[14px] text-[#ff8fa3] bg-transparent border-none cursor-pointer hover:bg-[rgba(233,69,96,0.1)] transition-all duration-200 font-[inherit]"
+                class="w-full flex items-center gap-3 px-4 py-3 text-[14px] text-primary-ink bg-transparent border-none cursor-pointer hover:bg-primary/10 transition-all duration-200 font-[inherit]"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
                 Sign Out
@@ -151,7 +165,7 @@ function isActive(path) {
         <router-link
           v-else
           to="/auth"
-          class="site-nav__signin px-5 py-2 text-[14px] font-semibold text-white no-underline bg-linear-to-br from-[#e94560] to-[#c23152] rounded-lg hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(233,69,96,0.4)] transition-all duration-300"
+          class="site-nav__signin px-5 py-2 text-[14px] font-semibold text-white no-underline bg-primary hover:bg-primary-hover rounded-lg transition-all duration-300"
         >
           Sign In
         </router-link>
@@ -175,20 +189,7 @@ function isActive(path) {
 
 .site-nav {
   position: sticky;
-  background: linear-gradient(180deg, rgba(11, 16, 29, 0.94), rgba(8, 12, 24, 0.9)) !important;
-  border-bottom-color: rgba(126, 200, 227, 0.12) !important;
-  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.24);
-}
-
-.site-nav::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 68%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.022) 0 1px, transparent 1px 72px);
-  opacity: 0.8;
+  background: var(--color-n0) !important;
 }
 
 .site-nav__inner {
@@ -205,7 +206,7 @@ function isActive(path) {
 }
 
 .site-nav__brand-mark {
-  filter: drop-shadow(0 8px 18px rgba(233, 69, 96, 0.18));
+  filter: drop-shadow(0 8px 18px rgba(88, 101, 221, 0.18));
 }
 
 .site-nav__links {
@@ -219,7 +220,7 @@ function isActive(path) {
 .site-nav__indicator {
   bottom: 0.35rem;
   height: 2px;
-  box-shadow: 0 0 18px rgba(233, 69, 96, 0.32);
+  box-shadow: 0 0 18px rgba(88, 101, 221, 0.32);
 }
 
 .site-nav__link {
@@ -233,16 +234,16 @@ function isActive(path) {
 }
 
 .site-nav__account-button {
-  border: 1px solid rgba(126, 200, 227, 0.12);
+  border: 1px solid rgba(123, 135, 184, 0.12);
   background: rgba(9, 14, 27, 0.56);
 }
 
 .site-nav__dropdown {
-  background: linear-gradient(180deg, rgba(13, 18, 33, 0.98), rgba(8, 12, 24, 0.98)) !important;
+  background: linear-gradient(180deg, rgba(13, 18, 33, 0.98), rgba(6, 10, 28, 0.98)) !important;
   box-shadow: 0 22px 55px rgba(0, 0, 0, 0.34);
 }
 
 .site-nav__signin {
-  border: 1px solid rgba(233, 69, 96, 0.2);
+  border: 1px solid rgba(88, 101, 221, 0.2);
 }
 </style>

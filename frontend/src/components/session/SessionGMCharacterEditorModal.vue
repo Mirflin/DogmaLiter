@@ -320,13 +320,13 @@ function emitSave() {
 <template>
   <Teleport to="body">
     <div v-if="visible" class="fixed inset-0 z-[12500] flex items-center justify-center px-4 py-6 sm:px-6" @click.self="close">
-      <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="close"></div>
+      <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="close"></div>
 
-      <div class="relative flex max-h-[92vh] w-full max-w-[1080px] flex-col overflow-hidden rounded-[2rem] border border-[rgba(126,200,227,0.16)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
+      <div class="relative flex max-h-[92vh] w-full max-w-[1080px] flex-col overflow-hidden rounded-[2rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.52)]">
         <button
           @click="close"
           :disabled="saving"
-          class="absolute right-5 top-5 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:cursor-not-allowed disabled:opacity-60"
+          class="absolute right-5 top-5 z-20 flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32 disabled:cursor-not-allowed disabled:opacity-60"
           aria-label="Close GM character editor"
         >
           <XIcon class="h-5 w-5" :stroke-width="2" />
@@ -334,30 +334,30 @@ function emitSave() {
 
         <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
           <div class="pr-12">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">GM Character Editor</p>
+            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">GM Character Editor</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
-              <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">{{ character?.name || 'Character Setup' }}</h2>
-              <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
+              <h2 class="font-heading text-[28px] font-bold text-ink sm:text-[34px]">{{ character?.name || 'Character Setup' }}</h2>
+              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">
                 {{ selectedOwner?.username || character?.owner?.username || 'Unassigned' }}
               </span>
             </div>
-            <p class="mt-3 max-w-[48rem] text-[14px] leading-relaxed text-[#d8dce7]/62">
+            <p class="mt-3 max-w-[48rem] text-[14px] leading-relaxed text-ink-soft/62">
               Configure portrait, narrative profile, base attributes, inventory dimensions, custom stats, and character ownership.
             </p>
           </div>
 
-          <p v-if="displayError" class="mt-6 rounded-[1.3rem] border border-[rgba(248,113,113,0.24)] bg-[rgba(127,29,29,0.18)] px-4 py-3 text-[13px] text-[#fecaca]">
+          <p v-if="displayError" class="mt-6 rounded-[1.3rem] border border-danger/24 bg-danger/18 px-4 py-3 text-[13px] text-danger-soft">
             {{ displayError }}
           </p>
 
           <div v-if="character" class="mt-6 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-            <aside class="space-y-5 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 xl:sticky xl:top-0 xl:self-start">
+            <aside class="space-y-5 rounded-[1.75rem] border border-line bg-n1/78 p-5 xl:sticky xl:top-0 xl:self-start">
             <div>
-              <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Portrait</p>
-              <div class="mt-4 overflow-hidden rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
-                <div class="flex h-72 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(8,16,30,0.94))]">
+              <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Portrait</p>
+              <div class="mt-4 overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
+                <div class="flex h-72 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(10,16,41,0.94))]">
                   <img v-if="portraitUrl" :src="portraitUrl" :alt="character.name" class="h-full w-full object-cover object-top" @error="markImageFailed(portraitUrl)" />
-                  <div v-else class="flex h-32 w-32 items-center justify-center rounded-full border-2 border-[rgba(143,215,239,0.3)] bg-[linear-gradient(135deg,rgba(126,200,227,0.16),rgba(233,69,96,0.06))] font-[Cinzel] text-[38px] font-bold text-[#8fd7ef]">{{ initials(character.name) }}</div>
+                  <div v-else class="flex h-32 w-32 items-center justify-center rounded-full border-2 border-line-strong bg-[linear-gradient(135deg,rgba(123,135,184,0.16),rgba(88,101,221,0.06))] font-heading text-[38px] font-bold text-sky">{{ initials(character.name) }}</div>
                 </div>
               </div>
             </div>
@@ -375,7 +375,7 @@ function emitSave() {
                 type="button"
                 @click="selectPortrait"
                 :disabled="saving"
-                class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
+                class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {{ portraitFile ? 'Replace Portrait' : 'Upload Portrait' }}
               </button>
@@ -384,54 +384,54 @@ function emitSave() {
                 type="button"
                 @click="clearPortraitSelection"
                 :disabled="saving"
-                class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.35)] disabled:cursor-not-allowed disabled:opacity-60"
+                class="cursor-pointer rounded-xl border border-primary/18 bg-primary/8 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/35 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Clear Selection
               </button>
             </div>
 
-            <div class="rounded-[1.4rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
-              <p class="text-[11px] uppercase tracking-[0.2em] text-[#7ec8e3]/55">Inventory Space</p>
+            <div class="rounded-[1.4rem] border border-line-soft bg-n3 p-4">
+              <p class="text-[11px] uppercase tracking-[0.2em] text-dim">Inventory Space</p>
               <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                <label class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Width</span>
-                  <input v-model.number="form.inventory_width" type="number" min="1" max="20" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Width</span>
+                  <input v-model.number="form.inventory_width" type="number" min="1" max="20" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
-                <label class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Height</span>
-                  <input v-model.number="form.inventory_height" type="number" min="1" max="20" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Height</span>
+                  <input v-model.number="form.inventory_height" type="number" min="1" max="20" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
               </div>
-              <p class="mt-3 text-[12px] leading-relaxed text-[#d8dce7]/54">Shrinking the grid is blocked if existing items would no longer fit.</p>
+              <p class="mt-3 text-[12px] leading-relaxed text-ink-soft/54">Shrinking the grid is blocked if existing items would no longer fit.</p>
             </div>
           </aside>
 
-          <section class="space-y-5 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 sm:p-6">
+          <section class="space-y-5 rounded-[1.75rem] border border-line bg-n1/78 p-5 sm:p-6">
             <div class="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
               <div class="space-y-5">
                 <label class="block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Name</span>
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
                   <input
                     v-model="form.name"
                     type="text"
                     maxlength="100"
                     :disabled="saving"
-                    class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none transition-all duration-200 placeholder:text-[#7ec8e3]/35 focus:border-[rgba(233,69,96,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
+                    class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[15px] text-ink outline-none transition-all duration-200 placeholder:text-faint focus:border-primary/34 disabled:cursor-not-allowed disabled:opacity-60"
                   />
                 </label>
 
                 <label class="block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Backstory</span>
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Backstory</span>
                   <textarea
                     v-model="form.backstory"
                     rows="7"
                     :disabled="saving"
-                    class="session-input mt-2 w-full resize-none rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none transition-all duration-200 placeholder:text-[#7ec8e3]/35 focus:border-[rgba(233,69,96,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
+                    class="session-input mt-2 w-full resize-none rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[15px] text-ink outline-none transition-all duration-200 placeholder:text-faint focus:border-primary/34 disabled:cursor-not-allowed disabled:opacity-60"
                   ></textarea>
                 </label>
 
                 <label class="block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Assigned To</span>
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Assigned To</span>
                   <SearchableSelect
                     v-model="form.owner_user_id"
                     :options="memberOptions"
@@ -442,72 +442,72 @@ function emitSave() {
                 </label>
               </div>
 
-              <div class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
+              <div class="rounded-[1.5rem] border border-line-soft bg-n3 p-4">
                 <div class="flex items-center justify-between gap-3">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Currency</span>
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Currency</span>
                 </div>
                 <div class="mt-4 grid gap-3">
                   <label
                     v-for="currency in currencyFields"
                     :key="currency.key"
-                    class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3"
+                    class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3"
                   >
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ currency.label }}</span>
-                    <input v-model.number="form[currency.key]" type="number" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ currency.label }}</span>
+                    <input v-model.number="form[currency.key]" type="number" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                   </label>
                 </div>
               </div>
             </div>
 
-            <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+            <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
               <div class="flex items-center justify-between gap-3">
-                <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Health &amp; Armor</span>
-                <span class="text-[12px] text-[#d8dce7]/45">GM editable</span>
+                <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Health &amp; Armor</span>
+                <span class="text-[12px] text-ink-soft/45">GM editable</span>
               </div>
               <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                <label v-if="enableHealth" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Max Health</span>
-                  <input v-model.number="form.max_health" type="number" min="0" max="9999999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                <label v-if="enableHealth" class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Max Health</span>
+                  <input v-model.number="form.max_health" type="number" min="0" max="9999999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
-                <label v-if="enableHealth" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Current Health</span>
-                  <input v-model.number="form.current_health" type="number" min="0" max="9999999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                <label v-if="enableHealth" class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Current Health</span>
+                  <input v-model.number="form.current_health" type="number" min="0" max="9999999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
-                <label v-if="enableArmorClass" class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Armor Class</span>
-                  <input v-model.number="form.armor_class" type="number" min="0" max="99999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                <label v-if="enableArmorClass" class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Armor Class</span>
+                  <input v-model.number="form.armor_class" type="number" min="0" max="99999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
               </div>
             </div>
 
-            <div v-if="visibleBaseAttributeFields.length" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+            <div v-if="visibleBaseAttributeFields.length" class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
               <div class="flex items-center justify-between gap-3">
-                <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Base Attributes</span>
-                <span class="text-[12px] text-[#d8dce7]/45">GM editable</span>
+                <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Base Attributes</span>
+                <span class="text-[12px] text-ink-soft/45">GM editable</span>
               </div>
 
               <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <label
                   v-for="attribute in visibleBaseAttributeFields"
                   :key="attribute.key"
-                  class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-3"
+                  class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3"
                 >
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ attribute.label }}</span>
-                  <input v-model.number="form.base_attributes[attribute.key]" type="number" min="0" max="999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ attribute.label }}</span>
+                  <input v-model.number="form.base_attributes[attribute.key]" type="number" min="0" max="999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
               </div>
             </div>
 
-            <div class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+            <div class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Custom Attributes</span>
+                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Custom Attributes</span>
                 </div>
                 <button
                   type="button"
                   @click="addCustomAttribute"
                   :disabled="saving"
-                  class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.4)] disabled:cursor-not-allowed disabled:opacity-60"
+                  class="cursor-pointer rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Add Attribute
                 </button>
@@ -517,39 +517,39 @@ function emitSave() {
                 <article
                   v-for="(attribute, index) in form.custom_attributes"
                   :key="attribute.key"
-                  class="rounded-[1.2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] p-4"
+                  class="rounded-[1.2rem] border border-line bg-n1/62 p-4"
                 >
                   <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Label</span>
-                      <input v-model="attribute.name" type="text" maxlength="100" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none focus:border-[rgba(233,69,96,0.34)]" />
+                      <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Label</span>
+                      <input v-model="attribute.name" type="text" maxlength="100" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none focus:border-primary/34" />
                     </label>
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Value</span>
-                      <input v-model.number="attribute.value" type="number" class="session-input mt-2 w-full rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none focus:border-[rgba(233,69,96,0.34)]" />
+                      <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Value</span>
+                      <input v-model.number="attribute.value" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none focus:border-primary/34" />
                     </label>
                     <div class="flex flex-wrap items-end gap-2">
-                      <button type="button" @click="moveCustomAttribute(index, -1)" :disabled="saving || index === 0" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">Up</button>
-                      <button type="button" @click="moveCustomAttribute(index, 1)" :disabled="saving || index === form.custom_attributes.length - 1" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-2.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">Down</button>
-                      <button type="button" @click="removeCustomAttribute(index)" :disabled="saving" class="cursor-pointer rounded-xl border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] px-3 py-2.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)] disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
+                      <button type="button" @click="moveCustomAttribute(index, -1)" :disabled="saving || index === 0" class="cursor-pointer rounded-xl border border-line bg-n3 px-3 py-2.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">Up</button>
+                      <button type="button" @click="moveCustomAttribute(index, 1)" :disabled="saving || index === form.custom_attributes.length - 1" class="cursor-pointer rounded-xl border border-line bg-n3 px-3 py-2.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">Down</button>
+                      <button type="button" @click="removeCustomAttribute(index)" :disabled="saving" class="cursor-pointer rounded-xl border border-danger/40 bg-danger/18 px-3 py-2.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/65 hover:bg-danger/28 disabled:cursor-not-allowed disabled:opacity-60">Remove</button>
                     </div>
                   </div>
                 </article>
               </div>
 
-              <p v-else class="mt-5 text-[14px] text-[#d8dce7]/58">No custom attributes yet. Add rows here to create GM-managed stats.</p>
+              <p v-else class="mt-5 text-[14px] text-ink-soft/58">No custom attributes yet. Add rows here to create GM-managed stats.</p>
             </div>
           </section>
         </div>
         </div>
 
-        <div class="shrink-0 flex flex-wrap items-center justify-between gap-4 border-t border-[rgba(126,200,227,0.12)] bg-[rgba(7,13,26,0.98)] px-5 py-5 sm:px-7">
+        <div class="shrink-0 flex flex-wrap items-center justify-between gap-4 border-t border-line bg-[rgba(10,16,41,0.98)] px-5 py-5 sm:px-7">
           <div class="flex flex-wrap gap-3">
             <button
               type="button"
               @click="close"
               :disabled="saving"
-              class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60"
+              class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancel
             </button>
@@ -557,7 +557,7 @@ function emitSave() {
               type="button"
               @click="emitSave"
               :disabled="saving"
-              class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.9),rgba(194,49,82,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
+              class="cursor-pointer rounded-xl border border-primary/28 bg-[linear-gradient(135deg,rgba(88,101,221,0.9),rgba(74,86,200,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {{ saving ? 'Saving...' : 'Save GM Changes' }}
             </button>

@@ -1,19 +1,69 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import HomeLayout from '@/layouts/HomeLayout.vue'
-import bgImage from '@/assets/background1.jpg'
-import bg2Image from '@/assets/background2.jpg'
-import logo from '@/assets/DLlogo.png'
+import LandingDie from '@/components/landing/LandingDie.vue'
+import LandingInventoryDemo from '@/components/landing/LandingInventoryDemo.vue'
 import api, { API_URL } from '@/api'
 
 const news = ref([])
+const freePlan = ref(null)
+const page = ref(null)
+const armed = ref(false)
+const trade = ref('pending')
+
+const playerTools = [
+  { title: 'A sheet that does the maths', text: 'Base attributes, custom stats, health and armour class. Equipped gear updates the totals as you drag it on.' },
+  { title: 'A backpack with real space', text: 'Multi-cell items, rotation, stacks, durability and enchantment, plus slots for weapons, armour, rings and an amulet.' },
+  { title: 'Trades the table can trust', text: 'Offer items to another character. They sit in escrow until the other player accepts or declines.' },
+  { title: 'Chat with item links', text: 'Share an item in chat and anyone can open its full card without leaving the session.' },
+]
+
+const gmTools = [
+  { title: 'Your own compendium', text: 'Rarity tiers, tags, requirements, attribute modifiers and images for every item in the campaign.' },
+  { title: 'Loot in two clicks', text: 'Add items to a transfer cart and deliver them straight into a character’s inventory.' },
+  { title: 'Everything on record', text: 'Activity log of inventory and character actions, full chat history, and searchable player tables.' },
+  { title: 'Your table, your rules', text: 'Invite by link or code, assign assistant GMs, and switch chat, trading or standard attributes per game.' },
+]
+
+const steps = [
+  { title: 'Create an account', text: 'Free, with no card needed.' },
+  { title: 'Start a campaign', text: 'Name it, set the rules, share the invite code.' },
+  { title: 'Play', text: 'Characters, loot and chat stay in one tab all night.' },
+]
+
+const freeLine = computed(() => {
+  const plan = freePlan.value
+  if (!plan) return ''
+  const games = plan.max_games_owned === -1 ? 'unlimited campaigns' : `${plan.max_games_owned} campaigns`
+  const players = plan.max_players_per_game === -1 ? 'unlimited players' : `up to ${plan.max_players_per_game} players each`
+  return `Free plan: ${games}, ${players}.`
+})
+
+let observer = null
 
 onMounted(async () => {
-  try {
-    const { data } = await api.get('/news', { params: { limit: 3, offset: 0 } })
-    news.value = data.posts || []
-  } catch (e) {}
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObserver' in window) {
+    armed.value = true
+    observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-in')
+          observer.unobserve(entry.target)
+        }
+      }
+    }, { rootMargin: '0px 0px -12% 0px' })
+    page.value?.querySelectorAll('[data-reveal]').forEach((el) => observer.observe(el))
+  }
+
+  const [newsResult, plansResult] = await Promise.allSettled([
+    api.get('/news', { params: { limit: 3, offset: 0 } }),
+    api.get('/plans'),
+  ])
+  if (newsResult.status === 'fulfilled') news.value = newsResult.value.data.posts || []
+  if (plansResult.status === 'fulfilled') freePlan.value = (plansResult.value.data || []).find((plan) => plan.id === 'free') || null
 })
+
+onBeforeUnmount(() => observer?.disconnect())
 
 function getPreviewText(content) {
   try {
@@ -23,341 +73,671 @@ function getPreviewText(content) {
     return content || ''
   }
 }
+
+function formatDate(value) {
+  return new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
 </script>
 
 <template>
   <HomeLayout>
-  <div class="landing-page">
-    <section class="landing-hero relative overflow-hidden flex items-center">
-      <div class="absolute inset-0">
-        <img :src="bg2Image" alt="" class="w-full h-full object-cover scale-110 opacity-25" />
-      </div>
-      <div class="absolute inset-0 bg-linear-to-b from-[#0a0a1a]/55 via-[#0a0a1a]/82 to-[#0a0a1a]" />
-      <div class="absolute inset-0 pointer-events-none">
-        <div class="absolute -top-16 left-[8%] w-[30rem] h-[30rem] bg-[#e94560]/12 rounded-full blur-[160px]" />
-        <div class="absolute bottom-[-6rem] right-[6%] w-[34rem] h-[34rem] bg-[#7ec8e3]/10 rounded-full blur-[180px]" />
-      </div>
-
-      <div class="relative w-full max-w-[1240px] mx-auto px-6 py-24 lg:py-28 grid lg:grid-cols-[1.05fr_0.95fr] gap-14 lg:gap-16 items-center">
-        <!-- Copy -->
-        <div class="max-w-2xl">
-          <span class="inline-flex items-center gap-2.5 rounded-full border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.07)] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#8fd7ef]">
-            <span class="relative flex h-2 w-2">
-              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#e94560] opacity-70"></span>
-              <span class="relative inline-flex h-2 w-2 rounded-full bg-[#e94560]"></span>
-            </span>
-            Campaign Platform
-          </span>
-
-          <h1 class="mt-6 font-[Cinzel] text-[44px] sm:text-[56px] lg:text-[64px] font-bold leading-[1.04] tracking-wide text-[#f3f4f8]">
-            Your Tabletop,<br />
-            <span class="text-transparent bg-clip-text bg-linear-to-r from-[#ff6b81] via-[#e94560] to-[#ff8aa0]">Reimagined.</span>
-          </h1>
-
-          <p class="mt-6 max-w-xl text-[17px] md:text-[19px] leading-relaxed text-[#c8d6e5]/85">
-            Manage characters, inventories, and equipment online. Run your tabletop campaigns and play with friends — entirely in your browser.
-          </p>
-
-          <div class="mt-7 flex flex-wrap gap-2.5">
-            <span v-for="perk in ['Free to play', 'No downloads', 'Browser-based']" :key="perk" class="inline-flex items-center gap-1.5 rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.05)] px-3 py-1.5 text-[13px] text-[#c8d6e5]/82">
-              <svg class="w-3.5 h-3.5 text-[#e94560] flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
-              {{ perk }}
-            </span>
+    <div ref="page" class="landing" :class="{ 'landing--armed': armed }">
+      <!-- Hero -->
+      <section class="hero" data-tilt-scope>
+        <div class="hero__inner">
+          <div class="hero__copy">
+            <h1 class="hero__title">
+              <span class="hero__line"><span>Your Tabletop,</span></span>
+              <span class="hero__line"><span>Reimagined.</span></span>
+            </h1>
+            <p class="hero__lede">
+              Characters, grid inventories, loot and trades for your whole party, in one browser tab. No downloads, no hosting.
+            </p>
+            <div class="hero__actions">
+              <router-link to="/auth?mode=register" class="btn-primary group">
+                Create free account
+                <svg class="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+              </router-link>
+              <router-link to="/auth" class="btn-quiet">I have an account</router-link>
+            </div>
+            <p class="hero__fine" :class="{ 'opacity-0': !freeLine }">{{ freeLine || 'Free plan available.' }}</p>
           </div>
 
-          <div class="mt-9 flex flex-wrap items-center gap-3.5">
-            <router-link
-              to="/auth"
-              class="group inline-flex items-center gap-2 py-4 px-9 bg-linear-to-br from-[#e94560] to-[#c23152] text-white text-[16px] font-semibold no-underline rounded-xl hover:-translate-y-0.5 hover:shadow-[0_14px_40px_rgba(233,69,96,0.45)] transition-all duration-300 active:translate-y-0"
-            >
-              Create Free Account
-              <svg class="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+          <div class="hero__tray">
+            <div class="tray" aria-hidden="true" />
+            <LandingDie class="hero__die" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Inventory proof -->
+      <section id="inventory" class="section scroll-mt-20">
+        <div class="section__inner">
+          <div class="section__head" data-reveal>
+            <h2 class="section__title">Every item takes its real space</h2>
+            <p class="section__lede">
+              A longbow is three cells tall, armour is two by three, arrows stack. Drag gear onto your character and the stats follow. Gear you can’t wield yet stays greyed out.
+            </p>
+          </div>
+          <LandingInventoryDemo />
+          <ul class="rarity" data-reveal aria-label="Rarity tiers">
+            <li v-for="r in ['common', 'uncommon', 'rare', 'epic', 'masterwork', 'legendary', 'unique']" :key="r" :style="{ '--resin': `var(--color-r-${r})` }">
+              {{ r.charAt(0).toUpperCase() + r.slice(1) }}
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Players and GMs -->
+      <section class="section section--deep">
+        <div class="section__inner">
+          <h2 class="section__title" data-reveal>Players and GMs, one table</h2>
+
+          <div class="roles">
+            <div class="roles__col" data-reveal="list">
+              <h3 class="roles__who">For players</h3>
+              <ul>
+                <li v-for="(tool, i) in playerTools" :key="tool.title" :style="{ '--d': `${i * 80}ms` }">
+                  <strong>{{ tool.title }}</strong>
+                  <span>{{ tool.text }}</span>
+                </li>
+              </ul>
+            </div>
+            <div class="roles__col" data-reveal="list">
+              <h3 class="roles__who">For game masters</h3>
+              <ul>
+                <li v-for="(tool, i) in gmTools" :key="tool.title" :style="{ '--d': `${i * 80}ms` }">
+                  <strong>{{ tool.title }}</strong>
+                  <span>{{ tool.text }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="offer" data-reveal :data-state="trade">
+            <span class="offer__swatch num" aria-hidden="true">CT</span>
+            <p v-if="trade === 'pending'" class="offer__text">
+              <span class="text-orchid font-semibold">Brannoc</span> offers you
+              <span class="text-r-masterwork font-semibold">Cloak of the Tide</span>. Held in escrow until you answer.
+            </p>
+            <p v-else-if="trade === 'accepted'" class="offer__text">
+              <span class="text-r-masterwork font-semibold">Cloak of the Tide</span> is in Kaela’s backpack. Brannoc gets a notification.
+            </p>
+            <p v-else class="offer__text">Declined. The cloak goes back to Brannoc’s inventory.</p>
+            <div class="offer__actions">
+              <template v-if="trade === 'pending'">
+                <button type="button" class="btn-quiet btn-sm" @click="trade = 'declined'">Decline</button>
+                <button type="button" class="btn-primary btn-sm" @click="trade = 'accepted'">Accept</button>
+              </template>
+              <button v-else type="button" class="btn-quiet btn-sm" @click="trade = 'pending'">Show the offer again</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Steps -->
+      <section class="section">
+        <div class="section__inner">
+          <h2 class="section__title" data-reveal>From sign-up to first roll</h2>
+          <ol class="steps" data-reveal="list">
+            <li v-for="(step, i) in steps" :key="step.title" :style="{ '--d': `${i * 90}ms` }">
+              <span class="steps__n num" aria-hidden="true">{{ i + 1 }}</span>
+              <strong>{{ step.title }}</strong>
+              <span>{{ step.text }}</span>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- News -->
+      <section v-if="news.length" class="section section--deep">
+        <div class="section__inner">
+          <div class="flex items-baseline justify-between gap-6" data-reveal>
+            <h2 class="section__title">From the workshop</h2>
+            <router-link to="/news" class="link">All news</router-link>
+          </div>
+          <div class="news">
+            <router-link v-for="post in news" :key="post.id" :to="`/news/${post.id}`" class="news__item">
+              <div class="news__img">
+                <img v-if="post.image_id" :src="`${API_URL}/api/uploads/${post.image_id}`" :alt="post.title" />
+              </div>
+              <p class="text-[13px] text-faint">{{ formatDate(post.created_at) }}</p>
+              <h3 class="mt-1 text-[17px] font-semibold text-ink">{{ post.title }}</h3>
+              <p class="mt-1.5 text-[14px] leading-relaxed text-dim line-clamp-2">{{ getPreviewText(post.content) }}</p>
             </router-link>
-            <a
-              href="#how"
-              class="inline-flex items-center gap-2 py-4 px-7 border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.06)] text-[#e8e8f0] text-[15px] font-semibold no-underline rounded-xl hover:border-[rgba(126,200,227,0.4)] hover:bg-[rgba(126,200,227,0.1)] transition-all duration-300"
-            >
-              See how it works
-            </a>
           </div>
         </div>
+      </section>
 
-        <!-- Product mockup -->
-        <div class="relative hidden lg:block">
-          <div class="landing-atlas relative">
-            <div class="flex items-center gap-3 px-5 py-3.5 border-b border-[rgba(126,200,227,0.1)]">
-              <div class="flex gap-1.5">
-                <span class="h-3 w-3 rounded-full bg-[#e94560]/70"></span>
-                <span class="h-3 w-3 rounded-full bg-[#f0c674]/70"></span>
-                <span class="h-3 w-3 rounded-full bg-[#86efac]/70"></span>
-              </div>
-              <div class="ml-2 flex items-center gap-3">
-                <img :src="logo" alt="DogmaLiter" class="w-11 h-11 object-contain drop-shadow-[0_0_24px_rgba(233,69,96,0.35)] animate-float" />
-                <div>
-                  <p class="text-[10px] uppercase tracking-[0.22em] text-[#7ec8e3]/45">Live Board</p>
-                  <p class="font-[Cinzel] text-[20px] font-bold text-[#f6f7fb] leading-tight">Campaign Atlas</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="p-4 grid grid-cols-2 gap-3">
-              <article class="landing-atlas__cell p-4">
-                <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">GM Control</p>
-                <p class="mt-2 text-[14px] leading-relaxed text-[#e8e8f0]/82">Run parties, items, sheets and invites from one place.</p>
-              </article>
-              <article class="landing-atlas__cell p-4">
-                <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">Player Ready</p>
-                <p class="mt-2 text-[14px] leading-relaxed text-[#e8e8f0]/82">Open a character, browse inventory and stay in chat.</p>
-              </article>
-              <article class="landing-atlas__cell p-4 col-span-2">
-                <p class="text-[10px] uppercase tracking-[0.2em] text-[#7ec8e3]/45">Why It Feels Better</p>
-                <p class="mt-2 text-[14px] leading-relaxed text-[#e8e8f0]/82">DogmaLiter keeps the tabletop rhythm intact: less setup friction, more space for party management, fast entry into play.</p>
-              </article>
-            </div>
-          </div>
-
-          <div class="absolute -left-5 -bottom-5 flex items-center gap-2.5 rounded-2xl border border-[rgba(126,200,227,0.16)] bg-[rgba(10,16,28,0.94)] px-4 py-3 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
-            <span class="relative flex h-2.5 w-2.5">
-              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#86efac] opacity-60"></span>
-              <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#86efac]"></span>
-            </span>
-            <div>
-              <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Status</p>
-              <p class="text-[13px] font-semibold text-[#f6f7fb]">Session live</p>
-            </div>
+      <!-- Close -->
+      <section class="close">
+        <div class="close__inner" data-reveal>
+          <h2 class="close__title">Roll for initiative.</h2>
+          <p class="close__lede">Set up your campaign tonight. Your players only need the invite code.</p>
+          <div class="hero__actions justify-center">
+            <router-link to="/auth?mode=register" class="btn-primary">Create free account</router-link>
+            <router-link to="/plans" class="btn-quiet">Compare plans</router-link>
           </div>
         </div>
-      </div>
-    </section>
-
-    <section id="how" class="landing-section landing-section--framed relative scroll-mt-24 py-20 overflow-hidden">
-      <div class="absolute inset-0 bg-[#0a0a1a]" />
-      <div class="landing-section-shell relative max-w-[1400px] mx-auto px-6 py-10">
-        <h2 class="font-[Cinzel] text-[32px] font-bold text-[#e8e8f0] tracking-wide text-center mb-4">How It Works</h2>
-        <p class="text-[#7ec8e3]/50 text-center text-[16px] mb-14 max-w-lg mx-auto">Get started in minutes. No complicated setup.</p>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div class="landing-process-card relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(233,69,96,0.25)] hover:-translate-y-1 transition-all duration-300 group">
-            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#e94560] to-[#c23152] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(233,69,96,0.4)] transition-shadow">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zM4 19.235v-.11a6.375 6.375 0 0112.75 0v.109A12.318 12.318 0 0110.374 21c-2.331 0-4.512-.645-6.374-1.766z" /></svg>
-            </div>
-            <h3 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] mb-2">Sign Up Free</h3>
-            <p class="text-[#7ec8e3]/45 text-[14px] leading-relaxed">Create your account in seconds. Free tier available forever, whether you're a GM or player.</p>
-          </div>
-
-          <div class="landing-process-card relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(126,200,227,0.25)] hover:-translate-y-1 transition-all duration-300 group">
-            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#7ec8e3] to-[#4a9bb5] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(126,200,227,0.35)] transition-shadow">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
-            </div>
-            <h3 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] mb-2">Create a Game</h3>
-            <p class="text-[#7ec8e3]/45 text-[14px] leading-relaxed">Set up your campaign with custom rules, maps, and items. Full creative control in your hands.</p>
-          </div>
-
-          <div class="landing-process-card relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(167,139,250,0.25)] hover:-translate-y-1 transition-all duration-300 group">
-            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#a78bfa] to-[#7c3aed] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(167,139,250,0.35)] transition-shadow">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
-            </div>
-            <h3 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] mb-2">Find Your Party</h3>
-            <p class="text-[#7ec8e3]/45 text-[14px] leading-relaxed">Invite friends with a link or let them join by code. Build your group and get ready to play.</p>
-          </div>
-
-          <div class="landing-process-card relative p-7 bg-[rgba(15,15,35,0.5)] border border-[rgba(126,200,227,0.08)] rounded-2xl text-center hover:border-[rgba(251,146,60,0.25)] hover:-translate-y-1 transition-all duration-300 group">
-            <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-linear-to-br from-[#fb923c] to-[#ea580c] flex items-center justify-center group-hover:shadow-[0_12px_35px_rgba(251,146,60,0.35)] transition-shadow">
-              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 010 1.972l-11.54 6.347a1.125 1.125 0 01-1.667-.986V5.653z" /></svg>
-            </div>
-            <h3 class="font-[Cinzel] text-[18px] font-bold text-[#e8e8f0] mb-2">Play</h3>
-            <p class="text-[#7ec8e3]/45 text-[14px] leading-relaxed">That's it. No downloads, no hosting, no setup. Just click and play your adventure.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="landing-section max-w-[1400px] mx-auto px-6 py-20">
-      <h2 class="font-[Cinzel] text-[32px] font-bold text-[#e8e8f0] tracking-wide text-center mb-4">Everything You Need</h2>
-      <p class="text-[#7ec8e3]/50 text-center text-[16px] mb-14 max-w-lg mx-auto">Powerful tools for GMs and players alike.</p>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div class="landing-feature-card p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
-          <div class="w-14 h-14 rounded-xl bg-[rgba(233,69,96,0.15)] flex items-center justify-center mb-5 group-hover:bg-[rgba(233,69,96,0.25)] transition-colors">
-            <svg class="w-7 h-7 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" /></svg>
-          </div>
-          <h3 class="font-[Cinzel] text-[20px] font-bold text-[#e8e8f0] mb-3">Real-Time Chat</h3>
-          <p class="text-[#7ec8e3]/50 text-[15px] leading-relaxed">Built-in chat where you can share items for inspection, discuss strategies, and keep the story flowing.</p>
-        </div>
-
-        <div class="landing-feature-card p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
-          <div class="w-14 h-14 rounded-xl bg-[rgba(233,69,96,0.15)] flex items-center justify-center mb-5 group-hover:bg-[rgba(233,69,96,0.25)] transition-colors">
-            <svg class="w-7 h-7 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" /></svg>
-          </div>
-          <h3 class="font-[Cinzel] text-[20px] font-bold text-[#e8e8f0] mb-3">Character Sheets</h3>
-          <p class="text-[#7ec8e3]/50 text-[15px] leading-relaxed">Fully customizable character sheets with attributes, inventory, and equipment management.</p>
-        </div>
-
-        <div class="landing-feature-card p-8 bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.1)] rounded-2xl hover:border-[rgba(233,69,96,0.3)] hover:-translate-y-1 transition-all duration-300 group">
-          <div class="w-14 h-14 rounded-xl bg-[rgba(233,69,96,0.15)] flex items-center justify-center mb-5 group-hover:bg-[rgba(233,69,96,0.25)] transition-colors">
-            <svg class="w-7 h-7 text-[#e94560]" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" /></svg>
-          </div>
-          <h3 class="font-[Cinzel] text-[20px] font-bold text-[#e8e8f0] mb-3">Grid Inventory</h3>
-          <p class="text-[#7ec8e3]/50 text-[15px] leading-relaxed">Drag-and-drop grid inventory with equipment slots, durability, and item requirements. GMs hand out loot from a shared compendium.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="landing-section landing-section--news max-w-[1400px] mx-auto px-6 py-16 border-t border-[rgba(126,200,227,0.08)]">
-      <div class="flex items-center justify-between mb-10">
-        <h2 class="font-[Cinzel] text-[28px] font-bold text-[#e8e8f0] tracking-wide">Latest News</h2>
-        <router-link to="/news" class="text-[#e94560] text-[14px] font-medium no-underline hover:text-[#ff6b81] transition-colors">
-          View all &rarr;
-        </router-link>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <router-link
-          v-for="post in news"
-          :key="post.id"
-          :to="`/news/${post.id}`"
-          class="landing-news-card bg-[rgba(15,15,35,0.6)] border border-[rgba(126,200,227,0.08)] rounded-xl overflow-hidden hover:border-[rgba(126,200,227,0.18)] hover:-translate-y-1 transition-all duration-300 no-underline"
-        >
-          <div class="h-40 bg-[rgba(126,200,227,0.05)] overflow-hidden">
-            <img v-if="post.image_id" :src="`${API_URL}/api/uploads/${post.image_id}`" :alt="post.title" class="w-full h-full object-cover" />
-            <div v-else class="w-full h-full flex items-center justify-center">
-              <span class="text-[#7ec8e3]/20 text-sm">No image</span>
-            </div>
-          </div>
-          <div class="p-5">
-            <p class="text-[#7ec8e3]/30 text-xs mb-2">{{ new Date(post.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) }}</p>
-            <h3 class="text-[#e8e8f0] text-[16px] font-semibold mb-2">{{ post.title }}</h3>
-            <p class="text-[#7ec8e3]/40 text-[13px] leading-relaxed line-clamp-2">{{ getPreviewText(post.content) }}</p>
-          </div>
-        </router-link>
-        <div v-if="news.length === 0" class="col-span-3 text-center py-12 text-[#7ec8e3]/30 text-sm">No news yet</div>
-      </div>
-    </section>
-
-    <section class="landing-section landing-cta relative py-20 overflow-hidden">
-      <div class="absolute inset-0">
-        <img :src="bgImage" alt="" class="w-full h-full object-cover blur-[4px] scale-105 opacity-20" />
-      </div>
-      <div class="absolute inset-0 bg-[#0a0a1a]/75" />
-      <div class="landing-cta-shell relative max-w-[700px] mx-auto px-6 py-10 text-center">
-        <h2 class="font-[Cinzel] text-[32px] md:text-[38px] font-bold text-[#e8e8f0] mb-5 tracking-wide">Ready to Start Your Adventure?</h2>
-        <p class="text-[#7ec8e3]/60 text-[16px] mb-10">Join DogmaLiter and bring your tabletop stories to life. It's free.</p>
-        <router-link
-          to="/auth"
-          class="inline-block py-4 px-12 bg-linear-to-br from-[#e94560] to-[#c23152] text-white text-[16px] font-semibold no-underline rounded-xl hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(233,69,96,0.45)] transition-all duration-300"
-        >
-          Get Started — It's Free
-        </router-link>
-      </div>
-    </section>
-  </div>
+      </section>
+    </div>
   </HomeLayout>
 </template>
 
 <style scoped>
-.landing-page {
+.landing {
   position: relative;
+  background: var(--color-n1);
 }
 
-.landing-hero__content,
-.landing-section-shell,
-.landing-cta-shell {
-  position: relative;
-  z-index: 1;
+/* ---------- Buttons ---------- */
+.btn-primary,
+.btn-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3.25rem;
+  padding: 0 1.6rem;
+  border-radius: 0.85rem;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.16s ease, box-shadow 0.2s ease;
 }
 
-.landing-atlas,
-.landing-section-shell,
-.landing-feature-card,
-.landing-news-card,
-.landing-cta-shell,
-.landing-metric,
-.landing-atlas__cell,
-.landing-process-card {
+.btn-primary {
+  border: 0;
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-quiet {
+  border: 0;
+  color: var(--color-ink);
+  background: var(--color-n3);
+}
+
+.btn-quiet:hover {
+  background: var(--color-n4);
+}
+
+.btn-primary:active,
+.btn-quiet:active {
+  transform: scale(0.97);
+}
+
+.btn-sm {
+  min-height: 2.5rem;
+  padding: 0 1.1rem;
+  font-size: 14px;
+  border-radius: 0.65rem;
+}
+
+.link {
+  color: var(--color-primary-ink);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: rgb(164 174 255 / 0.35);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s ease;
+}
+
+.link:hover {
+  text-decoration-color: currentColor;
+}
+
+/* ---------- Hero ---------- */
+.hero {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(126, 200, 227, 0.1);
-  background: linear-gradient(180deg, rgba(12, 18, 32, 0.78), rgba(8, 12, 24, 0.9));
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
 }
 
-.landing-atlas::before,
-.landing-section-shell::before,
-.landing-feature-card::before,
-.landing-news-card::before,
-.landing-cta-shell::before,
-.landing-metric::before,
-.landing-atlas__cell::before,
-.landing-process-card::before {
-  content: '';
+.hero__inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 6vh, 5rem) 1.5rem clamp(3.5rem, 8vh, 6rem);
+  min-height: calc(100svh - 4rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+}
+
+.hero__title {
+  margin: 0;
+  font-family: var(--font-num);
+  font-weight: 700;
+  font-size: clamp(3rem, 5.8vw, 5.6rem);
+  line-height: 0.92;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.hero__line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.06em;
+}
+
+.hero__line > span {
+  display: block;
+  white-space: nowrap;
+}
+
+.hero__line:last-child {
+  color: var(--color-primary-ink);
+}
+
+.landing--armed .hero__line > span {
+  animation: line-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.landing--armed .hero__line:nth-child(2) > span {
+  animation-delay: 0.09s;
+}
+
+@keyframes line-rise {
+  from { transform: translateY(105%); }
+  to { transform: none; }
+}
+
+.hero__lede {
+  margin: 1.75rem 0 0;
+  max-width: 32rem;
+  font-size: clamp(18px, 1.35vw, 20px);
+  line-height: 1.55;
+  color: var(--color-ink-soft);
+}
+
+.hero__actions {
+  margin-top: 2.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.hero__fine {
+  margin: 1.1rem 0 0;
+  font-size: 14px;
+  color: var(--color-faint);
+  transition: opacity 0.3s ease;
+}
+
+.landing--armed .hero__lede,
+.landing--armed .hero__actions,
+.landing--armed .hero__fine {
+  animation: fade-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.landing--armed .hero__lede { animation-delay: 0.22s; }
+.landing--armed .hero__actions { animation-delay: 0.32s; }
+.landing--armed .hero__fine { animation-delay: 0.4s; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.hero__tray {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  width: 100%;
+  max-width: 640px;
+  justify-self: end;
+}
+
+/* A round dice tray pressed into the page. */
+.tray {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 24%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 18px);
-  opacity: 0.7;
+  inset: 4%;
+  border-radius: 50%;
+  background: var(--color-n0);
+  box-shadow:
+    inset 0 18px 50px rgb(0 0 0 / 0.55),
+    inset 0 0 0 1px var(--color-n3),
+    0 0 0 14px var(--color-n2),
+    0 0 0 15px var(--color-n3);
 }
 
-.landing-atlas,
-.landing-section-shell,
-.landing-cta-shell {
-  border-radius: 2rem;
+.hero__die {
+  position: relative;
+  width: 70%;
+  margin-top: -4%;
 }
 
-.landing-feature-card,
-.landing-news-card,
-.landing-process-card,
-.landing-metric,
-.landing-atlas__cell {
-  border-radius: 1.35rem;
+/* ---------- Sections ---------- */
+.section {
+  padding: clamp(4.5rem, 10vw, 8rem) 0;
 }
 
-.landing-hero__metrics {
-  align-items: stretch;
+.section--deep {
+  background: var(--color-n0);
 }
 
-.landing-section--framed {
-  padding-inline: 1.5rem;
+.section__inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
-.landing-section-shell {
-  backdrop-filter: blur(10px);
+.section__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.5rem 4rem;
+  align-items: end;
+  margin-bottom: 2.5rem;
 }
 
-.landing-news-card,
-.landing-feature-card,
-.landing-process-card {
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+.section__title {
+  margin: 0;
+  font-size: clamp(2rem, 3.6vw, 3rem);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--color-ink);
+  text-wrap: balance;
 }
 
-.landing-news-card:hover,
-.landing-feature-card:hover,
-.landing-process-card:hover {
-  border-color: rgba(233, 69, 96, 0.22);
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.26);
+.section__lede {
+  margin: 0;
+  max-width: 36rem;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-dim);
 }
 
-.landing-cta-shell {
-  backdrop-filter: blur(10px);
+.rarity {
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  font-size: 14px;
+  color: var(--color-dim);
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
-}
-.animate-float {
-  animation: float 4s ease-in-out infinite;
+.rarity li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-@media (max-width: 767px) {
-  .landing-hero__copy,
-  .landing-section-shell,
-  .landing-cta-shell {
-    border-radius: 1.5rem;
+.rarity li::before {
+  content: '';
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 0.25rem;
+  background: color-mix(in oklab, var(--resin) 40%, var(--color-n2));
+  box-shadow: inset 0 0 0 1.5px var(--resin);
+}
+
+/* Roles */
+.roles {
+  margin-top: 3rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3rem 4.5rem;
+}
+
+.roles__who {
+  margin: 0 0 1.25rem;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary-ink);
+}
+
+.roles ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.roles li,
+.steps li {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.roles strong,
+.steps strong {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.roles li span,
+.steps li > span:last-child {
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-dim);
+  max-width: 34rem;
+}
+
+.offer {
+  margin-top: 3.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem 1.25rem;
+  flex-wrap: wrap;
+  padding: 1.1rem 1.25rem;
+  border-radius: 1rem;
+  background: var(--color-n2);
+  box-shadow: inset 0 0 0 1px rgb(232 144 210 / 0.35);
+  transition: box-shadow 0.3s ease;
+}
+
+.offer[data-state='accepted'] {
+  box-shadow: inset 0 0 0 1px rgb(98 214 157 / 0.4);
+}
+
+.offer[data-state='declined'] {
+  box-shadow: inset 0 0 0 1px var(--color-n5);
+}
+
+.offer__swatch {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: color-mix(in oklab, var(--color-r-masterwork) 40%, white);
+  border-radius: 0.6rem;
+  background: color-mix(in oklab, var(--color-r-masterwork) 26%, var(--color-n2));
+  box-shadow: inset 0 0 0 1.5px var(--color-r-masterwork);
+}
+
+.offer__text {
+  margin: 0;
+  flex: 1 1 18rem;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--color-ink-soft);
+}
+
+.offer__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Steps */
+.steps {
+  margin: 3rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2.5rem;
+}
+
+.steps__n {
+  font-size: 4.5rem;
+  line-height: 0.9;
+  font-weight: 700;
+  color: var(--color-n8);
+  margin-bottom: 0.75rem;
+}
+
+/* News */
+.news {
+  margin-top: 2.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+}
+
+.news__item {
+  text-decoration: none;
+  color: inherit;
+}
+
+.news__img {
+  aspect-ratio: 16 / 10;
+  margin-bottom: 1rem;
+  border-radius: 0.9rem;
+  overflow: hidden;
+  background: var(--color-n2);
+}
+
+.news__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.news__item:hover .news__img img {
+  transform: scale(1.03);
+}
+
+/* Close */
+.close {
+  padding: clamp(5rem, 11vw, 8rem) 1.5rem;
+  text-align: center;
+  background: var(--color-n0);
+}
+
+.close__inner {
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.close__title {
+  margin: 0;
+  font-family: var(--font-num);
+  font-weight: 700;
+  font-size: clamp(2.8rem, 6vw, 5rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+
+.close__lede {
+  margin: 1.25rem auto 0;
+  max-width: 30rem;
+  font-size: 18px;
+  line-height: 1.55;
+  color: var(--color-dim);
+}
+
+/* ---------- Scroll reveals ---------- */
+.landing--armed [data-reveal] {
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing--armed [data-reveal]:not(.is-in) {
+  opacity: 0;
+  transform: translateY(24px);
+}
+
+.landing--armed [data-reveal='list'] {
+  opacity: 1;
+  transform: none;
+}
+
+.landing--armed [data-reveal='list'] li {
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms);
+}
+
+.landing--armed [data-reveal='list']:not(.is-in) li {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 960px) {
+  .hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+    padding-top: 1.5rem;
   }
 
-  .landing-section--framed {
-    padding-inline: 0;
+  .hero__tray {
+    order: -1;
+    max-width: 360px;
+    justify-self: center;
+  }
+
+  .section__head,
+  .roles,
+  .news {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.75rem;
+  }
+
+  .steps li {
+    grid-template-columns: 3.25rem minmax(0, 1fr);
+    column-gap: 1rem;
+  }
+
+  .steps__n {
+    grid-row: span 2;
+    margin: 0;
+    font-size: 3.25rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .hero__inner,
+  .section__inner {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .hero__tray {
+    max-width: 280px;
+  }
+
+  .tray {
+    box-shadow:
+      inset 0 12px 36px rgb(0 0 0 / 0.55),
+      inset 0 0 0 1px var(--color-n3),
+      0 0 0 9px var(--color-n2),
+      0 0 0 10px var(--color-n3);
+  }
+
+  .hero__actions > * {
+    flex: 1 1 100%;
   }
 }
 </style>

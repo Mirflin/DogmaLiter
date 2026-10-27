@@ -1,0 +1,68 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@1,400;1,500&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--sky:#0b1433;--sky2:#101b40;--chalk:#f4f1e6;--dim:#8d97bd;--amber:#f2a65a;--orchid:#e58ccf;--grid:rgba(244,241,230,.07)}
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;color:var(--chalk);font:14px/1.5 'Hanken Grotesk',sans-serif;
+background:radial-gradient(circle at 20% 30%,rgba(244,241,230,.5) 0 1px,transparent 1.5px),radial-gradient(circle at 70% 60%,rgba(244,241,230,.4) 0 1px,transparent 1.5px),var(--sky);background-size:220px 180px,170px 210px,auto}
+.n{font-variant-numeric:tabular-nums;font-weight:600}
+.it-name{font-family:Spectral,serif;font-style:italic}
+header{height:56px;display:flex;align-items:center;gap:24px;padding:0 24px;border-bottom:1px solid var(--grid)}
+header b{font-family:Spectral;font-style:italic;font-size:22px;font-weight:500}
+nav{display:flex;gap:18px;color:var(--dim)}nav a.on{color:var(--chalk);text-decoration:underline;text-decoration-color:var(--amber);text-underline-offset:8px}
+main{display:grid;grid-template-columns:300px 1fr 320px;gap:0;height:844px}
+section{padding:24px;border-right:1px solid var(--grid)}
+h2{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:18px 0 10px;font-weight:600}
+.who b{font-family:Spectral;font-style:italic;font-size:24px;font-weight:500;display:block}.who span{color:var(--dim)}
+.st{display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--grid)}
+.st .dot{border-radius:50%;background:var(--chalk)}
+.st .n{margin-left:auto}
+.mod{color:var(--amber);width:28px;text-align:right}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slots i{aspect-ratio:1;border-radius:50%;border:1px solid var(--grid)}
+.slots i.f{border-color:var(--chalk)}
+.top{display:flex;gap:28px;align-items:baseline;margin-bottom:16px}.top .n{font-size:22px}.top small{color:var(--dim)}
+.grid{position:relative;width:680px;height:476px;background:repeating-linear-gradient(0deg,var(--grid) 0 1px,transparent 1px 68px),repeating-linear-gradient(90deg,var(--grid) 0 1px,transparent 1px 68px);border:1px solid rgba(244,241,230,.18)}
+.it{position:absolute;padding:8px 10px;background:rgba(16,27,64,.92);border:1px solid rgba(244,241,230,.18);font-size:13px}
+.it small{display:block;color:var(--dim);font-size:11px}
+.it .mag{position:absolute;right:8px;top:8px;border-radius:50%;background:var(--chalk)}
+.it.sel{outline:2px solid var(--amber);outline-offset:3px}
+.it.lock{opacity:.4}
+.trade{margin-top:20px;padding:14px 0;border-top:1px solid var(--grid);display:flex;gap:12px;align-items:center}
+.btn{padding:7px 14px;border-radius:999px;border:1px solid var(--chalk);background:none;color:var(--chalk);font:inherit;font-weight:600}
+.btn.p{background:var(--amber);border-color:var(--amber);color:var(--sky)}
+.chat p{margin-bottom:14px}.chat b{display:block;color:var(--dim);font-size:12px}
+</style></head><body>
+<header><b>DogmaLiter</b><span style="color:var(--dim)">The Ashen Reach</span><nav><a>Character</a><a class="on">Inventory</a><a>Characters</a><a>Items</a><a>Manage</a></nav><span style="margin-left:auto;color:var(--dim)">Session 2h 14m</span></header>
+<main>
+<section><div class="who"><b>Kaela Thornwood</b><span>Half-elf ranger · Lv 6</span></div>
+<h2>Vitals</h2><div class="st">Health<span class="n">34 / 42</span></div><div class="st">Armor Class<span class="n">15</span></div>
+<h2>Attributes</h2>
+<div class="st"><i class="dot" style="width:5px;height:5px"></i>STR<span class="n">12</span><span class="mod">+1</span></div>
+<div class="st"><i class="dot" style="width:11px;height:11px"></i>DEX<span class="n">18</span><span class="mod">+4</span></div>
+<div class="st"><i class="dot" style="width:7px;height:7px"></i>CON<span class="n">14</span><span class="mod">+2</span></div>
+<div class="st"><i class="dot" style="width:4px;height:4px"></i>INT<span class="n">10</span><span class="mod">+0</span></div>
+<div class="st"><i class="dot" style="width:7px;height:7px"></i>WIS<span class="n">15</span><span class="mod">+2</span></div>
+<div class="st"><i class="dot" style="width:3px;height:3px"></i>CHA<span class="n">9</span><span class="mod">−1</span></div>
+<h2>Equipment</h2><div class="slots"><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i class="f"></i><i></i><i></i></div></section>
+<section>
+<div class="top"><span><span class="n">128</span> <small>Gold</small></span><span><span class="n">40</span> <small>Silver</small></span><span><span class="n">12</span> <small>Bronze</small></span><small style="margin-left:auto">31 / 70 cells</small></div>
+<div class="grid">
+<div class="it" style="left:0;top:0;width:68px;height:204px"><span class="it-name">Longbow</span><small>Rare</small><i class="mag" style="width:9px;height:9px"></i></div>
+<div class="it" style="left:68px;top:0;width:136px;height:204px"><span class="it-name">Studded Leather</span><small>Uncommon</small><i class="mag" style="width:6px;height:6px"></i></div>
+<div class="it" style="left:204px;top:0;width:68px;height:68px"><span class="it-name">Potion</span><small>×3</small></div>
+<div class="it" style="left:272px;top:0;width:136px;height:68px"><span class="it-name">Arrows</span><small>×46</small></div>
+<div class="it sel" style="left:204px;top:68px;width:68px;height:68px"><span class="it-name">Ember Ring</span><small>Epic</small><i class="mag" style="width:12px;height:12px"></i></div>
+<div class="it lock" style="left:408px;top:0;width:136px;height:136px"><span class="it-name">Warden's Greatshield</span><small>Needs STR 16</small><i class="mag" style="width:15px;height:15px;background:var(--orchid)"></i></div>
+<div class="it" style="left:0;top:204px;width:136px;height:68px"><span class="it-name">Rope 50 ft</span></div>
+<div class="it" style="left:136px;top:204px;width:68px;height:136px"><span class="it-name">Moon Dagger</span><small>Rare</small><i class="mag" style="width:9px;height:9px"></i></div>
+</div>
+<div class="trade"><span><b>Brannoc</b> offers <span class="it-name">Cloak of the Tide</span> · held in escrow</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn">Decline</button><button class="btn p">Accept</button></span></div>
+</section>
+<section class="chat" style="border:0"><h2 style="margin-top:0">Party chat</h2>
+<p><b>GM · Orrin</b>The fog lifts. A stone causeway leads to the drowned chapel.</p>
+<p><b>Brannoc</b>I'll trade you the cloak for two potions.</p>
+<p><b>Kaela</b>Deal — sending <span class="it-name" style="color:var(--amber)">Potion of Healing</span></p>
+<p><b>Sefa</b>Rolling perception… 17.</p></section>
+</main></body></html>

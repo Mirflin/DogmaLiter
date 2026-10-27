@@ -1,0 +1,103 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--n0:#070c22;--n1:#0b1230;--n2:#10183b;--n3:#141d44;--n4:#1b2652;--n5:#253264;--n6:#36457c;--ink:#eef1ff;--dim:#9aa5d1;--peri:#6f7fe0;--sky:#4aa3e0;--orchid:#e58ccf;
+--common:#c9cfe6;--uncommon:#e6cf6a;--rare:#4aa3e0;--epic:#a78bfa;--unique:#ef6f7a}
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;background:var(--n1);color:var(--ink);font:14px/1.45 'Hanken Grotesk',sans-serif}
+.num{font-family:'Barlow Semi Condensed',sans-serif;font-variant-numeric:tabular-nums}
+header{height:56px;display:flex;align-items:center;gap:28px;padding:0 24px;background:var(--n0);border-bottom:1px solid var(--n3)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600}
+.d20{width:26px;height:28px;background:linear-gradient(160deg,#4aa3e0,#6f7fe0);clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)}
+.camp{color:var(--dim)}
+nav{display:flex;gap:4px;margin-left:12px}
+nav a{padding:7px 14px;border-radius:8px;color:var(--dim);text-decoration:none;font-weight:500}
+nav a.on{background:var(--n3);color:var(--ink)}
+.right{margin-left:auto;display:flex;gap:16px;align-items:center;color:var(--dim)}
+main{display:grid;grid-template-columns:300px 1fr 320px;gap:16px;padding:16px 24px;height:844px}
+.well{background:var(--n0);border-radius:14px;box-shadow:inset 0 1px 0 rgba(0,0,0,.5),inset 0 0 0 1px var(--n3);padding:16px}
+h2{font-size:12px;font-weight:600;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;margin-bottom:12px}
+.who{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.ava{width:56px;height:56px;border-radius:12px;background:var(--n4)}
+.who b{font-size:18px;display:block}.who span{color:var(--dim)}
+.vit{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.vit div{background:var(--n2);border-radius:10px;padding:10px 12px}
+.vit small{color:var(--dim);display:block}
+.vit .num{font-size:28px;font-weight:700;line-height:1}
+.vit .num i{font-style:normal;color:var(--dim);font-size:18px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px}
+.stats div{background:var(--n2);border-radius:10px;padding:8px;text-align:center}
+.stats small{color:var(--dim);font-size:11px;letter-spacing:.08em}
+.stats .num{font-size:24px;font-weight:700;display:block;line-height:1.1}
+.stats em{font-style:normal;color:var(--orchid);font-size:12px}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.slot{aspect-ratio:1;border-radius:10px;background:var(--n2);box-shadow:inset 0 0 0 1px var(--n4)}
+.slot.f{background:color-mix(in oklab,var(--rare) 22%,var(--n2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--rare) 55%,transparent)}
+.slot.u{background:color-mix(in oklab,var(--uncommon) 18%,var(--n2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--uncommon) 50%,transparent)}
+.center{display:flex;flex-direction:column;gap:16px}
+.bar{display:flex;align-items:center;gap:20px}
+.coin{display:flex;align-items:baseline;gap:6px}.coin .num{font-size:22px;font-weight:700}.coin small{color:var(--dim)}
+.cap{margin-left:auto;color:var(--dim)}
+.grid{position:relative;display:grid;grid-template-columns:repeat(10,64px);grid-template-rows:repeat(7,64px);gap:4px;padding:14px;border-radius:14px;background:var(--n0);box-shadow:inset 0 2px 6px rgba(0,0,0,.6),inset 0 0 0 1px var(--n3);width:max-content}
+.c{background:var(--n2);border-radius:6px}
+.it{position:absolute;border-radius:9px;padding:6px 8px;font-size:12px;font-weight:600;display:flex;flex-direction:column;justify-content:space-between}
+.it small{font-weight:500;opacity:.8}
+.r-rare{background:color-mix(in oklab,var(--rare) 30%,var(--n2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--rare) 70%,transparent);color:#d9eeff}
+.r-unc{background:color-mix(in oklab,var(--uncommon) 22%,var(--n2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--uncommon) 60%,transparent);color:#fbf1c4}
+.r-com{background:color-mix(in oklab,var(--common) 14%,var(--n2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--common) 40%,transparent)}
+.r-epic{background:color-mix(in oklab,var(--epic) 28%,var(--n2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--epic) 70%,transparent);color:#ede5ff}
+.r-uni{background:color-mix(in oklab,var(--unique) 26%,var(--n2));box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--unique) 70%,transparent);color:#ffe1e4}
+.lock{opacity:.42;filter:saturate(.3)}
+.dur{height:3px;border-radius:2px;background:rgba(255,255,255,.15)}.dur i{display:block;height:100%;border-radius:2px;background:currentColor}
+.trade{display:flex;gap:14px;align-items:center;padding:12px 16px;border-radius:12px;background:var(--n2);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--orchid) 45%,transparent)}
+.trade b{color:var(--orchid)}
+.btn{padding:8px 14px;border-radius:8px;font-weight:600;border:0;font:inherit;font-weight:600}
+.btn.p{background:var(--peri);color:#0b1230}.btn.g{background:var(--n4);color:var(--ink)}
+.chat p{margin-bottom:12px}.chat b{display:block;font-size:12px;color:var(--dim)}
+.chat .link{color:var(--rare);font-weight:600}
+.input{margin-top:auto;background:var(--n2);border-radius:10px;padding:10px 12px;color:var(--dim)}
+.col{display:flex;flex-direction:column;height:100%}
+</style></head><body>
+<header><div class="brand"><div class="d20"></div>DogmaLiter</div><span class="camp">The Ashen Reach</span>
+<nav><a>Character</a><a class="on">Inventory</a><a>Characters</a><a>Items</a><a>Manage</a></nav>
+<div class="right"><span>Session · 2h 14m</span><div class="ava" style="width:30px;height:30px;border-radius:50%"></div></div></header>
+<main>
+<section class="well">
+<div class="who"><div class="ava"></div><div><b>Kaela Thornwood</b><span>Half-elf ranger · Lv 6</span></div></div>
+<div class="vit"><div><small>Health</small><span class="num">34<i>/42</i></span></div><div><small>Armor Class</small><span class="num">15</span></div></div>
+<h2>Attributes</h2>
+<div class="stats">
+<div><small>STR</small><span class="num">12</span><em>+1</em></div><div><small>DEX</small><span class="num">18</span><em>+4</em></div><div><small>CON</small><span class="num">14</span><em>+2</em></div>
+<div><small>INT</small><span class="num">10</span><em>+0</em></div><div><small>WIS</small><span class="num">15</span><em>+2</em></div><div><small>CHA</small><span class="num">9</span><em>−1</em></div></div>
+<h2>Equipment</h2>
+<div class="slots"><div class="slot f"></div><div class="slot u"></div><div class="slot"></div><div class="slot"></div><div class="slot"></div><div class="slot f"></div><div class="slot"></div><div class="slot"></div></div>
+</section>
+<section class="center">
+<div class="bar"><div class="coin"><span class="num">128</span><small>Gold</small></div><div class="coin"><span class="num">40</span><small>Silver</small></div><div class="coin"><span class="num">12</span><small>Bronze</small></div><span class="cap">31 / 70 cells</span></div>
+<div class="grid">
+<div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div>
+<div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div>
+<div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div>
+<div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div>
+<div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div>
+<div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div>
+<div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div>
+<div class="it r-rare" style="left:14px;top:14px;width:64px;height:196px">Longbow<small>Rare</small><span class="dur"><i style="width:80%"></i></span></div>
+<div class="it r-unc" style="left:82px;top:14px;width:132px;height:196px">Studded Leather<small>Uncommon</small><span class="dur"><i style="width:55%"></i></span></div>
+<div class="it r-com" style="left:218px;top:14px;width:64px;height:64px">Potion<small>×3</small></div>
+<div class="it r-com" style="left:286px;top:14px;width:132px;height:64px">Arrows<small>×46</small></div>
+<div class="it r-epic" style="left:218px;top:82px;width:64px;height:64px">Ember Ring<small>Epic</small></div>
+<div class="it r-uni lock" style="left:422px;top:14px;width:132px;height:132px">Warden's Greatshield<small>Needs STR 16</small></div>
+<div class="it r-com" style="left:14px;top:218px;width:132px;height:64px">Rope 50 ft</div>
+<div class="it r-rare" style="left:150px;top:218px;width:64px;height:132px">Moon Dagger<small>Rare</small></div>
+</div>
+<div class="trade"><span><b>Brannoc</b> offers you <b style="color:var(--rare)">Cloak of the Tide</b> · held in escrow</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn g">Decline</button><button class="btn p">Accept</button></span></div>
+</section>
+<section class="well col chat"><h2>Party chat</h2>
+<p><b>GM · Orrin</b>The fog lifts. A stone causeway leads to the drowned chapel.</p>
+<p><b>Brannoc</b>I'll trade you the cloak for two potions.</p>
+<p><b>Kaela</b>Deal — sending <span class="link">[Potion of Healing]</span></p>
+<p><b>Sefa</b>Rolling perception… 17.</p>
+<div class="input">Message the party…</div></section>
+</main></body></html>

@@ -79,13 +79,13 @@ function createCharacter() {
 <template>
   <Teleport to="body">
     <div v-if="visible" class="session-picker fixed inset-0 z-[12000] flex items-center justify-center px-4 py-6 sm:py-8">
-      <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md"></div>
+      <div class="absolute inset-0 bg-n0/82 backdrop-blur-md"></div>
 
-      <div class="session-picker-shell relative w-full max-w-[960px] rounded-[2rem] border border-[rgba(126,200,227,0.14)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-5 shadow-[0_40px_120px_rgba(0,0,0,0.52)] sm:p-7">
+      <div class="session-picker-shell relative w-full max-w-[960px] rounded-[2rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-5 shadow-[0_40px_120px_rgba(0,0,0,0.52)] sm:p-7">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Choose Character</p>
-            <h2 class="mt-2 font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[34px]">Session Entry</h2>
+            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Choose Character</p>
+            <h2 class="mt-2 font-heading text-[28px] font-bold text-ink sm:text-[34px]">Session Entry</h2>
           </div>
 
           <input
@@ -93,7 +93,7 @@ function createCharacter() {
             v-model="searchQuery"
             type="text"
             placeholder="Search by name or owner…"
-            class="session-input w-full max-w-[280px] rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(7,17,31,0.72)] px-4 py-2.5 text-[14px] text-[#f6f7fb] outline-none transition-colors focus:border-[rgba(233,69,96,0.4)]"
+            class="session-input w-full max-w-[280px] rounded-xl border border-line bg-n1/72 px-4 py-2.5 text-[14px] text-ink outline-none transition-colors focus:border-primary/40"
           />
         </div>
 
@@ -103,10 +103,10 @@ function createCharacter() {
               v-for="character in filteredCharacters"
               :key="character.id"
               @click="selectCharacter(character.id)"
-              class="session-picker-card cursor-pointer rounded-[1.8rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.84)] p-4 text-left transition-all duration-200 hover:-translate-y-1 hover:border-[rgba(233,69,96,0.32)] hover:shadow-[0_20px_50px_rgba(233,69,96,0.12)]"
+              class="session-picker-card cursor-pointer rounded-[1.8rem] border border-line bg-n1/84 p-4 text-left transition-all duration-200 hover:-translate-y-1 hover:border-primary/32"
             >
-              <div class="overflow-hidden rounded-[1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.06)]">
-                <div class="flex h-56 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(8,16,30,0.94))] sm:h-64">
+              <div class="overflow-hidden rounded-[1rem] border border-line bg-n3">
+                <div class="flex h-56 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(10,16,41,0.94))] sm:h-64">
                   <img
                     v-if="avatarUrl(character.portrait_id)"
                     :src="avatarUrl(character.portrait_id)"
@@ -114,17 +114,17 @@ function createCharacter() {
                     class="h-full w-full object-cover object-top"
                     @error="markImageFailed(avatarUrl(character.portrait_id))"
                   />
-                  <div v-else class="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[rgba(217,181,116,0.3)] bg-[linear-gradient(135deg,rgba(217,181,116,0.16),rgba(126,200,227,0.06))] font-[Cinzel] text-[32px] font-bold text-[#d9b574]">{{ initials(character.name) }}</div>
+                  <div v-else class="flex h-24 w-24 items-center justify-center rounded-full border-2 border-[rgba(217,181,116,0.3)] bg-[linear-gradient(135deg,rgba(217,181,116,0.16),rgba(123,135,184,0.06))] font-heading text-[32px] font-bold text-warning">{{ initials(character.name) }}</div>
                 </div>
               </div>
 
               <div class="mt-4 flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <p class="truncate font-[Cinzel] text-[24px] font-bold text-[#f6f7fb]">{{ character.name }}</p>
-                  <p class="mt-1 text-[13px] text-[#b8c8cc]/58">{{ character.owner?.username || 'Unassigned' }}</p>
+                  <p class="truncate font-heading text-[24px] font-bold text-ink">{{ character.name }}</p>
+                  <p class="mt-1 text-[13px] text-dim/58">{{ character.owner?.username || 'Unassigned' }}</p>
                 </div>
 
-                <span class="rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#dff4fb]">
+                <span class="rounded-full border border-line bg-n3 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-ink">
                   {{ character.inventory_width }}x{{ character.inventory_height }}
                 </span>
               </div>
@@ -132,16 +132,16 @@ function createCharacter() {
           </div>
         </div>
 
-        <div v-else-if="characters.length" class="mt-6 rounded-[1.8rem] border border-dashed border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.04)] px-5 py-10 text-center">
-          <p class="text-[15px] text-[#d8dce7]/60">No characters match “{{ searchQuery }}”.</p>
+        <div v-else-if="characters.length" class="mt-6 rounded-[1.8rem] border border-dashed border-line bg-n2 px-5 py-10 text-center">
+          <p class="text-[15px] text-ink-soft/60">No characters match “{{ searchQuery }}”.</p>
         </div>
 
-        <div v-else class="session-picker-empty mt-6 rounded-[1.8rem] border border-dashed border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.04)] px-5 py-10 text-center">
-          <h3 class="font-[Cinzel] text-[26px] font-bold text-[#f6f7fb]">No Characters Yet</h3>
+        <div v-else class="session-picker-empty mt-6 rounded-[1.8rem] border border-dashed border-line bg-n2 px-5 py-10 text-center">
+          <h3 class="font-heading text-[26px] font-bold text-ink">No Characters Yet</h3>
         </div>
 
-        <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-[rgba(126,200,227,0.12)] pt-5">
-          <p class="text-[12px] text-[#d8dce7]/58">
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-5">
+          <p class="text-[12px] text-ink-soft/58">
             {{ viewer?.can_create_character
               ? (viewer?.is_gm ? 'Create a new blank character.' : `${remainingSlots ?? 0} slots available for a new character.`)
               : 'Character creation is locked right now.' }}
@@ -150,7 +150,7 @@ function createCharacter() {
           <button
             @click="createCharacter"
             :disabled="creating || !viewer?.can_create_character"
-            class="session-picker-action cursor-pointer rounded-xl border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-5 py-3 text-[14px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.42)] disabled:cursor-not-allowed disabled:opacity-60"
+            class="session-picker-action cursor-pointer rounded-xl border border-primary/24 bg-primary/12 px-5 py-3 text-[14px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/42 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {{ creating ? 'Creating...' : 'Create Character' }}
           </button>
@@ -169,15 +169,15 @@ function createCharacter() {
   content: '';
   position: absolute;
   inset: 18px;
-  border: 1px solid rgba(126, 200, 227, 0.08);
+  border: 1px solid rgba(123, 135, 184, 0.08);
   pointer-events: none;
 }
 
 .session-picker-shell {
   overflow: hidden;
   border-radius: 0.85rem !important;
-  border-color: rgba(126, 200, 227, 0.18) !important;
-  background: linear-gradient(180deg, rgba(13, 18, 33, 0.98), rgba(8, 12, 24, 0.99)) !important;
+  border-color: rgba(123, 135, 184, 0.18) !important;
+  background: linear-gradient(180deg, rgba(13, 18, 33, 0.98), rgba(6, 10, 28, 0.99)) !important;
   box-shadow: 0 40px 120px rgba(0, 0, 0, 0.52), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
@@ -185,7 +185,7 @@ function createCharacter() {
   content: '';
   position: absolute;
   inset: 10px;
-  border: 1px solid rgba(126, 200, 227, 0.12);
+  border: 1px solid rgba(123, 135, 184, 0.12);
   pointer-events: none;
 }
 
@@ -210,7 +210,7 @@ function createCharacter() {
 }
 
 .session-picker-scroll::-webkit-scrollbar-thumb {
-  background: rgba(126, 200, 227, 0.24);
+  background: rgba(123, 135, 184, 0.24);
   border-radius: 999px;
 }
 
@@ -222,7 +222,7 @@ function createCharacter() {
   position: relative;
   overflow: hidden;
   border-radius: 0.7rem !important;
-  border-color: rgba(126, 200, 227, 0.16) !important;
+  border-color: rgba(123, 135, 184, 0.16) !important;
   background: linear-gradient(180deg, rgba(18, 27, 49, 0.88), rgba(9, 13, 24, 0.96)) !important;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
   clip-path: polygon(0 16px, 16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%);
@@ -238,28 +238,28 @@ function createCharacter() {
 }
 
 .session-picker-card:hover {
-  border-color: rgba(233, 69, 96, 0.28) !important;
+  border-color: rgba(88, 101, 221, 0.28) !important;
   box-shadow: 0 26px 60px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
 .session-picker-empty {
-  border-color: rgba(126, 200, 227, 0.18) !important;
+  border-color: rgba(123, 135, 184, 0.18) !important;
   background:
     repeating-linear-gradient(90deg, rgba(92, 121, 130, 0.1) 0 1px, transparent 1px 56px),
     repeating-linear-gradient(0deg, rgba(92, 121, 130, 0.1) 0 1px, transparent 1px 56px),
-    linear-gradient(180deg, rgba(13, 18, 33, 0.88), rgba(8, 12, 24, 0.94)) !important;
+    linear-gradient(180deg, rgba(13, 18, 33, 0.88), rgba(6, 10, 28, 0.94)) !important;
 }
 
 .session-picker-action {
-  border-color: rgba(233, 69, 96, 0.28) !important;
-  background: linear-gradient(135deg, rgba(233, 69, 96, 0.9), rgba(194, 49, 82, 0.92)) !important;
+  border-color: rgba(88, 101, 221, 0.28) !important;
+  background: linear-gradient(135deg, rgba(88, 101, 221, 0.9), rgba(74, 86, 200, 0.92)) !important;
   color: #ffffff !important;
   border-radius: 0.55rem !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 24px rgba(233, 69, 96, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 24px rgba(88, 101, 221, 0.18);
 }
 
 .session-picker-action:hover {
-  border-color: rgba(233, 69, 96, 0.42) !important;
+  border-color: rgba(88, 101, 221, 0.42) !important;
   color: #ffffff !important;
 }
 </style>

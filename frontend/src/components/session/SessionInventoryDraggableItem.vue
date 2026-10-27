@@ -39,13 +39,13 @@ const infoPos = ref({ left: 0, top: 0 })
 let revealTimer = null
 
 const RARITY_TEXT = {
-  common: 'text-[#e2e8f0]',
-  uncommon: 'text-[#fde68a]',
-  rare: 'text-[#93c5fd]',
-  epic: 'text-[#e9d5ff]',
-  masterwork: 'text-[#fdba74]',
-  legendary: 'text-[#86efac]',
-  unique: 'text-[#fca5a5]',
+  common: 'text-ink',
+  uncommon: 'text-warning',
+  rare: 'text-sky',
+  epic: 'text-r-epic',
+  masterwork: 'text-r-masterwork',
+  legendary: 'text-success',
+  unique: 'text-danger',
 }
 
 const { markFailed: markImageFailed, isFailed: isImageFailed } = useImageFallback()
@@ -87,12 +87,12 @@ const rarityTextClass = computed(() => RARITY_TEXT[item.value?.rarity] || RARITY
 const rarityBorderClass = computed(() => {
   const variants = {
     common: 'border-[rgba(226,232,240,0.95)] shadow-[inset_0_0_10px_rgba(226,232,240,0.25),0_6px_14px_rgba(0,0,0,0.3)]',
-    uncommon: 'border-[rgba(250,204,21,1)] shadow-[inset_0_0_10px_rgba(250,204,21,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
-    rare: 'border-[rgba(96,165,250,1)] shadow-[inset_0_0_10px_rgba(96,165,250,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
-    epic: 'border-[rgba(192,132,252,1)] shadow-[inset_0_0_10px_rgba(192,132,252,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
-    masterwork: 'border-[rgba(251,146,60,1)] shadow-[inset_0_0_10px_rgba(251,146,60,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
-    legendary: 'border-[rgba(74,222,128,1)] shadow-[inset_0_0_10px_rgba(74,222,128,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
-    unique: 'border-[rgba(247,118,118,1)] shadow-[inset_0_0_10px_rgba(247,118,118,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    uncommon: 'border-warning shadow-[inset_0_0_10px_rgba(250,204,21,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    rare: 'border-sky shadow-[inset_0_0_10px_rgba(96,165,250,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    epic: 'border-r-epic shadow-[inset_0_0_10px_rgba(192,132,252,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    masterwork: 'border-warning shadow-[inset_0_0_10px_rgba(251,146,60,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    legendary: 'border-success shadow-[inset_0_0_10px_rgba(74,222,128,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
+    unique: 'border-[rgba(242,122,133,1)] shadow-[inset_0_0_10px_rgba(242,122,133,0.3),0_6px_14px_rgba(0,0,0,0.3)]',
   }
 
   return variants[item.value?.rarity] || variants.common
@@ -172,12 +172,12 @@ onBeforeUnmount(() => {
           class="h-full w-full object-cover"
           @error="markImageFailed(itemImageUrl)"
         />
-        <span v-else class="font-[Cinzel] text-[clamp(1rem,1.5vw,1.45rem)] font-bold text-[rgba(23,36,66,0.92)]">{{ itemInitial }}</span>
+        <span v-else class="font-heading text-[clamp(1rem,1.5vw,1.45rem)] font-bold text-[rgba(23,36,66,0.92)]">{{ itemInitial }}</span>
       </div>
 
-      <span class="absolute bottom-[0.22rem] left-[0.22rem] z-[1] inline-flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full border border-[rgba(205,217,242,0.12)] bg-[rgba(7,14,28,0.72)] px-[0.28rem] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-[rgba(225,237,255,0.84)]">{{ sizeLabel }}</span>
-      <span v-if="entry.quantity > 1" class="absolute bottom-[0.22rem] right-[0.22rem] z-[1] inline-flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full border border-[rgba(205,217,242,0.12)] bg-[rgba(7,14,28,0.72)] px-[0.28rem] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-[rgba(225,237,255,0.84)]">x{{ entry.quantity }}</span>
-      <span v-if="entry.enchantment" class="absolute right-[0.22rem] top-[0.22rem] z-[1] inline-flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full border border-[rgba(205,217,242,0.12)] bg-[rgba(7,14,28,0.72)] px-[0.28rem] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-[rgba(225,237,255,0.84)]">+{{ entry.enchantment }}</span>
+      <span class="absolute bottom-[0.22rem] left-[0.22rem] z-[1] inline-flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full border border-ink/12 bg-n1/72 px-[0.28rem] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-ink/84">{{ sizeLabel }}</span>
+      <span v-if="entry.quantity > 1" class="absolute bottom-[0.22rem] right-[0.22rem] z-[1] inline-flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full border border-ink/12 bg-n1/72 px-[0.28rem] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-ink/84">x{{ entry.quantity }}</span>
+      <span v-if="entry.enchantment" class="absolute right-[0.22rem] top-[0.22rem] z-[1] inline-flex h-[1rem] min-w-[1rem] items-center justify-center rounded-full border border-ink/12 bg-n1/72 px-[0.28rem] text-[0.5rem] font-bold uppercase tracking-[0.08em] text-ink/84">+{{ entry.enchantment }}</span>
 
       <!-- Hover inspect indicator: eye + filling progress ring -->
       <div
@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
             cy="18"
             r="15"
             fill="none"
-            stroke="rgba(126,200,227,1)"
+            stroke="rgba(123,135,184,1)"
             stroke-width="4"
             stroke-linecap="round"
             :stroke-dasharray="RING_CIRCUMFERENCE"
@@ -200,7 +200,7 @@ onBeforeUnmount(() => {
           />
         </svg>
         <span class="absolute inset-0 flex items-center justify-center">
-          <Eye class="h-[58%] w-[58%] text-[#e8f4fb]" :stroke-width="2.5" />
+          <Eye class="h-[58%] w-[58%] text-ink" :stroke-width="2.5" />
         </span>
       </div>
     </div>
@@ -208,41 +208,41 @@ onBeforeUnmount(() => {
     <Teleport to="body">
       <div
         v-if="showInfo"
-        class="fixed z-[12990] w-[16rem] overflow-hidden rounded-[1rem] border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
+        class="fixed z-[12990] w-[16rem] overflow-hidden rounded-[1rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-4 shadow-[0_24px_60px_rgba(0,0,0,0.5)]"
         :style="{ left: `${infoPos.left}px`, top: `${infoPos.top}px` }"
       >
         <div class="flex items-start justify-between gap-2">
-          <h4 class="break-words text-[14px] font-semibold leading-snug text-[#f6f7fb] [overflow-wrap:anywhere]">{{ item.name || 'Unnamed item' }}</h4>
+          <h4 class="break-words text-[14px] font-semibold leading-snug text-ink [overflow-wrap:anywhere]">{{ item.name || 'Unnamed item' }}</h4>
           <span class="shrink-0 text-[10px] font-bold uppercase tracking-[0.16em]" :class="rarityTextClass">{{ rarityLabel }}</span>
         </div>
-        <p v-if="descriptionPreview" class="mt-1.5 break-words whitespace-pre-line text-[12px] leading-relaxed text-[#d8dce7]/62">{{ descriptionPreview }}</p>
+        <p v-if="descriptionPreview" class="mt-1.5 break-words whitespace-pre-line text-[12px] leading-relaxed text-ink-soft/62">{{ descriptionPreview }}</p>
 
         <div v-if="requirementChecks.length" class="mt-3">
-          <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Requirements</p>
+          <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Requirements</p>
           <ul class="mt-1.5 space-y-1">
             <li
               v-for="requirement in requirementChecks"
               :key="`req-${requirement.name}`"
               class="flex items-center justify-between gap-2 text-[12px]"
-              :class="requirement.met ? 'text-[#86efac]' : 'text-[#fca5a5]'"
+              :class="requirement.met ? 'text-success' : 'text-danger'"
             >
               <span>{{ requirement.label }} {{ requirement.required }}</span>
               <span class="text-[11px] opacity-80">you: {{ requirement.current }}</span>
             </li>
           </ul>
-          <p v-if="!meetsRequirements" class="mt-1.5 text-[11px] font-semibold text-[#fca5a5]">Requirements not met</p>
+          <p v-if="!meetsRequirements" class="mt-1.5 text-[11px] font-semibold text-danger">Requirements not met</p>
         </div>
 
         <div v-if="modifierList.length" class="mt-3">
-          <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Grants</p>
+          <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Grants</p>
           <ul class="mt-1.5 space-y-1">
             <li
               v-for="(modifier, index) in modifierList"
               :key="`mod-${index}`"
-              class="flex items-center justify-between gap-2 text-[12px] text-[#d8dce7]/82"
+              class="flex items-center justify-between gap-2 text-[12px] text-ink-soft/82"
             >
               <span>{{ modifier.label }}</span>
-              <span class="font-semibold" :class="modifier.value >= 0 ? 'text-[#8fd7ef]' : 'text-[#fca5a5]'">
+              <span class="font-semibold" :class="modifier.value >= 0 ? 'text-sky' : 'text-danger'">
                 {{ modifier.value >= 0 ? '+' : '' }}{{ modifier.value }}{{ modifier.percent ? '%' : '' }}
               </span>
             </li>
@@ -250,10 +250,10 @@ onBeforeUnmount(() => {
         </div>
 
         <div v-if="itemTags.length" class="mt-3 flex flex-wrap gap-1.5">
-          <span v-for="tag in itemTags" :key="tag" class="rounded-full border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-2 py-0.5 text-[11px] text-[#ffe0e7]">{{ tag }}</span>
+          <span v-for="tag in itemTags" :key="tag" class="rounded-full border border-primary/18 bg-primary/8 px-2 py-0.5 text-[11px] text-primary-soft">{{ tag }}</span>
         </div>
 
-        <p v-if="!requirementChecks.length && !modifierList.length && !itemTags.length && !descriptionPreview" class="mt-2 text-[12px] text-[#d8dce7]/50">No additional details.</p>
+        <p v-if="!requirementChecks.length && !modifierList.length && !itemTags.length && !descriptionPreview" class="mt-2 text-[12px] text-ink-soft/50">No additional details.</p>
       </div>
     </Teleport>
   </div>

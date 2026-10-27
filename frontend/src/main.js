@@ -2,6 +2,10 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createNotivue } from 'notivue'
 
+import '@fontsource-variable/hanken-grotesk'
+import '@fontsource/barlow-semi-condensed/500.css'
+import '@fontsource/barlow-semi-condensed/600.css'
+import '@fontsource/barlow-semi-condensed/700.css'
 import 'notivue/notification.css'
 import 'notivue/animations.css'
 

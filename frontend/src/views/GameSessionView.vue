@@ -1221,13 +1221,13 @@ function formatRole(role) {
 
 function rarityClasses(rarity) {
   const variants = {
-    common: 'border-[rgba(255,255,255,0.32)] bg-[rgba(255,255,255,0.08)] text-[#f8fafc]',
-    uncommon: 'border-[rgba(250,204,21,0.35)] bg-[rgba(202,138,4,0.16)] text-[#fde68a]',
-    rare: 'border-[rgba(96,165,250,0.35)] bg-[rgba(37,99,235,0.16)] text-[#93c5fd]',
-    epic: 'border-[rgba(192,132,252,0.35)] bg-[rgba(126,34,206,0.18)] text-[#e9d5ff]',
-    masterwork: 'border-[rgba(251,146,60,0.35)] bg-[rgba(194,65,12,0.18)] text-[#fdba74]',
-    legendary: 'border-[rgba(74,222,128,0.35)] bg-[rgba(21,128,61,0.18)] text-[#86efac]',
-    unique: 'border-[rgba(248,113,113,0.4)] bg-[rgba(153,27,27,0.18)] text-[#fca5a5]',
+    common: 'border-ink/32 bg-ink/8 text-ink',
+    uncommon: 'border-warning/35 bg-warning/16 text-warning',
+    rare: 'border-sky/35 bg-primary/16 text-sky',
+    epic: 'border-r-epic/35 bg-r-epic/18 text-r-epic',
+    masterwork: 'border-warning/35 bg-warning/18 text-r-masterwork',
+    legendary: 'border-success/35 bg-success/18 text-success',
+    unique: 'border-danger/40 bg-danger/18 text-danger',
   }
 
   return variants[rarity] ?? variants.common
@@ -1879,25 +1879,25 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="session-stage min-h-screen w-screen overflow-x-hidden text-[#e8e8f0]">
+  <div class="session-stage min-h-screen w-screen overflow-x-hidden text-ink">
     <div v-if="loading" class="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-      <div class="h-11 w-11 animate-spin rounded-full border-2 border-[#e94560] border-t-transparent"></div>
-      <p class="mt-4 text-[14px] text-[#7ec8e3]/45">Loading session workspace...</p>
+      <div class="h-11 w-11 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+      <p class="mt-4 text-[14px] text-faint">Loading session workspace...</p>
     </div>
 
     <div v-else-if="error" class="flex min-h-screen flex-col items-center justify-center px-6 text-center">
-      <TriangleAlertIcon class="mb-4 h-16 w-16 text-[#e94560]" :stroke-width="1.5" />
-      <p class="mb-5 text-[16px] font-semibold text-[#e94560]">{{ error }}</p>
+      <TriangleAlertIcon class="mb-4 h-16 w-16 text-primary-ink" :stroke-width="1.5" />
+      <p class="mb-5 text-[16px] font-semibold text-primary-ink">{{ error }}</p>
       <div class="flex flex-wrap justify-center gap-3">
         <button
           @click="loadSession({ preserveCharacter: false, promptSelection: true })"
-          class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.08)] px-5 py-2.5 text-[14px] text-[#e8e8f0] transition-all duration-200 hover:border-[rgba(126,200,227,0.35)]"
+          class="cursor-pointer rounded-xl border border-line bg-n3 px-5 py-2.5 text-[14px] text-ink transition-all duration-200 hover:border-line-strong"
         >
           Retry
         </button>
         <button
           @click="router.push('/games')"
-          class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.22)] bg-transparent px-5 py-2.5 text-[14px] text-[#7ec8e3] transition-all duration-200 hover:border-[#e94560] hover:text-[#e94560]"
+          class="cursor-pointer rounded-xl border border-primary/22 bg-transparent px-5 py-2.5 text-[14px] text-sky transition-all duration-200 hover:border-primary hover:text-primary-ink"
         >
           Back to Games
         </button>
@@ -1937,25 +1937,25 @@ onBeforeUnmount(() => {
         @save="saveGMCharacterEditor"
       />
 
-      <header class="session-header sticky top-0 z-30 border-b border-[rgba(126,200,227,0.08)] bg-[rgba(7,17,31,0.82)] backdrop-blur-xl">
+      <header class="session-header sticky top-0 z-30 border-b border-line-soft bg-n1/82 backdrop-blur-xl">
         <div class="mx-auto flex max-w-[1920px] flex-col gap-4 px-4 py-4 pl-[4.75rem] sm:px-6 sm:pl-[5.75rem] lg:flex-row lg:items-center lg:justify-between xl:pl-[7rem]">
           <div class="flex min-w-0 items-center gap-3">
             <button
               @click="goBack"
               title="Exit session"
-              class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] text-[#e8e8f0]/70 transition-all duration-200 hover:border-[#e94560] hover:text-[#e94560]"
+              class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink/70 transition-all duration-200 hover:border-primary hover:text-primary-ink"
             >
               <ArrowLeftIcon class="h-5 w-5" :stroke-width="2" />
             </button>
 
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <h1 class="truncate font-[Cinzel] text-[18px] font-bold tracking-wide text-[#f6f7fb] sm:text-[22px]">{{ game.title }}</h1>
+                <h1 class="truncate font-heading text-[18px] font-bold tracking-wide text-ink sm:text-[22px]">{{ game.title }}</h1>
                 <span
                   class="session-mode-pill rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]"
                   :class="isGM
-                    ? 'border-[rgba(143,79,51,0.42)] bg-[rgba(143,79,51,0.18)] text-[#efc7a2]'
-                    : 'border-[rgba(101,128,136,0.3)] bg-[rgba(101,128,136,0.14)] text-[#b6d0d7]'"
+                    ? 'border-warning/42 bg-warning/18 text-warning'
+                    : 'border-[rgba(101,128,136,0.3)] bg-[rgba(101,128,136,0.14)] text-ink-soft'"
                 >
                   {{ isGM ? 'GM Console' : 'Player View' }}
                 </span>
@@ -1964,7 +1964,7 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="flex flex-wrap items-center gap-3">
-            <div class="session-count-pill rounded-full border border-[rgba(126,200,227,0.12)] bg-[rgba(15,15,35,0.64)] px-3 py-2 text-[12px] text-[#7ec8e3]/65">
+            <div class="session-count-pill rounded-full border border-line bg-n2/64 px-3 py-2 text-[12px] text-dim">
               {{ game.members?.length ?? 0 }} / {{ game.max_players }} players
             </div>
           </div>
@@ -1979,8 +1979,8 @@ onBeforeUnmount(() => {
           @click="activeTab = tab.id"
           class="session-tab-button relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-[1.35rem] border transition-all duration-200"
           :class="activeTab === tab.id
-            ? 'border-[rgba(197,138,56,0.42)] bg-[rgba(143,79,51,0.18)] text-[#fff4de] shadow-[0_14px_30px_rgba(61,37,20,0.32)]'
-            : 'border-[rgba(98,120,128,0.12)] bg-[rgba(15,18,22,0.74)] text-[#d4c6ab]/72 hover:border-[rgba(197,138,56,0.24)] hover:bg-[rgba(197,138,56,0.08)] hover:text-[#fff4de]'"
+            ? 'border-warning/42 bg-warning/18 text-ink shadow-[0_14px_30px_rgba(61,37,20,0.32)]'
+            : 'border-[rgba(98,120,128,0.12)] bg-[rgba(15,18,22,0.74)] text-ink-soft/72 hover:border-warning/24 hover:bg-warning/8 hover:text-ink'"
         >
           <component :is="tabIcons[tab.icon] || UserRoundIcon" class="h-5 w-5" :stroke-width="1.8" />
 
@@ -1991,13 +1991,13 @@ onBeforeUnmount(() => {
 
       <div class="mx-auto max-w-[1920px] session-content-shell" :class="{ 'chat-collapsed': chatCollapsed || !game?.enable_chat }">
         <main class="min-w-0 @container">
-          <article v-if="showCharacterHeader" class="session-command-deck mb-6 rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] px-4 py-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:px-5">
+          <article v-if="showCharacterHeader" class="session-command-deck mb-6 rounded-[1.75rem] border border-line bg-n1/88 px-4 py-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:px-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
               <div class="min-w-0">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">{{ activeTabMeta?.label }}</p>
+                <p class="text-[11px] uppercase tracking-[0.22em] text-dim">{{ activeTabMeta?.label }}</p>
                 <div class="mt-2 flex flex-wrap items-center gap-3">
-                  <h2 class="truncate font-[Cinzel] text-[28px] font-bold text-[#f6f7fb] sm:text-[32px]">{{ characterSnapshot?.name || activeTabMeta?.label }}</h2>
-                  <span class="session-owner-pill rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
+                  <h2 class="truncate font-heading text-[28px] font-bold text-ink sm:text-[32px]">{{ characterSnapshot?.name || activeTabMeta?.label }}</h2>
+                  <span class="session-owner-pill rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">
                     {{ characterSnapshot?.owner?.username || 'Choose character' }}
                   </span>
                 </div>
@@ -2017,7 +2017,7 @@ onBeforeUnmount(() => {
 
                 <button
                   @click="openCharacterPicker"
-                  class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.45)]"
+                  class="cursor-pointer rounded-xl border border-primary/24 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/45"
                 >
                   Open Picker
                 </button>
@@ -2025,16 +2025,16 @@ onBeforeUnmount(() => {
             </div>
           </article>
 
-          <div v-if="characterError" class="session-banner mb-6 rounded-[1.5rem] border border-[rgba(233,69,96,0.28)] bg-[rgba(233,69,96,0.12)] px-5 py-4 text-[14px] text-[#ffb3c1]">
+          <div v-if="characterError" class="session-banner mb-6 rounded-[1.5rem] border border-primary/28 bg-primary/12 px-5 py-4 text-[14px] text-primary-soft">
             {{ characterError }}
           </div>
 
           <section v-if="activeTab === 'sheet'" class="session-sheet-layout space-y-7">
-            <article class="session-sheet-frame rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+            <article class="session-sheet-frame rounded-[2rem] border border-line bg-n1/88 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <template v-if="characterSnapshot">
                 <div class="session-sheet-grid grid gap-6 xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)]">
-                  <article class="session-dossier-panel overflow-hidden rounded-[1.9rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)]">
-                    <div class="flex h-[24rem] items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(8,16,30,0.94))] sm:h-[28rem]">
+                  <article class="session-dossier-panel overflow-hidden rounded-[1.9rem] border border-line bg-n1/78">
+                    <div class="flex h-[24rem] items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(10,16,41,0.94))] sm:h-[28rem]">
                       <img
                         v-if="currentPortraitUrl"
                         :src="currentPortraitUrl"
@@ -2042,70 +2042,70 @@ onBeforeUnmount(() => {
                         class="h-full w-full object-cover object-top"
                         @error="markImageFailed(currentPortraitUrl)"
                       />
-                      <div v-else class="flex h-36 w-36 items-center justify-center rounded-full border-2 border-[rgba(255,143,163,0.3)] bg-[linear-gradient(135deg,rgba(233,69,96,0.16),rgba(126,200,227,0.08))] font-[Cinzel] text-[44px] font-bold text-[#ff8fa3] shadow-[inset_0_0_40px_rgba(255,143,163,0.08)]">
+                      <div v-else class="flex h-36 w-36 items-center justify-center rounded-full border-2 border-primary/30 bg-[linear-gradient(135deg,rgba(88,101,221,0.16),rgba(123,135,184,0.08))] font-heading text-[44px] font-bold text-primary-ink shadow-[inset_0_0_40px_rgba(164,174,255,0.08)]">
                         {{ initials(characterSnapshot.name) }}
                       </div>
                     </div>
 
-                    <div class="border-t border-[rgba(126,200,227,0.08)] p-5">
+                    <div class="border-t border-line-soft p-5">
                       <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                          <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Character</p>
-                          <h3 class="mt-2 truncate font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">{{ characterSnapshot.name }}</h3>
-                          <p class="mt-2 text-[13px] text-[#d8dce7]/62">{{ characterSnapshot.owner?.username || 'Unknown owner' }}</p>
+                          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Character</p>
+                          <h3 class="mt-2 truncate font-heading text-[30px] font-bold text-ink">{{ characterSnapshot.name }}</h3>
+                          <p class="mt-2 text-[13px] text-ink-soft/62">{{ characterSnapshot.owner?.username || 'Unknown owner' }}</p>
                         </div>
 
-                        <div v-if="characterLoading" class="inline-flex items-center gap-2 rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-[#8fd7ef]">
-                          <span class="h-2 w-2 animate-pulse rounded-full bg-[#8fd7ef]"></span>
+                        <div v-if="characterLoading" class="inline-flex items-center gap-2 rounded-full border border-line bg-n3 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-sky">
+                          <span class="h-2 w-2 animate-pulse rounded-full bg-sky"></span>
                           Loading
                         </div>
                       </div>
                     </div>
                   </article>
 
-                  <article class="session-profile-panel rounded-[1.9rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5 sm:p-6">
+                  <article class="session-profile-panel rounded-[1.9rem] border border-line bg-n1/78 p-5 sm:p-6">
                     <div class="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Profile</p>
+                        <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Profile</p>
                       </div>
 
                       <div class="flex flex-wrap gap-3">
                         <button
                           v-if="isGM"
                           @click="openGMCharacterEditor(characterSnapshot)"
-                          class="cursor-pointer rounded-xl border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-4 py-2.5 text-[13px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
+                          class="cursor-pointer rounded-xl border border-warning/24 bg-warning/16 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-warning/40"
                         >
                           GM Configure
                         </button>
                         <button
                           v-if="canEditCharacter && !profileEditMode"
                           @click="openProfileEditor"
-                          class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.42)]"
+                          class="cursor-pointer rounded-xl border border-primary/24 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/42"
                         >
                           Edit Profile
                         </button>
                         <button
                           v-if="profileEditMode"
                           @click="cancelProfileEditor"
-                          class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]"
+                          class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong"
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
 
-                    <p v-if="!canEditCharacter" class="mt-5 rounded-[1.3rem] border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-4 py-3 text-[13px] text-[#d8dce7]/68">
+                    <p v-if="!canEditCharacter" class="mt-5 rounded-[1.3rem] border border-line bg-n3 px-4 py-3 text-[13px] text-ink-soft/68">
                       This character is read-only for your current access.
                     </p>
 
                     <div v-if="profileEditMode && canEditCharacter" class="mt-6 space-y-5">
                       <div class="session-profile-editor-grid grid gap-5 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
-                        <div class="space-y-4 rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-4">
-                          <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Portrait</p>
-                          <div class="overflow-hidden rounded-[1.4rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.66)]">
-                            <div class="flex h-64 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(8,16,30,0.94))]">
+                        <div class="space-y-4 rounded-[1.5rem] border border-line-soft bg-n3 p-4">
+                          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Portrait</p>
+                          <div class="overflow-hidden rounded-[1.4rem] border border-line bg-n1/66">
+                            <div class="flex h-64 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(10,16,41,0.94))]">
                               <img v-if="currentPortraitUrl" :src="currentPortraitUrl" :alt="characterSnapshot.name" class="h-full w-full object-cover object-top" @error="markImageFailed(currentPortraitUrl)" />
-                              <div v-else class="flex h-28 w-28 items-center justify-center rounded-full border-2 border-[rgba(143,215,239,0.3)] bg-[linear-gradient(135deg,rgba(126,200,227,0.16),rgba(233,69,96,0.06))] font-[Cinzel] text-[34px] font-bold text-[#8fd7ef]">{{ initials(characterSnapshot.name) }}</div>
+                              <div v-else class="flex h-28 w-28 items-center justify-center rounded-full border-2 border-line-strong bg-[linear-gradient(135deg,rgba(123,135,184,0.16),rgba(88,101,221,0.06))] font-heading text-[34px] font-bold text-sky">{{ initials(characterSnapshot.name) }}</div>
                             </div>
                           </div>
 
@@ -2121,7 +2121,7 @@ onBeforeUnmount(() => {
                             <button
                               @click="portraitInputRef?.click()"
                               type="button"
-                              class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]"
+                              class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong"
                             >
                               {{ portraitFile ? 'Replace Portrait' : 'Upload Portrait' }}
                             </button>
@@ -2129,61 +2129,61 @@ onBeforeUnmount(() => {
                               v-if="portraitFile"
                               @click="resetPortraitSelection"
                               type="button"
-                              class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.18)] bg-[rgba(233,69,96,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.35)]"
+                              class="cursor-pointer rounded-xl border border-primary/18 bg-primary/8 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/35"
                             >
                               Clear Selection
                             </button>
                           </div>
-                          <p class="text-[12px] text-[#d8dce7]/54">JPEG, PNG, WebP. Up to 5MB.</p>
+                          <p class="text-[12px] text-ink-soft/54">JPEG, PNG, WebP. Up to 5MB.</p>
                         </div>
 
                         <div class="space-y-5">
                           <label class="block">
-                            <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Name</span>
+                            <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
                             <input
                               v-model="characterForm.name"
                               type="text"
                               maxlength="100"
                               :disabled="characterSavePending"
-                              class="session-input mt-2 w-full rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none transition-all duration-200 placeholder:text-[#7ec8e3]/35 focus:border-[rgba(233,69,96,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
+                              class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[15px] text-ink outline-none transition-all duration-200 placeholder:text-faint focus:border-primary/34 disabled:cursor-not-allowed disabled:opacity-60"
                             />
                           </label>
 
                           <label class="block">
-                            <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Backstory</span>
+                            <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Backstory</span>
                             <textarea
                               v-model="characterForm.backstory"
                               rows="6"
                               :disabled="characterSavePending"
-                              class="session-input mt-2 w-full resize-none rounded-[1.25rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[15px] text-[#f6f7fb] outline-none transition-all duration-200 placeholder:text-[#7ec8e3]/35 focus:border-[rgba(233,69,96,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
+                              class="session-input mt-2 w-full resize-none rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[15px] text-ink outline-none transition-all duration-200 placeholder:text-faint focus:border-primary/34 disabled:cursor-not-allowed disabled:opacity-60"
                             ></textarea>
                           </label>
 
                           <div>
                             <div class="flex items-center justify-between gap-3">
-                              <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Currency</span>
+                              <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Currency</span>
                             </div>
                             <div class="mt-4 grid gap-3 @xl:grid-cols-3">
-                              <label class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                                <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Gold</span>
-                                <input v-model.number="characterForm.gold" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                              <label class="rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3">
+                                <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Gold</span>
+                                <input v-model.number="characterForm.gold" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                               </label>
-                              <label class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                                <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Silver</span>
-                                <input v-model.number="characterForm.silver" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                              <label class="rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3">
+                                <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Silver</span>
+                                <input v-model.number="characterForm.silver" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                               </label>
-                              <label class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                                <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Bronze</span>
-                                <input v-model.number="characterForm.copper" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                              <label class="rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3">
+                                <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Bronze</span>
+                                <input v-model.number="characterForm.copper" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                               </label>
                             </div>
                           </div>
 
                           <div v-if="enableHealth">
-                            <span class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Health</span>
-                            <label class="mt-4 block rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3">
-                              <span class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Current HP (max {{ effectiveMaxHealth }})</span>
-                              <input v-model.number="characterForm.currentHealth" type="number" min="0" :max="effectiveMaxHealth" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-[#f6f7fb] outline-none" />
+                            <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Health</span>
+                            <label class="mt-4 block rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3">
+                              <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Current HP (max {{ effectiveMaxHealth }})</span>
+                              <input v-model.number="characterForm.currentHealth" type="number" min="0" :max="effectiveMaxHealth" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                             </label>
                           </div>
                         </div>
@@ -2193,7 +2193,7 @@ onBeforeUnmount(() => {
                         <button
                           @click="saveCharacterProfile"
                           :disabled="characterSavePending"
-                          class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.9),rgba(194,49,82,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
+                          class="cursor-pointer rounded-xl border border-primary/28 bg-[linear-gradient(135deg,rgba(88,101,221,0.9),rgba(74,86,200,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {{ characterSavePending ? 'Saving...' : 'Save Profile' }}
                         </button>
@@ -2201,20 +2201,20 @@ onBeforeUnmount(() => {
                     </div>
 
                     <div v-else class="mt-6 space-y-5">
-                      <div class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+                      <div class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
                         <div class="flex items-center justify-between gap-3">
-                          <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Backstory</p>
+                          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Backstory</p>
                           <button
                             v-if="characterSnapshot.backstory"
                             type="button"
                             @click="backstoryExpanded = !backstoryExpanded"
-                            class="cursor-pointer rounded-full border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#d8f4ff] transition-all duration-200 hover:border-[rgba(126,200,227,0.32)]"
+                            class="cursor-pointer rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink transition-all duration-200 hover:border-line-strong"
                           >
                             {{ backstoryExpanded ? 'Collapse' : 'Expand' }}
                           </button>
                         </div>
                         <p
-                          class="mt-4 whitespace-pre-wrap break-words pr-1 text-[15px] leading-relaxed text-[#e8e8f0]/78 [overflow-wrap:anywhere] transition-all duration-200"
+                          class="mt-4 whitespace-pre-wrap break-words pr-1 text-[15px] leading-relaxed text-ink/78 [overflow-wrap:anywhere] transition-all duration-200"
                           :class="backstoryExpanded
                             ? 'max-h-[18rem] overflow-y-auto pr-2 sm:max-h-[24rem]'
                             : 'max-h-[8.5rem] overflow-hidden'"
@@ -2227,40 +2227,40 @@ onBeforeUnmount(() => {
                         <div
                           v-for="currency in currencyCards"
                           :key="currency.key"
-                          class="rounded-[1.3rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3"
+                          class="rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3"
                         >
-                          <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ currency.label }}</p>
-                          <p class="mt-2 text-[24px] font-semibold text-[#f6f7fb]">{{ currency.value }}</p>
+                          <p class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ currency.label }}</p>
+                          <p class="mt-2 text-[24px] font-semibold text-ink">{{ currency.value }}</p>
                         </div>
                       </div>
 
-                      <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
-                        <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Vitals</p>
+                      <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
+                        <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Vitals</p>
                         <div class="mt-4 grid gap-3 @sm:grid-cols-2">
                           <div
                             v-if="enableHealth"
-                            class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
+                            class="rounded-[1.3rem] border border-line bg-n1/62 px-4 py-4"
                             @mouseenter="showStatTooltip($event, healthStat)"
                             @mouseleave="hideStatTooltip"
                           >
                             <div class="flex items-center justify-between">
-                              <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Health</p>
-                              <p class="text-[13px] font-semibold text-[#f6f7fb]">{{ currentHealth }} / {{ effectiveMaxHealth }}</p>
+                              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Health</p>
+                              <p class="text-[13px] font-semibold text-ink">{{ currentHealth }} / {{ effectiveMaxHealth }}</p>
                             </div>
-                            <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-[rgba(7,17,31,0.8)]">
+                            <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-n1/80">
                               <div class="h-full rounded-full bg-[linear-gradient(90deg,#ef4444,#f87171)] transition-all duration-300" :style="{ width: `${healthPercent}%` }"></div>
                             </div>
                           </div>
                           <div
                             v-if="enableArmorClass"
-                            class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
+                            class="rounded-[1.3rem] border border-line bg-n1/62 px-4 py-4"
                             @mouseenter="showStatTooltip($event, armorClassStat)"
                             @mouseleave="hideStatTooltip"
                           >
-                            <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Armor Class</p>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Armor Class</p>
                             <div class="mt-2 flex items-baseline gap-2">
-                              <p class="text-[24px] font-bold text-[#f6f7fb]">{{ effectiveArmorClass }}</p>
-                              <span v-if="armorClassBonus" class="text-[12px] font-semibold" :class="armorClassBonus > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'">
+                              <p class="text-[24px] font-bold text-ink">{{ effectiveArmorClass }}</p>
+                              <span v-if="armorClassBonus" class="text-[12px] font-semibold" :class="armorClassBonus > 0 ? 'text-success' : 'text-danger'">
                                 {{ baseArmorClass }} ({{ armorClassBonus > 0 ? '+' : '' }}{{ armorClassBonus }})
                               </span>
                             </div>
@@ -2268,23 +2268,23 @@ onBeforeUnmount(() => {
                         </div>
                       </div>
 
-                      <div v-if="attributesEnabled" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] p-5">
+                      <div v-if="attributesEnabled" class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
                         <div class="flex items-center justify-between gap-4">
-                          <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Base Attributes</p>
-                          <span class="text-[12px] text-[#d8dce7]/45">Read-only</span>
+                          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Base Attributes</p>
+                          <span class="text-[12px] text-ink-soft/45">Read-only</span>
                         </div>
                         <div class="mt-4 grid gap-3 @sm:grid-cols-2 @4xl:grid-cols-3">
                           <div
                             v-for="attribute in attributeCards"
                             :key="attribute.key"
-                            class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.62)] px-4 py-4"
+                            class="rounded-[1.3rem] border border-line bg-n1/62 px-4 py-4"
                             @mouseenter="showStatTooltip($event, attribute)"
                             @mouseleave="hideStatTooltip"
                           >
-                            <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ attribute.label }}</p>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ attribute.label }}</p>
                             <div class="mt-2 flex items-baseline gap-2">
-                              <p class="text-[24px] font-bold text-[#f6f7fb]">{{ attribute.value }}</p>
-                              <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'">
+                              <p class="text-[24px] font-bold text-ink">{{ attribute.value }}</p>
+                              <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-success' : 'text-danger'">
                                 {{ attribute.base }} ({{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }})
                               </span>
                             </div>
@@ -2296,37 +2296,37 @@ onBeforeUnmount(() => {
                 </div>
 
                 <div class="session-sheet-support-grid mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-                  <article class="session-attribute-panel rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                  <article class="session-attribute-panel rounded-[1.75rem] border border-line bg-n1/78 p-5">
                     <div class="flex items-center justify-between gap-4">
-                      <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Custom Attributes</p>
-                      <span class="text-[12px] text-[#e8e8f0]/45">{{ customAttributes.length }} tracked</span>
+                      <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Custom Attributes</p>
+                      <span class="text-[12px] text-ink/45">{{ customAttributes.length }} tracked</span>
                     </div>
 
                     <div v-if="customAttributeCards.length" class="mt-4 grid gap-3 md:grid-cols-2">
                       <div
                         v-for="attribute in customAttributeCards"
                         :key="attribute.id"
-                        class="rounded-2xl border border-[rgba(233,69,96,0.12)] bg-[rgba(233,69,96,0.08)] px-4 py-3"
+                        class="rounded-2xl border border-primary/12 bg-primary/8 px-4 py-3"
                         @mouseenter="showStatTooltip($event, attribute)"
                         @mouseleave="hideStatTooltip"
                       >
-                        <p class="text-[11px] uppercase tracking-[0.18em] text-[#ff8fa3]/60">{{ attribute.name }}</p>
+                        <p class="text-[11px] uppercase tracking-[0.18em] text-primary-ink/60">{{ attribute.name }}</p>
                         <div class="mt-2 flex items-baseline gap-2">
-                          <p class="text-[20px] font-semibold text-[#f6f7fb]">{{ attribute.value }}</p>
-                          <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'">
+                          <p class="text-[20px] font-semibold text-ink">{{ attribute.value }}</p>
+                          <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-success' : 'text-danger'">
                             {{ attribute.base }} ({{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }})
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <p v-else class="mt-4 text-[14px] text-[#d8dce7]/56">No custom attributes were configured for this character.</p>
+                    <p v-else class="mt-4 text-[14px] text-ink-soft/56">No custom attributes were configured for this character.</p>
                   </article>
 
-                  <article class="session-equipment-panel rounded-[1.75rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.78)] p-5">
+                  <article class="session-equipment-panel rounded-[1.75rem] border border-line bg-n1/78 p-5">
                     <div class="flex items-center justify-between gap-4">
-                      <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Equipment</p>
-                      <span class="text-[12px] text-[#e8e8f0]/45">{{ equipment.length }} slots filled</span>
+                      <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Equipment</p>
+                      <span class="text-[12px] text-ink/45">{{ equipment.length }} slots filled</span>
                     </div>
 
                     <div v-if="equipment.length" class="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
@@ -2334,12 +2334,12 @@ onBeforeUnmount(() => {
                         v-for="slot in equipment"
                         :key="`${slot.slot}-${slot.inventory_item_id}`"
                         @click="viewEquipmentItem(slot.inventory_item)"
-                        class="cursor-pointer rounded-2xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-3 transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] hover:bg-[rgba(126,200,227,0.1)]"
+                        class="cursor-pointer rounded-2xl border border-line-soft bg-n3 px-4 py-3 transition-all duration-200 hover:border-line-strong hover:bg-n4"
                       >
                         <div class="flex items-start justify-between gap-3">
                           <div>
-                            <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">{{ formatRole(slot.slot) }}</p>
-                            <p class="mt-2 text-[15px] font-semibold text-[#f6f7fb]">{{ slot.inventory_item?.item?.name || 'Unknown item' }}</p>
+                            <p class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ formatRole(slot.slot) }}</p>
+                            <p class="mt-2 text-[15px] font-semibold text-ink">{{ slot.inventory_item?.item?.name || 'Unknown item' }}</p>
                           </div>
                           <span class="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" :class="rarityClasses(slot.inventory_item?.item?.rarity)">
                             {{ slot.inventory_item?.item?.rarity || 'common' }}
@@ -2348,17 +2348,17 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
 
-                    <p v-else class="mt-4 text-[14px] text-[#d8dce7]/56">Nothing is equipped yet.</p>
+                    <p v-else class="mt-4 text-[14px] text-ink-soft/56">Nothing is equipped yet.</p>
                   </article>
                 </div>
               </template>
 
               <div v-else class="flex min-h-[520px] flex-col items-center justify-center text-center">
-                <h2 class="font-[Cinzel] text-[28px] font-bold text-[#f6f7fb]">Choose A Character First</h2>
-                <p class="mt-3 max-w-[30rem] text-[14px] leading-relaxed text-[#d8dce7]/58">The session opens through the character picker. Select an existing character or create a new blank one with a random name.</p>
+                <h2 class="font-heading text-[28px] font-bold text-ink">Choose A Character First</h2>
+                <p class="mt-3 max-w-[30rem] text-[14px] leading-relaxed text-ink-soft/58">The session opens through the character picker. Select an existing character or create a new blank one with a random name.</p>
                 <button
                   @click="openCharacterPicker"
-                  class="mt-5 cursor-pointer rounded-xl border border-[rgba(233,69,96,0.22)] bg-[rgba(233,69,96,0.08)] px-5 py-3 text-[14px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.45)]"
+                  class="mt-5 cursor-pointer rounded-xl border border-primary/22 bg-primary/8 px-5 py-3 text-[14px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/45"
                 >
                   Open Character Picker
                 </button>
@@ -2367,22 +2367,22 @@ onBeforeUnmount(() => {
           </section>
 
           <section v-else-if="activeTab === 'inventory'">
-            <div v-if="activeCharacterId && (tradingEnabled || incomingTradeCount)" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] px-5 py-3.5">
+            <div v-if="activeCharacterId && (tradingEnabled || incomingTradeCount)" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-line bg-n1/70 px-5 py-3.5">
               <div class="flex items-center gap-2.5">
-                <ArrowLeftRightIcon class="h-5 w-5 text-[#8fd7ef]" :stroke-width="2" />
+                <ArrowLeftRightIcon class="h-5 w-5 text-sky" :stroke-width="2" />
                 <div>
-                  <p class="text-[14px] font-semibold text-[#f6f7fb]">Player Trading</p>
-                  <p class="text-[12px] text-[#7ec8e3]/50">Offer items to another character and let them accept.</p>
+                  <p class="text-[14px] font-semibold text-ink">Player Trading</p>
+                  <p class="text-[12px] text-dim">Offer items to another character and let them accept.</p>
                 </div>
               </div>
               <button
                 type="button"
                 @click="openTradeModal(incomingTradeCount ? 'incoming' : 'send')"
-                class="relative inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.22)] bg-[rgba(126,200,227,0.1)] px-4 py-2.5 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.45)]"
+                class="relative inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n4 px-4 py-2.5 text-[13px] font-semibold text-sky transition-all duration-200 hover:border-n7"
               >
                 <ArrowLeftRightIcon class="h-4 w-4" :stroke-width="2" />
                 Trade
-                <span v-if="incomingTradeCount" class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#e94560] px-1.5 text-[11px] font-bold text-white">{{ incomingTradeCount }}</span>
+                <span v-if="incomingTradeCount" class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-white">{{ incomingTradeCount }}</span>
               </button>
             </div>
             <SessionInventoryBoard
@@ -2406,11 +2406,11 @@ onBeforeUnmount(() => {
           </section>
 
           <section v-else-if="activeTab === 'characters'" ref="fillHeightSectionRef" class="flex min-h-[42rem] flex-col gap-5 xl:min-h-0" :style="fillSectionHeight ? { height: fillSectionHeight } : {}">
-            <article class="shrink-0 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+            <article class="shrink-0 rounded-[2rem] border border-line bg-n1/88 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Character Switcher</p>
-                  <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">{{ rosterTitle }}</h3>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Character Switcher</p>
+                  <h3 class="mt-2 font-heading text-[30px] font-bold text-ink">{{ rosterTitle }}</h3>
                 </div>
 
                 <div class="flex flex-wrap gap-3">
@@ -2418,7 +2418,7 @@ onBeforeUnmount(() => {
                     v-if="viewer.can_create_character"
                     @click="requestCharacterCreation"
                     :disabled="creatingCharacter"
-                    class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] px-4 py-2.5 text-[13px] font-semibold text-[#ffe0e7] transition-all duration-200 hover:border-[rgba(233,69,96,0.45)] disabled:cursor-not-allowed disabled:opacity-60"
+                    class="cursor-pointer rounded-xl border border-primary/24 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/45 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {{ creatingCharacter ? 'Creating...' : (isGM ? 'Create GM Character' : 'Create New Character') }}
                   </button>
@@ -2444,17 +2444,17 @@ onBeforeUnmount(() => {
             >
               <template #cell-name="{ row }">
                 <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-n3">
                     <img v-if="avatarUrl(row.portrait_id)" :src="avatarUrl(row.portrait_id)" :alt="row.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(row.portrait_id))" />
-                    <span v-else class="font-[Cinzel] text-[13px] font-bold text-[#8fd7ef]">{{ initials(row.name) }}</span>
+                    <span v-else class="font-heading text-[13px] font-bold text-sky">{{ initials(row.name) }}</span>
                   </div>
                   <div class="min-w-0 flex items-center gap-2">
-                    <span class="truncate font-semibold text-[#f6f7fb]">{{ row.name }}</span>
-                    <span v-if="row.id === activeCharacterId" class="shrink-0 rounded-full bg-[rgba(233,69,96,0.2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ffe0e7]">Active</span>
+                    <span class="truncate font-semibold text-ink">{{ row.name }}</span>
+                    <span v-if="row.id === activeCharacterId" class="shrink-0 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-soft">Active</span>
                   </div>
                 </div>
               </template>
-              <template #cell-sizeLabel="{ row }"><span class="text-[#7ec8e3]/60">{{ row.sizeLabel }}</span></template>
+              <template #cell-sizeLabel="{ row }"><span class="text-dim">{{ row.sizeLabel }}</span></template>
               <template #cell-actions="{ row }">
                 <div class="flex flex-wrap justify-end gap-2">
                   <button
@@ -2462,21 +2462,21 @@ onBeforeUnmount(() => {
                     :disabled="row.id === activeCharacterId"
                     class="rounded-lg border px-3 py-1.5 text-[12px] font-semibold transition-all duration-200 disabled:cursor-not-allowed"
                     :class="row.id === activeCharacterId
-                      ? 'border-[rgba(255,173,189,0.34)] bg-[rgba(233,69,96,0.2)] text-[#fff2f5]'
-                      : 'cursor-pointer border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)] text-[#ffe0e7] hover:border-[rgba(233,69,96,0.45)]'"
+                      ? 'border-primary/34 bg-primary/20 text-primary-soft'
+                      : 'cursor-pointer border-primary/24 bg-primary/12 text-primary-soft hover:border-primary/45'"
                   >
                     {{ row.id === activeCharacterId ? 'Active' : 'Make Active' }}
                   </button>
                   <button
                     @click="switchCharacter(row.id, { nextTab: 'sheet' })"
-                    class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)]"
+                    class="cursor-pointer rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-line-strong"
                   >
                     Open
                   </button>
                   <button
                     v-if="isGM"
                     @click="openGMCharacterEditor(row)"
-                    class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]"
+                    class="cursor-pointer rounded-lg border border-warning/24 bg-warning/16 px-3 py-1.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-warning/40"
                   >
                     Configure
                   </button>
@@ -2484,14 +2484,14 @@ onBeforeUnmount(() => {
                     v-if="isGM"
                     @click="duplicateCharacter(row)"
                     :disabled="duplicatingCharacterId === row.id"
-                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Copy class="h-3.5 w-3.5" :stroke-width="2" /> {{ duplicatingCharacterId === row.id ? 'Duplicating…' : 'Duplicate' }}
                   </button>
                   <button
                     v-if="canDeleteCharacter(row)"
                     @click="requestCharacterDeletion(row)"
-                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)]"
+                    class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-danger/40 bg-danger/18 px-3 py-1.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/65 hover:bg-danger/28"
                   >
                     <Trash2Icon class="h-3.5 w-3.5" :stroke-width="2" /> Delete
                   </button>
@@ -2501,15 +2501,15 @@ onBeforeUnmount(() => {
           </section>
 
           <section v-else-if="activeTab === 'players' && isGM" ref="fillHeightSectionRef" class="flex min-h-[42rem] w-full flex-col xl:min-h-0" :style="fillSectionHeight ? { height: fillSectionHeight } : {}">
-            <article class="flex flex-1 flex-col min-h-0 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+            <article class="flex flex-1 flex-col min-h-0 rounded-[2rem] border border-line bg-n1/88 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <div class="flex shrink-0 flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Campaign Roster</p>
-                  <h3 class="mt-1 font-[Cinzel] text-[26px] font-bold text-[#f6f7fb]">Characters</h3>
+                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Campaign Roster</p>
+                  <h3 class="mt-1 font-heading text-[26px] font-bold text-ink">Characters</h3>
                 </div>
-                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-[#8fd7ef]">
-                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">{{ game.members?.length ?? 0 }} members</span>
-                  <span class="rounded-full border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5">{{ campaignCharacterRows.length }} characters</span>
+                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-sky">
+                  <span class="rounded-full border border-line bg-n3 px-3 py-1.5">{{ game.members?.length ?? 0 }} members</span>
+                  <span class="rounded-full border border-line bg-n3 px-3 py-1.5">{{ campaignCharacterRows.length }} characters</span>
                 </div>
               </div>
 
@@ -2534,34 +2534,34 @@ onBeforeUnmount(() => {
               >
                 <template #cell-name="{ row }">
                   <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-line bg-n3">
                       <img v-if="avatarUrl(row.portrait_id)" :src="avatarUrl(row.portrait_id)" :alt="row.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(row.portrait_id))" />
-                      <span v-else class="font-[Cinzel] text-[13px] font-bold text-[#8fd7ef]">{{ initials(row.name) }}</span>
+                      <span v-else class="font-heading text-[13px] font-bold text-sky">{{ initials(row.name) }}</span>
                     </div>
                     <div class="min-w-0 flex items-center gap-2">
-                      <span class="truncate font-semibold text-[#f6f7fb]">{{ row.name }}</span>
-                      <span v-if="row.id === activeCharacterId" class="shrink-0 rounded-full bg-[rgba(233,69,96,0.2)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#ffe0e7]">Active</span>
+                      <span class="truncate font-semibold text-ink">{{ row.name }}</span>
+                      <span v-if="row.id === activeCharacterId" class="shrink-0 rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-soft">Active</span>
                     </div>
                   </div>
                 </template>
-                <template #cell-createdAt="{ row }"><span class="text-[#7ec8e3]/60">{{ row.createdAt ? formatDateTime(row.createdAt) : '—' }}</span></template>
-                <template #cell-sizeLabel="{ row }"><span class="text-[#7ec8e3]/60">{{ row.sizeLabel }}</span></template>
+                <template #cell-createdAt="{ row }"><span class="text-dim">{{ row.createdAt ? formatDateTime(row.createdAt) : '—' }}</span></template>
+                <template #cell-sizeLabel="{ row }"><span class="text-dim">{{ row.sizeLabel }}</span></template>
                 <template #cell-actions="{ row }">
                   <div class="flex flex-wrap justify-end gap-2">
-                    <button @click="openInspectChoice(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                    <button @click="openInspectChoice(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-sky transition-all duration-200 hover:border-n7">
                       <EyeIcon class="h-3.5 w-3.5" :stroke-width="2" /> View
                     </button>
-                    <button @click="openGMCharacterEditor(row)" class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.24)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.4)]">
+                    <button @click="openGMCharacterEditor(row)" class="cursor-pointer rounded-lg border border-warning/24 bg-warning/16 px-3 py-1.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-warning/40">
                       Configure
                     </button>
                     <button
                       @click="duplicateCharacter(row)"
                       :disabled="duplicatingCharacterId === row.id"
-                      class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+                      class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Copy class="h-3.5 w-3.5" :stroke-width="2" /> {{ duplicatingCharacterId === row.id ? 'Duplicating…' : 'Duplicate' }}
                     </button>
-                    <button @click="requestCharacterDeletion(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.18)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.28)]">
+                    <button @click="requestCharacterDeletion(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-danger/40 bg-danger/18 px-3 py-1.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/65 hover:bg-danger/28">
                       <Trash2Icon class="h-3.5 w-3.5" :stroke-width="2" /> Delete
                     </button>
                   </div>
@@ -2573,12 +2573,12 @@ onBeforeUnmount(() => {
           <SessionItemCompendium v-else-if="activeTab === 'items' && isGM" :characters="characters" :available-tags="itemTags" :game-id="gameId" :disabled-standard-attrs="disabledStandardAttrs" :enable-health="enableHealth" :enable-armor-class="enableArmorClass" @created="loadSession({ preserveCharacter: true, promptSelection: false })" />
 
           <section v-else-if="activeTab === 'manage' && isGM" ref="fillHeightSectionRef" class="flex min-h-[42rem] flex-col gap-6 xl:min-h-0" :style="fillSectionHeight ? { height: fillSectionHeight } : {}">
-            <article class="shrink-0 rounded-[2rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(11,20,36,0.88)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
-              <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">GM Control Panel</p>
-              <h3 class="mt-2 font-[Cinzel] text-[30px] font-bold text-[#f6f7fb]">Manage Game</h3>
+            <article class="shrink-0 rounded-[2rem] border border-line bg-n1/88 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+              <p class="text-[11px] uppercase tracking-[0.22em] text-dim">GM Control Panel</p>
+              <h3 class="mt-2 font-heading text-[30px] font-bold text-ink">Manage Game</h3>
 
               <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
-                <div class="inline-flex flex-wrap gap-1.5 rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.6)] p-1.5">
+                <div class="inline-flex flex-wrap gap-1.5 rounded-2xl border border-line bg-n1/60 p-1.5">
                   <div
                     v-for="panel in [{ id: 'players', label: 'Players' }, { id: 'chat', label: 'Chat History' }, { id: 'activity', label: 'Activity' }]"
                     :key="panel.id"
@@ -2588,8 +2588,8 @@ onBeforeUnmount(() => {
                     @keydown.enter="managePanel = panel.id"
                     class="cursor-pointer select-none rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-200"
                     :class="managePanel === panel.id
-                      ? 'bg-[linear-gradient(135deg,rgba(233,69,96,0.95),rgba(194,49,82,0.95))] text-white shadow-[0_8px_20px_rgba(233,69,96,0.3)]'
-                      : 'text-[#d8dce7]/70 hover:bg-[rgba(126,200,227,0.06)] hover:text-[#f6f7fb]'"
+                      ? 'bg-[linear-gradient(135deg,rgba(88,101,221,0.95),rgba(74,86,200,0.95))] text-white shadow-[0_8px_20px_rgba(88,101,221,0.3)]'
+                      : 'text-ink-soft/70 hover:bg-n3 hover:text-ink'"
                   >
                     {{ panel.label }}
                   </div>
@@ -2601,14 +2601,14 @@ onBeforeUnmount(() => {
                     @click="refreshCurrentManagePanel"
                     @keydown.enter="refreshCurrentManagePanel"
                     title="Refresh"
-                    class="inline-flex cursor-pointer select-none items-center justify-center rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] p-2.5 text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+                    class="inline-flex cursor-pointer select-none items-center justify-center rounded-xl border border-line bg-n3 p-2.5 text-sky transition-all duration-200 hover:border-n7"
                   >
                     <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': manageRefreshing }" :stroke-width="2" />
                   </div>
                   <button
                     type="button"
                     @click="openGameSettings"
-                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]"
+                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-sky transition-all duration-200 hover:border-n7"
                   >
                     <SettingsIcon class="h-4 w-4" :stroke-width="2" />
                     Game Settings
@@ -2631,22 +2631,22 @@ onBeforeUnmount(() => {
                 min-width="640px"
                 empty-text="No members yet"
               >
-                <template #cell-username="{ row }"><span class="font-semibold text-[#f6f7fb]">{{ row.username }}</span></template>
-                <template #cell-role="{ row }"><span class="text-[#d8dce7]/70">{{ formatRole(row.role) }}</span></template>
-                <template #cell-joined_at="{ row }"><span class="text-[#7ec8e3]/45">{{ formatDateTime(row.joined_at) }}</span></template>
-                <template #cell-characterCount="{ row }"><span class="text-[#f6f7fb]">{{ row.characterCount }}</span></template>
+                <template #cell-username="{ row }"><span class="font-semibold text-ink">{{ row.username }}</span></template>
+                <template #cell-role="{ row }"><span class="text-ink-soft/70">{{ formatRole(row.role) }}</span></template>
+                <template #cell-joined_at="{ row }"><span class="text-faint">{{ formatDateTime(row.joined_at) }}</span></template>
+                <template #cell-characterCount="{ row }"><span class="text-ink">{{ row.characterCount }}</span></template>
                 <template #cell-actions="{ row }">
                   <div class="flex flex-wrap justify-end gap-2">
-                    <button type="button" @click="openMemberView(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                    <button type="button" @click="openMemberView(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-sky transition-all duration-200 hover:border-n7">
                       <EyeIcon class="h-3.5 w-3.5" :stroke-width="2" /> View
                     </button>
-                    <button v-if="isGameOwner && row.role === 'player'" type="button" @click="updateMemberRole(row, 'assistant_gm')" class="cursor-pointer rounded-lg border border-[rgba(197,138,56,0.28)] bg-[rgba(143,79,51,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fff4de] transition-all duration-200 hover:border-[rgba(197,138,56,0.45)]">
+                    <button v-if="isGameOwner && row.role === 'player'" type="button" @click="updateMemberRole(row, 'assistant_gm')" class="cursor-pointer rounded-lg border border-warning/28 bg-warning/16 px-3 py-1.5 text-[12px] font-semibold text-ink transition-all duration-200 hover:border-warning/45">
                       Make GM
                     </button>
-                    <button v-else-if="isGameOwner && row.role === 'assistant_gm'" type="button" @click="updateMemberRole(row, 'player')" class="cursor-pointer rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-3 py-1.5 text-[12px] font-semibold text-[#d8dce7]/80 transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
+                    <button v-else-if="isGameOwner && row.role === 'assistant_gm'" type="button" @click="updateMemberRole(row, 'player')" class="cursor-pointer rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-ink-soft/80 transition-all duration-200 hover:border-n7">
                       Revoke GM
                     </button>
-                    <button v-if="canRemoveMember(row)" type="button" @click="requestRemoveMember(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(248,113,113,0.4)] bg-[rgba(248,113,113,0.16)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.65)] hover:bg-[rgba(248,113,113,0.26)]">
+                    <button v-if="canRemoveMember(row)" type="button" @click="requestRemoveMember(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-danger/40 bg-danger/16 px-3 py-1.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/65 hover:bg-danger/26">
                       <Trash2Icon class="h-3.5 w-3.5" :stroke-width="2" /> Remove
                     </button>
                   </div>
@@ -2670,19 +2670,19 @@ onBeforeUnmount(() => {
               >
                 <template #toolbar>
                   <div class="flex items-center gap-2">
-                    <select v-model.number="chatClearHours" class="rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.72)] px-2.5 py-1.5 text-[12px] text-[#f6f7fb] outline-none">
+                    <select v-model.number="chatClearHours" class="rounded-lg border border-line bg-n1/72 px-2.5 py-1.5 text-[12px] text-ink outline-none">
                       <option v-for="period in CLEAR_PERIODS" :key="period.hours" :value="period.hours">{{ period.label }}</option>
                     </select>
-                    <div role="button" tabindex="0" @click="clearChatHistory" @keydown.enter="clearChatHistory" class="cursor-pointer select-none rounded-lg border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.5)]">Clear</div>
+                    <div role="button" tabindex="0" @click="clearChatHistory" @keydown.enter="clearChatHistory" class="cursor-pointer select-none rounded-lg border border-danger/28 bg-danger/12 px-3 py-1.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/50">Clear</div>
                   </div>
                 </template>
-                <template #cell-time="{ row }"><span class="whitespace-nowrap text-[#7ec8e3]/45">{{ row.time }}</span></template>
-                <template #cell-author="{ row }"><span class="whitespace-nowrap font-semibold text-[#f6f7fb]">{{ row.author }}</span></template>
+                <template #cell-time="{ row }"><span class="whitespace-nowrap text-faint">{{ row.time }}</span></template>
+                <template #cell-author="{ row }"><span class="whitespace-nowrap font-semibold text-ink">{{ row.author }}</span></template>
                 <template #cell-text="{ row }">
-                  <span v-if="row.isItem" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-2 py-1 text-[12px] text-[#8fd7ef]">
+                  <span v-if="row.isItem" class="inline-flex items-center gap-1.5 rounded-lg border border-line bg-n3 px-2 py-1 text-[12px] text-sky">
                     <PackageIcon class="h-3.5 w-3.5" :stroke-width="2" /> Shared item: {{ row.text }}
                   </span>
-                  <span v-else class="inline-block max-w-[34rem] truncate align-middle text-[#e8e8f0]/78" :title="row.text">{{ row.text }}</span>
+                  <span v-else class="inline-block max-w-[34rem] truncate align-middle text-ink/78" :title="row.text">{{ row.text }}</span>
                 </template>
               </DataTable>
             </div>
@@ -2703,29 +2703,29 @@ onBeforeUnmount(() => {
               >
                 <template #toolbar>
                   <div class="flex items-center gap-2">
-                    <select v-model.number="activityClearHours" class="rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.72)] px-2.5 py-1.5 text-[12px] text-[#f6f7fb] outline-none">
+                    <select v-model.number="activityClearHours" class="rounded-lg border border-line bg-n1/72 px-2.5 py-1.5 text-[12px] text-ink outline-none">
                       <option v-for="period in CLEAR_PERIODS" :key="period.hours" :value="period.hours">{{ period.label }}</option>
                     </select>
-                    <div role="button" tabindex="0" @click="clearActivity" @keydown.enter="clearActivity" class="cursor-pointer select-none rounded-lg border border-[rgba(248,113,113,0.28)] bg-[rgba(248,113,113,0.12)] px-3 py-1.5 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.5)]">Clear</div>
+                    <div role="button" tabindex="0" @click="clearActivity" @keydown.enter="clearActivity" class="cursor-pointer select-none rounded-lg border border-danger/28 bg-danger/12 px-3 py-1.5 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/50">Clear</div>
                   </div>
                 </template>
-                <template #cell-time="{ row }"><span class="whitespace-nowrap text-[#7ec8e3]/45">{{ row.time }}</span></template>
-                <template #cell-player="{ row }"><span class="whitespace-nowrap font-semibold text-[#f6f7fb]">{{ row.player }}</span></template>
-                <template #cell-character="{ row }"><span class="text-[#d8dce7]/70">{{ row.character }}</span></template>
+                <template #cell-time="{ row }"><span class="whitespace-nowrap text-faint">{{ row.time }}</span></template>
+                <template #cell-player="{ row }"><span class="whitespace-nowrap font-semibold text-ink">{{ row.player }}</span></template>
+                <template #cell-character="{ row }"><span class="text-ink-soft/70">{{ row.character }}</span></template>
                 <template #cell-action="{ row }">
-                  <span class="rounded-full border border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 text-[11px] font-semibold text-[#8fd7ef]">{{ row.action }}</span>
+                  <span class="rounded-full border border-line bg-n3 px-2.5 py-1 text-[11px] font-semibold text-sky">{{ row.action }}</span>
                 </template>
                 <template #cell-details="{ row }">
                   <button
                     v-if="activityItemName(row)"
                     type="button"
                     @click="openActivityItem(activityItemName(row))"
-                    class="inline-flex max-w-[28rem] cursor-pointer items-center gap-1.5 truncate rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(126,200,227,0.08)] px-2.5 py-1 align-middle text-[12px] font-medium text-[#8fd7ef] transition-all duration-200 hover:border-[rgba(126,200,227,0.45)]"
+                    class="inline-flex max-w-[28rem] cursor-pointer items-center gap-1.5 truncate rounded-lg border border-line bg-n3 px-2.5 py-1 align-middle text-[12px] font-medium text-sky transition-all duration-200 hover:border-n7"
                     :title="row.details"
                   >
                     <PackageIcon class="h-3.5 w-3.5 shrink-0" :stroke-width="2" /> {{ row.details }}
                   </button>
-                  <span v-else class="inline-block max-w-[28rem] truncate align-middle text-[#e8e8f0]/78" :title="row.details">{{ row.details }}</span>
+                  <span v-else class="inline-block max-w-[28rem] truncate align-middle text-ink/78" :title="row.details">{{ row.details }}</span>
                 </template>
               </DataTable>
             </div>
@@ -2735,18 +2735,18 @@ onBeforeUnmount(() => {
 
       <Teleport to="body">
         <div v-if="memberPendingRemoval" class="fixed inset-0 z-[12560] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="cancelRemoveMember"></div>
-          <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-[rgba(248,113,113,0.24)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-[#fca5a5]/70">Remove Player</p>
-            <h3 class="mt-2 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ memberPendingRemoval.username }}</h3>
-            <p class="mt-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
+          <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="cancelRemoveMember"></div>
+          <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-danger/24 bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-danger/70">Remove Player</p>
+            <h3 class="mt-2 break-words font-heading text-[22px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ memberPendingRemoval.username }}</h3>
+            <p class="mt-3 text-[14px] leading-relaxed text-ink-soft/68">
               This removes the player from the game and deletes their characters here (with inventory and equipment). This action cannot be undone.
             </p>
             <div class="mt-6 flex flex-wrap justify-end gap-3">
-              <button type="button" @click="cancelRemoveMember" :disabled="removingMember" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="button" @click="cancelRemoveMember" :disabled="removingMember" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">
                 Cancel
               </button>
-              <button type="button" @click="confirmRemoveMember" :disabled="removingMember" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[linear-gradient(135deg,rgba(248,113,113,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="button" @click="confirmRemoveMember" :disabled="removingMember" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-danger/28 bg-[linear-gradient(135deg,rgba(242,122,133,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60">
                 {{ removingMember ? 'Removing...' : 'Remove Player' }}
               </button>
             </div>
@@ -2764,18 +2764,18 @@ onBeforeUnmount(() => {
 
       <Teleport to="body">
         <div v-if="characterPendingDeletion" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="cancelCharacterDeletion"></div>
-          <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-[rgba(248,113,113,0.24)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-[#fca5a5]/70">Delete Character</p>
-            <h3 class="mt-2 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ characterPendingDeletion.name || 'Character' }}</h3>
-            <p class="mt-3 text-[14px] leading-relaxed text-[#d8dce7]/68">
+          <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="cancelCharacterDeletion"></div>
+          <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-danger/24 bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <p class="text-[11px] uppercase tracking-[0.24em] text-danger/70">Delete Character</p>
+            <h3 class="mt-2 break-words font-heading text-[22px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ characterPendingDeletion.name || 'Character' }}</h3>
+            <p class="mt-3 text-[14px] leading-relaxed text-ink-soft/68">
               This permanently removes the character along with its inventory, equipment, and attributes. This action cannot be undone.
             </p>
             <div class="mt-6 flex flex-wrap justify-end gap-3">
-              <button type="button" @click="cancelCharacterDeletion" :disabled="deletingCharacter" class="cursor-pointer rounded-xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-2.5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.3)] disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="button" @click="cancelCharacterDeletion" :disabled="deletingCharacter" class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong disabled:cursor-not-allowed disabled:opacity-60">
                 Cancel
               </button>
-              <button type="button" @click="confirmCharacterDeletion" :disabled="deletingCharacter" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(248,113,113,0.28)] bg-[linear-gradient(135deg,rgba(248,113,113,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60">
+              <button type="button" @click="confirmCharacterDeletion" :disabled="deletingCharacter" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-danger/28 bg-[linear-gradient(135deg,rgba(242,122,133,0.9),rgba(220,38,38,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60">
                 {{ deletingCharacter ? 'Deleting...' : 'Delete Character' }}
               </button>
             </div>
@@ -2785,57 +2785,57 @@ onBeforeUnmount(() => {
 
       <Teleport to="body">
         <div v-if="sharedItem" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeSharedItem"></div>
-          <div class="relative flex max-h-full w-full max-w-[34rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <button type="button" @click="closeSharedItem" aria-label="Close item details" class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+          <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="closeSharedItem"></div>
+          <div class="relative flex max-h-full w-full max-w-[34rem] flex-col overflow-hidden rounded-[1.6rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <button type="button" @click="closeSharedItem" aria-label="Close item details" class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32">
               <XIcon class="h-5 w-5" :stroke-width="2" />
             </button>
             <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
               <div class="flex gap-4">
-                <div class="h-24 w-24 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
+                <div class="h-24 w-24 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-line bg-n1/66">
                   <img v-if="avatarUrl(sharedItem.image_id)" :src="avatarUrl(sharedItem.image_id)" :alt="sharedItem.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(sharedItem.image_id))" />
-                  <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[28px] font-bold text-[#7ec8e3]/40">{{ (sharedItem.name || '?').charAt(0).toUpperCase() }}</div>
+                  <div v-else class="flex h-full w-full items-center justify-center font-heading text-[28px] font-bold text-faint">{{ (sharedItem.name || '?').charAt(0).toUpperCase() }}</div>
                 </div>
                 <div class="min-w-0 flex-1 pr-8">
-                  <h3 class="break-words text-[20px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ sharedItem.name || 'Unnamed item' }}</h3>
+                  <h3 class="break-words text-[20px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ sharedItem.name || 'Unnamed item' }}</h3>
                   <div class="mt-1.5 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" :class="rarityClasses(sharedItem.rarity)">{{ sharedItem.rarity || 'common' }}</span>
-                    <span class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">{{ formatAttrLabel(sharedItem.category || 'other') }}</span>
-                    <span class="text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/45">{{ sharedItem.grid_width || 1 }}x{{ sharedItem.grid_height || 1 }}</span>
+                    <span class="text-[11px] uppercase tracking-[0.16em] text-faint">{{ formatAttrLabel(sharedItem.category || 'other') }}</span>
+                    <span class="text-[11px] uppercase tracking-[0.16em] text-faint">{{ sharedItem.grid_width || 1 }}x{{ sharedItem.grid_height || 1 }}</span>
                   </div>
-                  <p v-if="sharedItem.owner" class="mt-1 text-[12px] text-[#d8dce7]/60">Shared by {{ sharedItem.owner }}</p>
+                  <p v-if="sharedItem.owner" class="mt-1 text-[12px] text-ink-soft/60">Shared by {{ sharedItem.owner }}</p>
                 </div>
               </div>
 
               <div class="mt-4">
-                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Description</p>
-                <p class="mt-1 break-words whitespace-pre-line text-[13px] leading-relaxed text-[#d8dce7]/72 [overflow-wrap:anywhere]">{{ sharedItem.description?.trim() || 'No description provided.' }}</p>
+                <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Description</p>
+                <p class="mt-1 break-words whitespace-pre-line text-[13px] leading-relaxed text-ink-soft/72 [overflow-wrap:anywhere]">{{ sharedItem.description?.trim() || 'No description provided.' }}</p>
               </div>
 
               <div v-if="attributesEnabled && sharedItem.required_attributes?.length" class="mt-4">
-                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Requirements</p>
+                <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Requirements</p>
                 <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
-                  <li v-for="(requirement, index) in sharedItem.required_attributes" :key="`sreq-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.05)] px-3 py-1.5 text-[12px] text-[#d8dce7]/82">
+                  <li v-for="(requirement, index) in sharedItem.required_attributes" :key="`sreq-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] text-ink-soft/82">
                     <span>{{ formatAttrLabel(requirement.attribute_name) }}</span>
-                    <span class="font-semibold text-[#f6f7fb]">{{ requirement.min_value }}</span>
+                    <span class="font-semibold text-ink">{{ requirement.min_value }}</span>
                   </li>
                 </ul>
               </div>
 
               <div v-if="attributesEnabled && sharedItem.attribute_modifiers?.length" class="mt-4">
-                <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Grants</p>
+                <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Grants</p>
                 <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
-                  <li v-for="(modifier, index) in sharedItem.attribute_modifiers" :key="`smod-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.05)] px-3 py-1.5 text-[12px] text-[#d8dce7]/82">
+                  <li v-for="(modifier, index) in sharedItem.attribute_modifiers" :key="`smod-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] text-ink-soft/82">
                     <span>{{ formatAttrLabel(modifier.attribute_name) }}</span>
-                    <span class="font-semibold" :class="modifier.modifier_value >= 0 ? 'text-[#8fd7ef]' : 'text-[#fca5a5]'">{{ modifier.modifier_value >= 0 ? '+' : '' }}{{ modifier.modifier_value }}{{ modifier.is_percentage ? '%' : '' }}</span>
+                    <span class="font-semibold" :class="modifier.modifier_value >= 0 ? 'text-sky' : 'text-danger'">{{ modifier.modifier_value >= 0 ? '+' : '' }}{{ modifier.modifier_value }}{{ modifier.is_percentage ? '%' : '' }}</span>
                   </li>
                 </ul>
               </div>
 
-              <div class="mt-4 flex flex-wrap gap-3 text-[12px] text-[#d8dce7]/70">
-                <span>Quantity: <span class="font-semibold text-[#f6f7fb]">{{ sharedItem.quantity || 1 }}</span></span>
-                <span v-if="sharedItem.enchantment">Enchantment: <span class="font-semibold text-[#8fd7ef]">+{{ sharedItem.enchantment }}</span></span>
-                <span v-if="sharedItem.max_durability != null">Durability: <span class="font-semibold text-[#f6f7fb]">{{ sharedItem.durability ?? sharedItem.max_durability }} / {{ sharedItem.max_durability }}</span></span>
+              <div class="mt-4 flex flex-wrap gap-3 text-[12px] text-ink-soft/70">
+                <span>Quantity: <span class="font-semibold text-ink">{{ sharedItem.quantity || 1 }}</span></span>
+                <span v-if="sharedItem.enchantment">Enchantment: <span class="font-semibold text-sky">+{{ sharedItem.enchantment }}</span></span>
+                <span v-if="sharedItem.max_durability != null">Durability: <span class="font-semibold text-ink">{{ sharedItem.durability ?? sharedItem.max_durability }} / {{ sharedItem.max_durability }}</span></span>
               </div>
             </div>
           </div>
@@ -2844,57 +2844,57 @@ onBeforeUnmount(() => {
 
       <Teleport to="body">
         <div v-if="viewMember" class="fixed inset-0 z-[12540] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-[rgba(5,8,12,0.85)] backdrop-blur-md" @click="closeMemberView"></div>
-          <div class="relative flex max-h-[92vh] w-full max-w-[52rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <button type="button" @click="closeMemberView" aria-label="Close player overview" class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+          <div class="absolute inset-0 bg-n0/85 backdrop-blur-md" @click="closeMemberView"></div>
+          <div class="relative flex max-h-[92vh] w-full max-w-[52rem] flex-col overflow-hidden rounded-[1.6rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <button type="button" @click="closeMemberView" aria-label="Close player overview" class="absolute right-4 top-4 z-10 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32">
               <XIcon class="h-5 w-5" :stroke-width="2" />
             </button>
 
-            <div class="flex items-center gap-4 border-b border-[rgba(126,200,227,0.1)] px-6 py-5 pr-16">
-              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
+            <div class="flex items-center gap-4 border-b border-line-soft px-6 py-5 pr-16">
+              <div class="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border-2 border-line bg-n1/66">
                 <img v-if="avatarUrl(viewMember.avatar_id)" :src="avatarUrl(viewMember.avatar_id)" :alt="viewMember.username" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(viewMember.avatar_id))" />
-                <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[22px] font-bold text-[#7ec8e3]/40">{{ (viewMember.username || '?').charAt(0).toUpperCase() }}</div>
+                <div v-else class="flex h-full w-full items-center justify-center font-heading text-[22px] font-bold text-faint">{{ (viewMember.username || '?').charAt(0).toUpperCase() }}</div>
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Player Overview</p>
-                <h2 class="mt-1 break-words font-[Cinzel] text-[24px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ viewMember.username }}</h2>
+                <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Player Overview</p>
+                <h2 class="mt-1 break-words font-heading text-[24px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ viewMember.username }}</h2>
                 <div class="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
-                  <span class="rounded-full border border-[rgba(126,200,227,0.18)] bg-[rgba(126,200,227,0.08)] px-3 py-1 font-semibold uppercase tracking-[0.14em] text-[#8fd7ef]">{{ formatRole(viewMember.role) }}</span>
-                  <span class="text-[#7ec8e3]/45">Joined {{ formatDateTime(viewMember.joined_at) }}</span>
-                  <span class="text-[#7ec8e3]/45">· {{ viewMemberCharacters.length }} character(s)</span>
+                  <span class="rounded-full border border-line bg-n3 px-3 py-1 font-semibold uppercase tracking-[0.14em] text-sky">{{ formatRole(viewMember.role) }}</span>
+                  <span class="text-faint">Joined {{ formatDateTime(viewMember.joined_at) }}</span>
+                  <span class="text-faint">· {{ viewMemberCharacters.length }} character(s)</span>
                 </div>
               </div>
             </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto p-6">
-              <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Characters ({{ viewMemberCharacters.length }})</p>
+              <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Characters ({{ viewMemberCharacters.length }})</p>
               <div v-if="viewMemberCharacters.length" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                <div v-for="character in viewMemberCharacters" :key="character.id" class="flex flex-col items-center rounded-[1.1rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] p-3 text-center">
-                  <div class="h-16 w-16 overflow-hidden rounded-[0.9rem] border-2 border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.66)]">
+                <div v-for="character in viewMemberCharacters" :key="character.id" class="flex flex-col items-center rounded-[1.1rem] border border-line bg-n1/70 p-3 text-center">
+                  <div class="h-16 w-16 overflow-hidden rounded-[0.9rem] border-2 border-line bg-n1/66">
                     <img v-if="avatarUrl(character.portrait_id)" :src="avatarUrl(character.portrait_id)" :alt="character.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(character.portrait_id))" />
-                    <div v-else class="flex h-full w-full items-center justify-center font-[Cinzel] text-[20px] font-bold text-[#7ec8e3]/40">{{ (character.name || '?').charAt(0).toUpperCase() }}</div>
+                    <div v-else class="flex h-full w-full items-center justify-center font-heading text-[20px] font-bold text-faint">{{ (character.name || '?').charAt(0).toUpperCase() }}</div>
                   </div>
-                  <p class="mt-2 line-clamp-2 break-words text-[13px] font-semibold text-[#f6f7fb] [overflow-wrap:anywhere]">{{ character.name }}</p>
+                  <p class="mt-2 line-clamp-2 break-words text-[13px] font-semibold text-ink [overflow-wrap:anywhere]">{{ character.name }}</p>
                 </div>
               </div>
-              <p v-else class="mt-2 text-[13px] text-[#7ec8e3]/45">This player has no characters in this game.</p>
+              <p v-else class="mt-2 text-[13px] text-faint">This player has no characters in this game.</p>
 
-              <p class="mt-6 text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">Recent messages</p>
+              <p class="mt-6 text-[10px] uppercase tracking-[0.18em] text-dim">Recent messages</p>
               <div v-if="viewMemberLoading" class="mt-3 flex justify-center py-6">
-                <div class="h-6 w-6 animate-spin rounded-full border-2 border-[#e94560] border-t-transparent"></div>
+                <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
               </div>
               <ul v-else-if="viewMemberMessages.length" class="mt-3 space-y-2">
-                <li v-for="message in viewMemberMessages" :key="message.id" class="rounded-xl border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.04)] px-3 py-2">
+                <li v-for="message in viewMemberMessages" :key="message.id" class="rounded-xl border border-line-soft bg-n2 px-3 py-2">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0 flex-1">
-                      <span v-if="message.isItem" class="inline-flex items-center gap-1.5 text-[12px] text-[#8fd7ef]"><PackageIcon class="h-3.5 w-3.5 shrink-0" :stroke-width="2" /> {{ message.text }}</span>
-                      <span v-else class="break-words text-[13px] text-[#e8e8f0]/82 [overflow-wrap:anywhere]">{{ message.text }}</span>
+                      <span v-if="message.isItem" class="inline-flex items-center gap-1.5 text-[12px] text-sky"><PackageIcon class="h-3.5 w-3.5 shrink-0" :stroke-width="2" /> {{ message.text }}</span>
+                      <span v-else class="break-words text-[13px] text-ink/82 [overflow-wrap:anywhere]">{{ message.text }}</span>
                     </div>
-                    <span class="shrink-0 text-[11px] text-[#7ec8e3]/40">{{ message.time }}</span>
+                    <span class="shrink-0 text-[11px] text-faint">{{ message.time }}</span>
                   </div>
                 </li>
               </ul>
-              <p v-else class="mt-2 text-[13px] text-[#7ec8e3]/45">{{ game?.enable_chat ? 'No messages from this player yet.' : 'Chat is disabled for this game.' }}</p>
+              <p v-else class="mt-2 text-[13px] text-faint">{{ game?.enable_chat ? 'No messages from this player yet.' : 'Chat is disabled for this game.' }}</p>
             </div>
           </div>
         </div>
@@ -2902,38 +2902,38 @@ onBeforeUnmount(() => {
 
       <Teleport to="body">
         <div v-if="showTradeModal" class="fixed inset-0 z-[12555] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-[rgba(5,8,12,0.85)] backdrop-blur-md" @click="closeTradeModal"></div>
-          <div class="relative flex max-h-[92vh] w-full max-w-[56rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <div class="flex items-center justify-between gap-3 border-b border-[rgba(126,200,227,0.1)] px-6 py-4">
+          <div class="absolute inset-0 bg-n0/85 backdrop-blur-md" @click="closeTradeModal"></div>
+          <div class="relative flex max-h-[92vh] w-full max-w-[56rem] flex-col overflow-hidden rounded-[1.6rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <div class="flex items-center justify-between gap-3 border-b border-line-soft px-6 py-4">
               <div class="flex items-center gap-2.5">
-                <ArrowLeftRightIcon class="h-5 w-5 text-[#8fd7ef]" :stroke-width="2" />
-                <h2 class="font-[Cinzel] text-[20px] font-bold text-[#f6f7fb]">Player Trading</h2>
+                <ArrowLeftRightIcon class="h-5 w-5 text-sky" :stroke-width="2" />
+                <h2 class="font-heading text-[20px] font-bold text-ink">Player Trading</h2>
               </div>
-              <button type="button" @click="closeTradeModal" :disabled="tradeBusy" aria-label="Close" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)] disabled:opacity-50">
+              <button type="button" @click="closeTradeModal" :disabled="tradeBusy" aria-label="Close" class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32 disabled:opacity-50">
                 <XIcon class="h-5 w-5" :stroke-width="2" />
               </button>
             </div>
 
-            <div class="flex gap-1.5 border-b border-[rgba(126,200,227,0.1)] px-6 py-3">
+            <div class="flex gap-1.5 border-b border-line-soft px-6 py-3">
               <button
                 v-for="panel in [{ id: 'send', label: 'New offer' }, { id: 'incoming', label: 'Incoming' }, { id: 'outgoing', label: 'Sent' }]"
                 :key="panel.id"
                 type="button"
                 @click="tradePanel = panel.id"
                 class="relative cursor-pointer rounded-xl px-4 py-2 text-[13px] font-semibold transition-all duration-200"
-                :class="tradePanel === panel.id ? 'bg-[linear-gradient(135deg,rgba(233,69,96,0.95),rgba(194,49,82,0.95))] text-white' : 'text-[#d8dce7]/70 hover:bg-[rgba(126,200,227,0.06)] hover:text-[#f6f7fb]'"
+                :class="tradePanel === panel.id ? 'bg-[linear-gradient(135deg,rgba(88,101,221,0.95),rgba(74,86,200,0.95))] text-white' : 'text-ink-soft/70 hover:bg-n3 hover:text-ink'"
               >
                 {{ panel.label }}
-                <span v-if="panel.id === 'incoming' && incomingTradeCount" class="ml-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#e94560] px-1 text-[10px] font-bold text-white">{{ incomingTradeCount }}</span>
-                <span v-if="panel.id === 'outgoing' && tradeOutgoing.length" class="ml-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[rgba(126,200,227,0.25)] px-1 text-[10px] font-bold text-[#8fd7ef]">{{ tradeOutgoing.length }}</span>
+                <span v-if="panel.id === 'incoming' && incomingTradeCount" class="ml-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">{{ incomingTradeCount }}</span>
+                <span v-if="panel.id === 'outgoing' && tradeOutgoing.length" class="ml-1.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-n5 px-1 text-[10px] font-bold text-sky">{{ tradeOutgoing.length }}</span>
               </button>
             </div>
 
             <div class="min-h-[26rem] flex-1 overflow-y-auto p-6">
               <!-- New offer -->
               <div v-if="tradePanel === 'send'">
-                <p v-if="!tradingEnabled" class="mb-4 rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.08)] px-4 py-3 text-[13px] text-[#fca5a5]">Item trading is disabled for this game. You can still respond to existing offers.</p>
-                <label class="block text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/55">Send to</label>
+                <p v-if="!tradingEnabled" class="mb-4 rounded-xl border border-danger/24 bg-danger/8 px-4 py-3 text-[13px] text-danger">Item trading is disabled for this game. You can still respond to existing offers.</p>
+                <label class="block text-[11px] uppercase tracking-[0.16em] text-dim">Send to</label>
                 <div class="relative mt-1.5">
                   <input
                     v-model="tradeRecipientSearch"
@@ -2942,26 +2942,26 @@ onBeforeUnmount(() => {
                     @blur="closeRecipientDropdown"
                     type="text"
                     placeholder="Search character by name…"
-                    class="w-full rounded-lg border border-[rgba(126,200,227,0.2)] bg-[rgba(7,17,31,0.72)] px-3 py-2.5 text-[14px] text-[#f6f7fb] outline-none focus:border-[rgba(126,200,227,0.45)] placeholder:text-[#7ec8e3]/30"
+                    class="w-full rounded-lg border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none focus:border-n7 placeholder:text-faint"
                   />
-                  <div v-if="tradeRecipientOpen" class="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.99),rgba(6,11,22,0.99))] py-1 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+                  <div v-if="tradeRecipientOpen" class="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.99),rgba(6,11,22,0.99))] py-1 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
                     <button
                       v-for="target in tradeRecipientFiltered"
                       :key="target.id"
                       type="button"
                       @mousedown.prevent="selectTradeRecipient(target)"
-                      class="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left text-[13px] transition-colors hover:bg-[rgba(126,200,227,0.08)]"
-                      :class="tradeRecipientId === target.id ? 'text-[#ff8aa0]' : 'text-[#e8e8f0]/82'"
+                      class="flex w-full cursor-pointer items-center justify-between gap-2 px-3 py-2 text-left text-[13px] transition-colors hover:bg-n3"
+                      :class="tradeRecipientId === target.id ? 'text-primary-ink' : 'text-ink/82'"
                     >
                       <span class="font-semibold">{{ target.name }}</span>
-                      <span class="text-[12px] text-[#7ec8e3]/45">{{ target.owner }}</span>
+                      <span class="text-[12px] text-faint">{{ target.owner }}</span>
                     </button>
-                    <p v-if="!tradeRecipientFiltered.length" class="px-3 py-2 text-[12px] text-[#7ec8e3]/40">No matching characters</p>
+                    <p v-if="!tradeRecipientFiltered.length" class="px-3 py-2 text-[12px] text-faint">No matching characters</p>
                   </div>
                 </div>
 
-                <p class="mt-5 text-[11px] uppercase tracking-[0.16em] text-[#7ec8e3]/55">Items to offer ({{ tradeSelectedIds.length }} selected)</p>
-                <p v-if="!tradeOfferableItems.length" class="mt-3 text-[13px] text-[#7ec8e3]/45">No tradeable items. Unequip items first to offer them.</p>
+                <p class="mt-5 text-[11px] uppercase tracking-[0.16em] text-dim">Items to offer ({{ tradeSelectedIds.length }} selected)</p>
+                <p v-if="!tradeOfferableItems.length" class="mt-3 text-[13px] text-faint">No tradeable items. Unequip items first to offer them.</p>
                 <div v-else class="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   <button
                     v-for="entry in tradeOfferableItems"
@@ -2969,19 +2969,19 @@ onBeforeUnmount(() => {
                     type="button"
                     @click="toggleTradeItem(entry.id)"
                     class="flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all duration-200"
-                    :class="tradeSelectedSet.has(entry.id) ? 'border-[rgba(233,69,96,0.5)] bg-[rgba(233,69,96,0.12)]' : 'border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.04)] hover:border-[rgba(126,200,227,0.3)]'"
+                    :class="tradeSelectedSet.has(entry.id) ? 'border-primary/50 bg-primary/12' : 'border-line bg-n2 hover:border-line-strong'"
                   >
-                    <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-[rgba(126,200,227,0.16)] bg-[rgba(7,17,31,0.66)]">
+                    <div class="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-line bg-n1/66">
                       <img v-if="avatarUrl(entry.item?.image_id)" :src="avatarUrl(entry.item?.image_id)" :alt="entry.item?.name" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(entry.item?.image_id))" />
                     </div>
                     <div class="min-w-0 flex-1">
-                      <p class="truncate text-[13px] font-semibold text-[#f6f7fb]">{{ entry.item?.name }}</p>
-                      <p class="text-[11px] text-[#7ec8e3]/45">{{ entry.item?.grid_width }}x{{ entry.item?.grid_height }}<span v-if="(entry.quantity || 1) > 1"> · x{{ entry.quantity }}</span></p>
-                      <p v-if="entry.max_durability != null" class="text-[11px]" :class="(entry.durability ?? entry.max_durability) <= entry.max_durability * 0.3 ? 'text-[#fca5a5]' : 'text-[#86efac]/80'">
+                      <p class="truncate text-[13px] font-semibold text-ink">{{ entry.item?.name }}</p>
+                      <p class="text-[11px] text-faint">{{ entry.item?.grid_width }}x{{ entry.item?.grid_height }}<span v-if="(entry.quantity || 1) > 1"> · x{{ entry.quantity }}</span></p>
+                      <p v-if="entry.max_durability != null" class="text-[11px]" :class="(entry.durability ?? entry.max_durability) <= entry.max_durability * 0.3 ? 'text-danger' : 'text-success/80'">
                         Dur {{ entry.durability ?? entry.max_durability }}/{{ entry.max_durability }}
                       </p>
                     </div>
-                    <CheckIcon v-if="tradeSelectedSet.has(entry.id)" class="h-4 w-4 shrink-0 text-[#ff6b81]" :stroke-width="3" />
+                    <CheckIcon v-if="tradeSelectedSet.has(entry.id)" class="h-4 w-4 shrink-0 text-danger" :stroke-width="3" />
                   </button>
                 </div>
 
@@ -2990,7 +2990,7 @@ onBeforeUnmount(() => {
                     type="button"
                     @click="submitTrade"
                     :disabled="tradeBusy || !tradingEnabled || !tradeRecipientId || !tradeSelectedIds.length"
-                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-[rgba(233,69,96,0.3)] bg-[linear-gradient(135deg,rgba(233,69,96,0.92),rgba(194,49,82,0.92))] px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-[linear-gradient(135deg,rgba(88,101,221,0.92),rgba(74,86,200,0.92))] px-5 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                   >
                     <ArrowLeftRightIcon class="h-4 w-4" :stroke-width="2" />
                     {{ tradeBusy ? 'Sending…' : 'Send offer' }}
@@ -3000,19 +3000,19 @@ onBeforeUnmount(() => {
 
               <!-- Incoming -->
               <div v-else-if="tradePanel === 'incoming'">
-                <p v-if="!tradeIncoming.length" class="py-10 text-center text-[13px] text-[#7ec8e3]/45">No incoming offers.</p>
+                <p v-if="!tradeIncoming.length" class="py-10 text-center text-[13px] text-faint">No incoming offers.</p>
                 <div v-else class="space-y-3">
-                  <article v-for="offer in tradeIncoming" :key="offer.id" class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] p-4">
-                    <p class="text-[13px] text-[#d8dce7]/72"><span class="font-semibold text-[#f6f7fb]">{{ offer.from_username }}</span> ({{ offer.from_character_name }}) → <span class="font-semibold text-[#f6f7fb]">{{ offer.to_character_name }}</span></p>
+                  <article v-for="offer in tradeIncoming" :key="offer.id" class="rounded-[1.3rem] border border-line bg-n1/70 p-4">
+                    <p class="text-[13px] text-ink-soft/72"><span class="font-semibold text-ink">{{ offer.from_username }}</span> ({{ offer.from_character_name }}) → <span class="font-semibold text-ink">{{ offer.to_character_name }}</span></p>
                     <div class="mt-3 flex flex-wrap gap-2">
-                      <span v-for="item in offer.items" :key="item.id" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-2 py-1 text-[12px] text-[#d8dce7]/82">
+                      <span v-for="item in offer.items" :key="item.id" class="inline-flex items-center gap-1.5 rounded-lg border border-line bg-n3 px-2 py-1 text-[12px] text-ink-soft/82">
                         <img v-if="avatarUrl(item.item?.image_id)" :src="avatarUrl(item.item?.image_id)" :alt="item.item?.name" class="h-5 w-5 rounded object-cover" @error="markImageFailed(avatarUrl(item.item?.image_id))" />
-                        {{ item.item?.name }}<span v-if="(item.quantity || 1) > 1" class="text-[#7ec8e3]/50"> x{{ item.quantity }}</span>
+                        {{ item.item?.name }}<span v-if="(item.quantity || 1) > 1" class="text-dim"> x{{ item.quantity }}</span>
                       </span>
                     </div>
                     <div class="mt-4 flex justify-end gap-2">
-                      <button type="button" @click="declineTradeOffer(offer)" :disabled="tradeBusy" class="cursor-pointer rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3.5 py-2 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)] disabled:opacity-50">Decline</button>
-                      <button type="button" @click="acceptTradeOffer(offer)" :disabled="tradeBusy" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-[rgba(74,222,128,0.3)] bg-[rgba(74,222,128,0.14)] px-3.5 py-2 text-[12px] font-semibold text-[#86efac] transition-all duration-200 hover:border-[rgba(74,222,128,0.5)] disabled:opacity-50"><CheckIcon class="h-3.5 w-3.5" :stroke-width="2.5" /> Accept</button>
+                      <button type="button" @click="declineTradeOffer(offer)" :disabled="tradeBusy" class="cursor-pointer rounded-lg border border-danger/24 bg-danger/10 px-3.5 py-2 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/45 disabled:opacity-50">Decline</button>
+                      <button type="button" @click="acceptTradeOffer(offer)" :disabled="tradeBusy" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-success/30 bg-success/14 px-3.5 py-2 text-[12px] font-semibold text-success transition-all duration-200 hover:border-success/50 disabled:opacity-50"><CheckIcon class="h-3.5 w-3.5" :stroke-width="2.5" /> Accept</button>
                     </div>
                   </article>
                 </div>
@@ -3020,18 +3020,18 @@ onBeforeUnmount(() => {
 
               <!-- Sent -->
               <div v-else>
-                <p v-if="!tradeOutgoing.length" class="py-10 text-center text-[13px] text-[#7ec8e3]/45">No pending sent offers.</p>
+                <p v-if="!tradeOutgoing.length" class="py-10 text-center text-[13px] text-faint">No pending sent offers.</p>
                 <div v-else class="space-y-3">
-                  <article v-for="offer in tradeOutgoing" :key="offer.id" class="rounded-[1.3rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(8,16,30,0.7)] p-4">
-                    <p class="text-[13px] text-[#d8dce7]/72">To <span class="font-semibold text-[#f6f7fb]">{{ offer.to_username }}</span> ({{ offer.to_character_name }})</p>
+                  <article v-for="offer in tradeOutgoing" :key="offer.id" class="rounded-[1.3rem] border border-line bg-n1/70 p-4">
+                    <p class="text-[13px] text-ink-soft/72">To <span class="font-semibold text-ink">{{ offer.to_username }}</span> ({{ offer.to_character_name }})</p>
                     <div class="mt-3 flex flex-wrap gap-2">
-                      <span v-for="item in offer.items" :key="item.id" class="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.06)] px-2 py-1 text-[12px] text-[#d8dce7]/82">
+                      <span v-for="item in offer.items" :key="item.id" class="inline-flex items-center gap-1.5 rounded-lg border border-line bg-n3 px-2 py-1 text-[12px] text-ink-soft/82">
                         <img v-if="avatarUrl(item.item?.image_id)" :src="avatarUrl(item.item?.image_id)" :alt="item.item?.name" class="h-5 w-5 rounded object-cover" @error="markImageFailed(avatarUrl(item.item?.image_id))" />
-                        {{ item.item?.name }}<span v-if="(item.quantity || 1) > 1" class="text-[#7ec8e3]/50"> x{{ item.quantity }}</span>
+                        {{ item.item?.name }}<span v-if="(item.quantity || 1) > 1" class="text-dim"> x{{ item.quantity }}</span>
                       </span>
                     </div>
                     <div class="mt-4 flex justify-end">
-                      <button type="button" @click="declineTradeOffer(offer)" :disabled="tradeBusy" class="cursor-pointer rounded-lg border border-[rgba(248,113,113,0.24)] bg-[rgba(248,113,113,0.1)] px-3.5 py-2 text-[12px] font-semibold text-[#fecaca] transition-all duration-200 hover:border-[rgba(248,113,113,0.45)] disabled:opacity-50">Cancel offer</button>
+                      <button type="button" @click="declineTradeOffer(offer)" :disabled="tradeBusy" class="cursor-pointer rounded-lg border border-danger/24 bg-danger/10 px-3.5 py-2 text-[12px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/45 disabled:opacity-50">Cancel offer</button>
                     </div>
                   </article>
                 </div>
@@ -3043,21 +3043,21 @@ onBeforeUnmount(() => {
 
       <Teleport to="body">
         <div v-if="inspectChoice" class="fixed inset-0 z-[12555] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-[rgba(5,8,12,0.82)] backdrop-blur-md" @click="closeInspectChoice"></div>
-          <div class="relative w-full max-w-[24rem] overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <button type="button" @click="closeInspectChoice" aria-label="Close" class="absolute right-4 top-4 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+          <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="closeInspectChoice"></div>
+          <div class="relative w-full max-w-[24rem] overflow-hidden rounded-[1.6rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <button type="button" @click="closeInspectChoice" aria-label="Close" class="absolute right-4 top-4 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32">
               <XIcon class="h-5 w-5" :stroke-width="2" />
             </button>
-            <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Inspect</p>
-            <h3 class="mt-1 break-words pr-10 font-[Cinzel] text-[20px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ inspectChoice.name }}</h3>
-            <p class="mt-2 text-[13px] text-[#d8dce7]/62">What would you like to open?</p>
+            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Inspect</p>
+            <h3 class="mt-1 break-words pr-10 font-heading text-[20px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ inspectChoice.name }}</h3>
+            <p class="mt-2 text-[13px] text-ink-soft/62">What would you like to open?</p>
             <div class="mt-5 grid grid-cols-2 gap-3">
-              <button type="button" @click="inspectCharacterSheet" class="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
-                <UserRoundIcon class="h-6 w-6 text-[#8fd7ef]" :stroke-width="2" />
+              <button type="button" @click="inspectCharacterSheet" class="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-line bg-n3 px-4 py-5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-n7">
+                <UserRoundIcon class="h-6 w-6 text-sky" :stroke-width="2" />
                 Character
               </button>
-              <button type="button" @click="inspectCharacterInventory" class="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-[rgba(126,200,227,0.16)] bg-[rgba(126,200,227,0.08)] px-4 py-5 text-[13px] font-semibold text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(126,200,227,0.4)]">
-                <LayoutGridIcon class="h-6 w-6 text-[#8fd7ef]" :stroke-width="2" />
+              <button type="button" @click="inspectCharacterInventory" class="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-line bg-n3 px-4 py-5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-n7">
+                <LayoutGridIcon class="h-6 w-6 text-sky" :stroke-width="2" />
                 Inventory
               </button>
             </div>
@@ -3067,21 +3067,21 @@ onBeforeUnmount(() => {
 
       <Teleport to="body">
         <div v-if="inventoryViewCharacter" class="fixed inset-0 z-[12560] flex items-center justify-center p-4">
-          <div class="absolute inset-0 bg-[rgba(5,8,12,0.88)] backdrop-blur-md" @click="closeCharacterInventory"></div>
-          <div class="relative flex max-h-[94vh] w-full max-w-[80rem] flex-col overflow-hidden rounded-[1.6rem] border border-[rgba(126,200,227,0.18)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <div class="flex items-center justify-between gap-3 border-b border-[rgba(126,200,227,0.1)] px-6 py-4">
+          <div class="absolute inset-0 bg-n0/88 backdrop-blur-md" @click="closeCharacterInventory"></div>
+          <div class="relative flex max-h-[94vh] w-full max-w-[80rem] flex-col overflow-hidden rounded-[1.6rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
+            <div class="flex items-center justify-between gap-3 border-b border-line-soft px-6 py-4">
               <div class="min-w-0">
-                <p class="text-[11px] uppercase tracking-[0.24em] text-[#7ec8e3]/58">Inventory (read-only)</p>
-                <h2 class="mt-1 break-words font-[Cinzel] text-[22px] font-bold leading-tight text-[#f6f7fb] [overflow-wrap:anywhere]">{{ inventoryViewCharacter.name }}</h2>
+                <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Inventory (read-only)</p>
+                <h2 class="mt-1 break-words font-heading text-[22px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ inventoryViewCharacter.name }}</h2>
               </div>
-              <button type="button" @click="closeCharacterInventory" aria-label="Close inventory" class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.32)]">
+              <button type="button" @click="closeCharacterInventory" aria-label="Close inventory" class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32">
                 <XIcon class="h-5 w-5" :stroke-width="2" />
               </button>
             </div>
 
             <div class="min-h-0 flex-1 overflow-auto p-5 sm:p-6">
               <div v-if="inventoryViewLoading" class="py-20 text-center">
-                <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#e94560] border-t-transparent"></div>
+                <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
               </div>
               <SessionInventoryBoard
                 v-else
@@ -3105,24 +3105,24 @@ onBeforeUnmount(() => {
       <Teleport to="body">
         <div
           v-if="statTooltip.visible"
-          class="pointer-events-none fixed z-[12000] w-[15rem] rounded-xl border border-[rgba(126,200,227,0.2)] bg-[linear-gradient(180deg,rgba(9,18,34,0.98),rgba(5,10,22,0.98))] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+          class="pointer-events-none fixed z-[12000] w-[15rem] rounded-xl border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
           :style="{ left: `${statTooltip.left}px`, top: `${statTooltip.top}px` }"
         >
-          <p class="text-[10px] uppercase tracking-[0.18em] text-[#7ec8e3]/55">{{ statTooltip.label }} breakdown</p>
-          <div class="mt-2 flex items-center justify-between text-[12px] text-[#d8dce7]/75">
+          <p class="text-[10px] uppercase tracking-[0.18em] text-dim">{{ statTooltip.label }} breakdown</p>
+          <div class="mt-2 flex items-center justify-between text-[12px] text-ink-soft/75">
             <span>Base</span><span class="font-semibold">{{ statTooltip.base }}</span>
           </div>
           <div
             v-for="(contribution, index) in statTooltip.contributions"
             :key="index"
             class="mt-1 flex items-center justify-between gap-2 text-[12px]"
-            :class="contribution.value >= 0 ? 'text-[#86efac]' : 'text-[#fca5a5]'"
+            :class="contribution.value >= 0 ? 'text-success' : 'text-danger'"
           >
             <span class="truncate pr-2">{{ contribution.source }}</span>
             <span class="shrink-0 font-semibold">{{ contribution.value >= 0 ? '+' : '' }}{{ contribution.value }}{{ contribution.percent ? '%' : '' }}</span>
           </div>
-          <p v-if="!statTooltip.contributions.length" class="mt-1 text-[11px] text-[#d8dce7]/50">No equipment bonuses</p>
-          <div class="mt-2 flex items-center justify-between border-t border-[rgba(126,200,227,0.12)] pt-2 text-[12px] font-semibold text-[#f6f7fb]">
+          <p v-if="!statTooltip.contributions.length" class="mt-1 text-[11px] text-ink-soft/50">No equipment bonuses</p>
+          <div class="mt-2 flex items-center justify-between border-t border-line pt-2 text-[12px] font-semibold text-ink">
             <span>Total</span><span>{{ statTooltip.total }}</span>
           </div>
         </div>
@@ -3131,34 +3131,34 @@ onBeforeUnmount(() => {
       <button
         v-if="game?.enable_chat && chatCollapsed"
         @click="focusChatInput"
-        class="session-chat-launcher border-[rgba(197,138,56,0.24)] bg-[rgba(16,19,23,0.96)] text-[#f3ead9]"
+        class="session-chat-launcher border-warning/24 bg-[rgba(16,19,23,0.96)] text-ink"
       >
         <MessageSquareTextIcon class="h-5 w-5" :stroke-width="1.8" />
         <span class="text-[11px] font-semibold uppercase tracking-[0.18em]">Chat</span>
-        <span class="rounded-full border border-[rgba(126,200,227,0.14)] px-2 py-0.5 text-[10px] font-semibold">{{ chatMessages.length }}</span>
+        <span class="rounded-full border border-line px-2 py-0.5 text-[10px] font-semibold">{{ chatMessages.length }}</span>
       </button>
 
       <aside v-else-if="game?.enable_chat" class="session-chat-dock">
         <div class="session-chat-dock__shell">
-          <div class="flex items-center justify-between gap-4 border-b border-[rgba(126,200,227,0.08)] px-4 py-4">
+          <div class="flex items-center justify-between gap-4 border-b border-line-soft px-4 py-4">
             <div>
-              <p class="text-[11px] uppercase tracking-[0.22em] text-[#7ec8e3]/55">Session Chat</p>
-              <p class="mt-1 truncate text-[14px] text-[#f6f7fb]">Latest 40 messages</p>
+              <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Session Chat</p>
+              <p class="mt-1 truncate text-[14px] text-ink">Latest 40 messages</p>
             </div>
 
             <div class="flex items-center gap-3">
               <span
                 class="rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em]"
                 :class="game.enable_chat
-                  ? 'border-[rgba(110,231,183,0.28)] bg-[rgba(22,163,74,0.14)] text-[#86efac]'
-                  : 'border-[rgba(248,113,113,0.28)] bg-[rgba(185,28,28,0.14)] text-[#fca5a5]'"
+                  ? 'border-[rgba(110,231,183,0.28)] bg-[rgba(22,163,74,0.14)] text-success'
+                  : 'border-danger/28 bg-[rgba(185,28,28,0.14)] text-danger'"
               >
                 {{ game.enable_chat ? 'Online' : 'Disabled' }}
               </span>
               <button
                 @click="chatCollapsed = true"
                 aria-label="Collapse chat dock"
-                class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-[rgba(126,200,227,0.14)] bg-[rgba(126,200,227,0.08)] text-[#f6f7fb] transition-all duration-200 hover:border-[rgba(233,69,96,0.34)] hover:text-[#ffe0e7]"
+                class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/34 hover:text-primary-soft"
               >
                 <ChevronRightIcon class="h-5 w-5" :stroke-width="2" />
               </button>
@@ -3166,11 +3166,11 @@ onBeforeUnmount(() => {
           </div>
 
           <div ref="chatMessagesRef" class="session-scroll flex-1 overflow-y-auto px-4 py-4">
-            <div v-if="!game.enable_chat" class="rounded-[1.5rem] border border-[rgba(248,113,113,0.22)] bg-[rgba(127,29,29,0.18)] px-4 py-4 text-[14px] text-[#fecaca]">
+            <div v-if="!game.enable_chat" class="rounded-[1.5rem] border border-danger/22 bg-danger/18 px-4 py-4 text-[14px] text-danger-soft">
               Chat is disabled for this game. The launcher stays visible, but sending is blocked by settings.
             </div>
 
-            <div v-else-if="!chatMessages.length" class="rounded-[1.5rem] border border-[rgba(126,200,227,0.1)] bg-[rgba(126,200,227,0.05)] px-4 py-4 text-[14px] text-[#d8dce7]/62">
+            <div v-else-if="!chatMessages.length" class="rounded-[1.5rem] border border-line-soft bg-n3 px-4 py-4 text-[14px] text-ink-soft/62">
               No messages yet. Start the conversation here without leaving the session.
             </div>
 
@@ -3180,41 +3180,41 @@ onBeforeUnmount(() => {
                 :key="message.id"
                 class="session-chat-message rounded-[1.4rem] border px-4 py-3"
                 :class="message.user_id === viewer.user_id
-                  ? 'border-[rgba(233,69,96,0.24)] bg-[rgba(233,69,96,0.12)]'
-                  : 'border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.05)]'"
+                  ? 'border-primary/24 bg-primary/12'
+                  : 'border-line bg-n3'"
               >
                 <div class="flex items-start gap-3">
-                  <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[rgba(126,200,227,0.12)] bg-[rgba(126,200,227,0.08)]">
+                  <div class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-line bg-n3">
                     <img v-if="avatarUrl(message.user?.avatar_id)" :src="avatarUrl(message.user?.avatar_id)" :alt="message.user?.username" class="h-full w-full object-cover" @error="markImageFailed(avatarUrl(message.user?.avatar_id))" />
-                    <span v-else class="font-[Cinzel] text-[14px] font-bold text-[#8fd7ef]">{{ initials(message.user?.username) }}</span>
+                    <span v-else class="font-heading text-[14px] font-bold text-sky">{{ initials(message.user?.username) }}</span>
                   </div>
 
                   <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center justify-between gap-3">
-                      <p class="truncate text-[13px] font-semibold text-[#f6f7fb]">{{ message.user?.username || 'Unknown user' }}</p>
-                      <span class="text-[11px] text-[#d8dce7]/45">{{ formatDateTime(message.created_at) }}</span>
+                      <p class="truncate text-[13px] font-semibold text-ink">{{ message.user?.username || 'Unknown user' }}</p>
+                      <span class="text-[11px] text-ink-soft/45">{{ formatDateTime(message.created_at) }}</span>
                     </div>
                     <button
                       v-if="parseSharedItem(message.content)"
                       type="button"
                       @click="openSharedItem(parseSharedItem(message.content))"
-                      class="mt-2 inline-flex max-w-full cursor-pointer items-center gap-2 rounded-xl border border-[rgba(126,200,227,0.22)] bg-[rgba(126,200,227,0.08)] px-3 py-2 text-left transition-all duration-200 hover:border-[rgba(233,69,96,0.4)] hover:bg-[rgba(233,69,96,0.1)]"
+                      class="mt-2 inline-flex max-w-full cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-3 py-2 text-left transition-all duration-200 hover:border-primary/40 hover:bg-primary/10"
                     >
-                      <PackageIcon class="h-4 w-4 shrink-0 text-[#8fd7ef]" :stroke-width="2" />
+                      <PackageIcon class="h-4 w-4 shrink-0 text-sky" :stroke-width="2" />
                       <span class="min-w-0">
-                        <span class="block truncate text-[13px] font-semibold text-[#f6f7fb]">{{ parseSharedItem(message.content).name || 'Item' }}</span>
-                        <span class="block text-[11px] uppercase tracking-[0.14em] text-[#8fd7ef]/70">Shared item · view</span>
+                        <span class="block truncate text-[13px] font-semibold text-ink">{{ parseSharedItem(message.content).name || 'Item' }}</span>
+                        <span class="block text-[11px] uppercase tracking-[0.14em] text-sky/70">Shared item · view</span>
                       </span>
                     </button>
-                    <p v-else class="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-[#e8e8f0]/78">{{ message.content }}</p>
+                    <p v-else class="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-ink/78">{{ message.content }}</p>
                   </div>
                 </div>
               </article>
             </div>
           </div>
 
-          <div class="border-t border-[rgba(126,200,227,0.08)] px-4 py-4">
-            <p v-if="chatError" class="mb-3 rounded-xl border border-[rgba(248,113,113,0.24)] bg-[rgba(127,29,29,0.18)] px-3 py-2 text-[12px] text-[#fecaca]">
+          <div class="border-t border-line-soft px-4 py-4">
+            <p v-if="chatError" class="mb-3 rounded-xl border border-danger/24 bg-danger/18 px-3 py-2 text-[12px] text-danger-soft">
               {{ chatError }}
             </p>
 
@@ -3225,15 +3225,15 @@ onBeforeUnmount(() => {
               :disabled="!game.enable_chat || chatSending"
               @keydown.enter.exact.prevent="sendChatMessage"
               placeholder="Write a message for the table..."
-              class="session-input w-full resize-none rounded-[1.4rem] border border-[rgba(126,200,227,0.12)] bg-[rgba(7,17,31,0.72)] px-4 py-3 text-[14px] text-[#f6f7fb] outline-none transition-all duration-200 placeholder:text-[#7ec8e3]/35 focus:border-[rgba(233,69,96,0.34)] disabled:cursor-not-allowed disabled:opacity-60"
+              class="session-input w-full resize-none rounded-[1.4rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none transition-all duration-200 placeholder:text-faint focus:border-primary/34 disabled:cursor-not-allowed disabled:opacity-60"
             ></textarea>
 
             <div class="mt-3 flex items-center justify-between gap-3">
-              <p class="text-[11px] uppercase tracking-[0.18em] text-[#7ec8e3]/45">Enter to send</p>
+              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Enter to send</p>
               <button
                 @click="sendChatMessage"
                 :disabled="!chatDraft.trim() || !game.enable_chat || chatSending"
-                class="cursor-pointer rounded-xl border border-[rgba(233,69,96,0.28)] bg-[linear-gradient(135deg,rgba(233,69,96,0.9),rgba(194,49,82,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(233,69,96,0.24)] disabled:cursor-not-allowed disabled:opacity-60"
+                class="cursor-pointer rounded-xl border border-primary/28 bg-[linear-gradient(135deg,rgba(88,101,221,0.9),rgba(74,86,200,0.9))] px-4 py-2.5 text-[13px] font-semibold text-white transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {{ chatSending ? 'Sending...' : 'Send Message' }}
               </button>
@@ -3259,9 +3259,9 @@ onBeforeUnmount(() => {
   z-index: -2;
   pointer-events: none;
   background:
-    linear-gradient(90deg, rgba(126, 200, 227, 0.032) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(126, 200, 227, 0.024) 1px, transparent 1px),
-    linear-gradient(180deg, #0a0a1a 0%, #09101d 56%, #060912 100%);
+    linear-gradient(90deg, rgba(123, 135, 184, 0.032) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(123, 135, 184, 0.024) 1px, transparent 1px),
+    linear-gradient(180deg, #060a1c 0%, #09101d 56%, #060912 100%);
   background-size: 88px 88px, 88px 88px, auto;
 }
 
@@ -3271,13 +3271,13 @@ onBeforeUnmount(() => {
   inset: 14px;
   z-index: -1;
   pointer-events: none;
-  border: 1px solid rgba(126, 200, 227, 0.07);
+  border: 1px solid rgba(123, 135, 184, 0.07);
 }
 
 .session-header {
   position: sticky;
   background: linear-gradient(180deg, rgba(14, 18, 33, 0.96), rgba(8, 11, 22, 0.94)) !important;
-  border-bottom-color: rgba(126, 200, 227, 0.14) !important;
+  border-bottom-color: rgba(123, 135, 184, 0.14) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
 }
 
@@ -3303,7 +3303,7 @@ onBeforeUnmount(() => {
 }
 
 .session-scroll::-webkit-scrollbar-thumb {
-  background: rgba(126, 200, 227, 0.22);
+  background: rgba(123, 135, 184, 0.22);
   border-radius: 999px;
 }
 
@@ -3320,7 +3320,7 @@ onBeforeUnmount(() => {
 }
 
 .session-stage button:not(.session-tab-button):not(.session-chat-launcher):hover {
-  border-color: rgba(233, 69, 96, 0.32) !important;
+  border-color: rgba(88, 101, 221, 0.32) !important;
   color: #ffffff !important;
 }
 
@@ -3343,15 +3343,15 @@ onBeforeUnmount(() => {
 .session-stage textarea:focus,
 .session-stage input:not([type='file']):not(.border-0):focus,
 .session-input:focus {
-  border-color: rgba(233, 69, 96, 0.4) !important;
-  box-shadow: 0 0 0 1px rgba(233, 69, 96, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  border-color: rgba(88, 101, 221, 0.4) !important;
+  box-shadow: 0 0 0 1px rgba(88, 101, 221, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .session-stage article:not(.session-chat-message) {
   position: relative;
   overflow: hidden;
   border-radius: 0.75rem !important;
-  border-color: rgba(126, 200, 227, 0.14) !important;
+  border-color: rgba(123, 135, 184, 0.14) !important;
   background: var(--dl-panel-bg) !important;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
@@ -3372,7 +3372,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 9px;
   pointer-events: none;
-  border: 1px solid rgba(126, 200, 227, 0.1);
+  border: 1px solid rgba(123, 135, 184, 0.1);
   clip-path: polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
 }
 
@@ -3382,7 +3382,7 @@ onBeforeUnmount(() => {
 }
 
 .session-command-deck {
-  border-color: rgba(233, 69, 96, 0.24) !important;
+  border-color: rgba(88, 101, 221, 0.24) !important;
   background: linear-gradient(135deg, rgba(39, 18, 31, 0.96), rgba(15, 23, 43, 0.96) 45%, rgba(10, 14, 26, 0.98)) !important;
 }
 
@@ -3401,7 +3401,7 @@ onBeforeUnmount(() => {
 }
 
 .session-banner {
-  border-color: rgba(233, 69, 96, 0.28) !important;
+  border-color: rgba(88, 101, 221, 0.28) !important;
   background: linear-gradient(180deg, rgba(62, 20, 34, 0.72), rgba(35, 14, 23, 0.78)) !important;
   color: #ffb8c5 !important;
 }
@@ -3433,7 +3433,7 @@ onBeforeUnmount(() => {
   padding: 0.5rem;
   transform: translateY(-50%);
   overflow: hidden;
-  border: 1px solid rgba(126, 200, 227, 0.14);
+  border: 1px solid rgba(123, 135, 184, 0.14);
   border-radius: 0.8rem;
   background: linear-gradient(180deg, rgba(14, 18, 33, 0.96), rgba(9, 13, 25, 0.98));
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
@@ -3444,7 +3444,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 6px;
   pointer-events: none;
-  border: 1px solid rgba(126, 200, 227, 0.08);
+  border: 1px solid rgba(123, 135, 184, 0.08);
 }
 
 .session-tab-button {
@@ -3459,7 +3459,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(135deg, rgba(233, 69, 96, 0.12), transparent 38%, rgba(126, 200, 227, 0.08));
+  background: linear-gradient(135deg, rgba(88, 101, 221, 0.12), transparent 38%, rgba(123, 135, 184, 0.08));
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -3481,7 +3481,7 @@ onBeforeUnmount(() => {
   transform: translateY(-50%) translateX(-0.25rem);
   opacity: 0;
   white-space: nowrap;
-  border: 1px solid rgba(126, 200, 227, 0.14);
+  border: 1px solid rgba(123, 135, 184, 0.14);
   border-radius: 0.5rem;
   background: rgba(11, 16, 29, 0.96);
   padding: 0.45rem 0.85rem;
@@ -3526,11 +3526,11 @@ onBeforeUnmount(() => {
   z-index: 40;
   height: 20rem;
   overflow: hidden;
-  border: 1px solid rgba(126, 200, 227, 0.14);
+  border: 1px solid rgba(123, 135, 184, 0.14);
   border-radius: 0.8rem;
   background:
     linear-gradient(180deg, rgba(14, 18, 33, 0.98), rgba(9, 13, 25, 0.99)),
-    repeating-linear-gradient(90deg, rgba(126, 200, 227, 0.04) 0 1px, transparent 1px 72px);
+    repeating-linear-gradient(90deg, rgba(123, 135, 184, 0.04) 0 1px, transparent 1px 72px);
   backdrop-filter: blur(24px);
   box-shadow: 0 35px 80px rgba(0, 0, 0, 0.38);
 }
@@ -3540,7 +3540,7 @@ onBeforeUnmount(() => {
   position: absolute;
   inset: 8px;
   pointer-events: none;
-  border: 1px solid rgba(126, 200, 227, 0.1);
+  border: 1px solid rgba(123, 135, 184, 0.1);
 }
 
 .session-chat-dock__shell {
@@ -3557,10 +3557,10 @@ onBeforeUnmount(() => {
 }
 
 .session-empty-bay {
-  border-color: rgba(126, 200, 227, 0.18) !important;
+  border-color: rgba(123, 135, 184, 0.18) !important;
   background:
-    repeating-linear-gradient(90deg, rgba(126, 200, 227, 0.08) 0 1px, transparent 1px 56px),
-    repeating-linear-gradient(0deg, rgba(126, 200, 227, 0.08) 0 1px, transparent 1px 56px),
+    repeating-linear-gradient(90deg, rgba(123, 135, 184, 0.08) 0 1px, transparent 1px 56px),
+    repeating-linear-gradient(0deg, rgba(123, 135, 184, 0.08) 0 1px, transparent 1px 56px),
     linear-gradient(180deg, rgba(10, 16, 29, 0.84), rgba(7, 11, 22, 0.92)) !important;
 }
 
@@ -3632,7 +3632,7 @@ onBeforeUnmount(() => {
 }
 
 .session-inventory-grid-phantom__cell {
-  border: 1px solid rgba(126, 200, 227, 0.14);
+  border: 1px solid rgba(123, 135, 184, 0.14);
   border-radius: 0.75rem;
   background: linear-gradient(180deg, rgba(18, 27, 49, 0.66), rgba(8, 13, 24, 0.74));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);

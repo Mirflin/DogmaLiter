@@ -1,80 +1,194 @@
-@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700&family=Cinzel:wght@400;600;700&display=swap');
 @import "tailwindcss";
 
+/*
+ * DogmaLiter — "dice tray" system.
+ * Work areas are wells pressed into navy velvet; what a player holds is
+ * coloured resin. Neutrals come only from the n0–n10 ramp. Saturated colour
+ * is reserved for data: rarity, durability, trades, modifiers, state.
+ */
+@theme {
+	--font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+	--font-heading: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
+	--font-num: 'Barlow Semi Condensed', 'Hanken Grotesk Variable', ui-sans-serif, sans-serif;
+
+	/* Navy velvet ramp: n0 is the deepest well, n10 is ink. */
+	--color-n0: #060a1c;
+	--color-n1: #0a1029;
+	--color-n2: #0f1734;
+	--color-n3: #141e41;
+	--color-n4: #1b2750;
+	--color-n5: #24325f;
+	--color-n6: #33427a;
+	--color-n7: #4a5a96;
+	--color-n8: #7b87b8;
+	--color-n9: #9aa5cf;
+	--color-n10: #e6eaff;
+
+	--color-ink: #e6eaff;
+	--color-ink-soft: #c3cae6;
+	--color-dim: #9aa5cf;
+	--color-faint: #7b87b8;
+	--color-line-soft: #1b2750;
+	--color-line: #24325f;
+	--color-line-strong: #33427a;
+
+	/* Logo blues and the orchid of its moons. */
+	--color-primary: #5865dd;
+	--color-primary-hover: #6673ea;
+	--color-primary-ink: #a4aeff;
+	--color-primary-soft: #dfe3ff;
+	--color-sky: #62b6ee;
+	--color-orchid: #e890d2;
+
+	--color-danger: #f27a85;
+	--color-danger-soft: #ffd9dd;
+	--color-success: #62d69d;
+	--color-warning: #efc35e;
+
+	/* Resin colourways, one per rarity tier. */
+	--color-r-common: #c3cbe6;
+	--color-r-uncommon: #e2c75e;
+	--color-r-rare: #62b6ee;
+	--color-r-epic: #ac8ffa;
+	--color-r-masterwork: #f0a35e;
+	--color-r-legendary: #62d69d;
+	--color-r-unique: #f27a85;
+
+	--shadow-well: inset 0 1px 2px rgb(0 0 0 / 0.55), inset 0 0 0 1px var(--color-n3);
+	--shadow-lift: 0 10px 30px -12px rgb(2 4 14 / 0.8), 0 2px 6px -2px rgb(2 4 14 / 0.6);
+
+	--ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Legacy names still referenced by a few scoped styles. */
 :root {
-	--dl-brand-primary: #e94560;
-	--dl-brand-primary-strong: #c23152;
-	--dl-brand-primary-soft: rgba(233, 69, 96, 0.14);
-	--dl-brand-secondary: #7ec8e3;
-	--dl-brand-secondary-strong: #8fd7ef;
-	--dl-brand-secondary-soft: rgba(126, 200, 227, 0.14);
-	--dl-brand-text: #e8e8f0;
-	--dl-brand-text-dim: rgba(232, 232, 240, 0.64);
-	--dl-surface-0: #070b15;
-	--dl-surface-1: #0b1120;
-	--dl-surface-2: #10182b;
-	--dl-surface-3: #151f35;
-	--dl-panel-bg: linear-gradient(180deg, rgba(16, 24, 43, 0.94), rgba(9, 14, 26, 0.98));
-	--dl-panel-bg-soft: linear-gradient(180deg, rgba(14, 21, 38, 0.86), rgba(9, 14, 26, 0.92));
-	--dl-panel-border: rgba(126, 200, 227, 0.14);
-	--dl-panel-border-strong: rgba(233, 69, 96, 0.22);
-	--dl-shadow-soft: 0 20px 48px rgba(0, 0, 0, 0.22);
-	--dl-shadow-strong: 0 30px 80px rgba(0, 0, 0, 0.3);
+	--dl-brand-primary: var(--color-primary);
+	--dl-brand-primary-strong: var(--color-primary-hover);
+	--dl-brand-primary-soft: rgb(88 101 221 / 0.16);
+	--dl-brand-secondary: var(--color-sky);
+	--dl-brand-secondary-strong: var(--color-sky);
+	--dl-brand-secondary-soft: rgb(98 182 238 / 0.14);
+	--dl-brand-text: var(--color-ink);
+	--dl-brand-text-dim: var(--color-dim);
+	--dl-surface-0: var(--color-n0);
+	--dl-surface-1: var(--color-n1);
+	--dl-surface-2: var(--color-n2);
+	--dl-surface-3: var(--color-n3);
+	--dl-panel-bg: var(--color-n2);
+	--dl-panel-bg-soft: var(--color-n2);
+	--dl-panel-border: var(--color-line);
+	--dl-panel-border-strong: var(--color-line-strong);
+	--dl-shadow-soft: var(--shadow-lift);
+	--dl-shadow-strong: var(--shadow-lift);
+	color-scheme: dark;
 }
 
-html,
-body,
-#app {
-	min-height: 100%;
+@layer base {
+	html,
+	body,
+	#app {
+		min-height: 100%;
+	}
+
+	body {
+		margin: 0;
+		background: var(--color-n1);
+		color: var(--color-ink);
+		font-family: var(--font-sans);
+		font-feature-settings: 'ss01';
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	a {
+		color: inherit;
+	}
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	::selection {
+		background: rgb(88 101 221 / 0.45);
+		color: #ffffff;
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--color-primary-ink);
+		outline-offset: 2px;
+	}
+
+	input,
+	textarea {
+		caret-color: var(--color-primary-ink);
+	}
+
+	::placeholder {
+		color: var(--color-faint);
+		opacity: 1;
+	}
+
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: var(--color-n6) transparent;
+	}
+
+	::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: var(--color-n5);
+		border: 3px solid transparent;
+		border-radius: 999px;
+		background-clip: padding-box;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		background-color: var(--color-n6);
+	}
+
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
 }
 
-body {
-	margin: 0;
-	color: var(--dl-brand-text);
-	font-family: 'Raleway', sans-serif;
-	background:
-		radial-gradient(circle at 50% -12%, rgba(233, 69, 96, 0.1), transparent 28%),
-		radial-gradient(circle at 80% 18%, rgba(126, 200, 227, 0.08), transparent 24%),
-		linear-gradient(90deg, rgba(126, 200, 227, 0.03) 1px, transparent 1px),
-		linear-gradient(0deg, rgba(126, 200, 227, 0.02) 1px, transparent 1px),
-		linear-gradient(180deg, #070b15 0%, #0a1120 54%, #060911 100%);
-	background-attachment: fixed;
-	background-size: auto, auto, 120px 120px, 120px 120px, auto;
+/* Inked numerals: stats, coin, counts, durability. */
+@utility num {
+	font-family: var(--font-num);
+	font-variant-numeric: tabular-nums lining-nums;
+	letter-spacing: 0;
 }
 
-a {
-	color: inherit;
-}
-
-* {
-	box-sizing: border-box;
-}
-
-::selection {
-	background: rgba(233, 69, 96, 0.28);
-	color: #ffffff;
+/* A recessed well in the tray. */
+@utility well {
+	background: var(--color-n0);
+	box-shadow: var(--shadow-well);
 }
 
 select {
 	appearance: none;
 	-webkit-appearance: none;
 	-moz-appearance: none;
-	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%237ec8e3' stroke-width='2.2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239aa5cf' stroke-width='2.2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 	background-repeat: no-repeat;
 	background-position: right 0.7rem center;
 	background-size: 1rem 1rem;
 	padding-right: 2.2rem !important;
 	cursor: pointer;
-	color: var(--dl-brand-text);
+	color: var(--color-ink);
 }
 
 select:hover {
-	border-color: rgba(126, 200, 227, 0.4);
+	border-color: var(--color-n6);
 }
 
 select option {
-	background: #0b1120;
-	color: var(--dl-brand-text);
+	background: var(--color-n2);
+	color: var(--color-ink);
 }
 
 input[type='checkbox']:not(.sr-only):not(.peer):not(.opacity-0) {
@@ -84,21 +198,21 @@ input[type='checkbox']:not(.sr-only):not(.peer):not(.opacity-0) {
 	height: 1.15rem;
 	flex-shrink: 0;
 	position: relative;
-	border-radius: 0.4rem;
-	border: 1px solid rgba(126, 200, 227, 0.32);
-	background: rgba(7, 17, 31, 0.72);
+	border-radius: 0.35rem;
+	border: 1px solid var(--color-n6);
+	background: var(--color-n0);
 	cursor: pointer;
 	vertical-align: middle;
-	transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+	transition: border-color 0.16s ease, background-color 0.16s ease;
 }
 
 input[type='checkbox']:not(.sr-only):not(.peer):not(.opacity-0):hover {
-	border-color: rgba(126, 200, 227, 0.55);
+	border-color: var(--color-n7);
 }
 
 input[type='checkbox']:not(.sr-only):not(.peer):not(.opacity-0):checked {
-	background: linear-gradient(135deg, #e94560, #c23152);
-	border-color: rgba(233, 69, 96, 0.65);
+	background: var(--color-primary);
+	border-color: var(--color-primary);
 }
 
 input[type='checkbox']:not(.sr-only):not(.peer):not(.opacity-0):checked::after {
@@ -114,11 +228,21 @@ input[type='checkbox']:not(.sr-only):not(.peer):not(.opacity-0):checked::after {
 }
 
 input[type='checkbox']:not(.sr-only):not(.peer):not(.opacity-0):focus-visible {
-	outline: 2px solid rgba(126, 200, 227, 0.45);
+	outline: 2px solid var(--color-primary-ink);
 	outline-offset: 2px;
 }
 
 input[type='checkbox']:not(.sr-only):not(.peer):not(.opacity-0):disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
 }

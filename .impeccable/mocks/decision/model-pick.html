@@ -1,0 +1,71 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#0a1838;--paper2:#0e1f47;--line:#5fb4ff;--ink:#e9f2ff;--dim:#8fb0dd;--orchid:#e58ccf}
+*{box-sizing:border-box;margin:0}
+body{width:1440px;height:900px;overflow:hidden;color:var(--ink);font:14px/1.45 'Hanken Grotesk',sans-serif;
+background:repeating-linear-gradient(0deg,rgba(95,180,255,.07) 0 1px,transparent 1px 24px),repeating-linear-gradient(90deg,rgba(95,180,255,.07) 0 1px,transparent 1px 24px),var(--paper)}
+.lbl{font-family:'Archivo Narrow',sans-serif;text-transform:uppercase;letter-spacing:.1em;font-weight:600;color:var(--dim);font-size:12px}
+header{height:56px;display:flex;align-items:center;gap:24px;padding:0 24px;border-bottom:2px solid var(--line);background:var(--paper)}
+header b{font-family:'Archivo Narrow';font-size:20px;letter-spacing:.06em;text-transform:uppercase}
+nav{display:flex;gap:2px}
+nav a{padding:6px 14px;font-family:'Archivo Narrow';text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+nav a.on{color:var(--ink);box-shadow:inset 0 -3px 0 var(--line)}
+main{display:grid;grid-template-columns:300px 1fr 320px;gap:24px;padding:24px;height:844px}
+.room{position:relative;padding:18px;background:var(--paper2);border:2px solid var(--line)}
+.room::before{content:"";position:absolute;inset:-10px;z-index:-1;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(95,180,255,.35) 0 1px,transparent 1px 6px)}
+.key{position:absolute;top:-12px;left:12px;background:var(--paper);padding:0 6px;font-family:'Archivo Narrow';font-weight:700;color:var(--line)}
+.who b{font-size:19px;display:block}.who span{color:var(--dim)}
+.who{margin-bottom:16px}
+dl{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;margin:14px 0 18px;align-items:baseline}
+dt{font-family:'Archivo Narrow';color:var(--line);font-weight:700}
+dd{border-bottom:1px dotted rgba(95,180,255,.4)}
+.v{font-family:'Archivo Narrow';font-size:20px;font-weight:700;text-align:right}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slots i{aspect-ratio:1;border:1.5px solid rgba(95,180,255,.5)}
+.slots i.f{background:rgba(95,180,255,.25);border-color:var(--line)}
+.top{display:flex;gap:24px;align-items:baseline;margin-bottom:16px}
+.top .v{font-size:24px}
+.grid{position:relative;width:688px;height:484px;border:2px solid var(--line);
+background:repeating-linear-gradient(0deg,rgba(95,180,255,.35) 0 1px,transparent 1px 68px),repeating-linear-gradient(90deg,rgba(95,180,255,.35) 0 1px,transparent 1px 68px)}
+.it{position:absolute;border:2px solid var(--ink);background:rgba(10,24,56,.85);padding:6px 8px;font-weight:600;font-size:12px}
+.it small{display:block;font-family:'Archivo Narrow';text-transform:uppercase;letter-spacing:.08em;color:var(--dim)}
+.it.rare{border-color:var(--line)}.it.epic{border-color:#b9a4ff}.it.unc{border-color:#e6cf6a}.it.uni{border-color:#ef6f7a;border-style:dashed;opacity:.5}
+.trade{margin-top:18px;border:2px dashed var(--orchid);padding:12px 16px;display:flex;align-items:center;gap:12px}
+.btn{font-family:'Archivo Narrow';text-transform:uppercase;letter-spacing:.08em;padding:7px 14px;border:2px solid var(--ink);background:none;color:var(--ink);font-weight:700}
+.btn.p{background:var(--line);color:var(--paper);border-color:var(--line)}
+.chat p{margin-bottom:12px}.chat b{display:block}
+.in{position:absolute;bottom:18px;left:18px;right:18px;border:1.5px solid rgba(95,180,255,.5);padding:10px;color:var(--dim)}
+</style></head><body>
+<header><b>DogmaLiter</b><span class="lbl">The Ashen Reach</span><nav><a>Character</a><a class="on">Inventory</a><a>Characters</a><a>Items</a><a>Manage</a></nav><span class="lbl" style="margin-left:auto">Session 2h 14m</span></header>
+<main>
+<section class="room"><span class="key">1</span>
+<div class="who"><b>Kaela Thornwood</b><span>Half-elf ranger · Lv 6</span></div>
+<dl><dt>HP</dt><dd></dd><span class="v">34 / 42</span><dt>AC</dt><dd></dd><span class="v">15</span>
+<dt>STR</dt><dd></dd><span class="v">12 +1</span><dt>DEX</dt><dd></dd><span class="v">18 +4</span><dt>CON</dt><dd></dd><span class="v">14 +2</span>
+<dt>INT</dt><dd></dd><span class="v">10 +0</span><dt>WIS</dt><dd></dd><span class="v">15 +2</span><dt>CHA</dt><dd></dd><span class="v">9 −1</span></dl>
+<p class="lbl" style="margin-bottom:8px">Equipment</p>
+<div class="slots"><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i class="f"></i><i></i><i></i></div></section>
+<section>
+<div class="top"><span><span class="v">128</span> <span class="lbl">Gold</span></span><span><span class="v">40</span> <span class="lbl">Silver</span></span><span><span class="v">12</span> <span class="lbl">Bronze</span></span><span class="lbl" style="margin-left:auto">31 / 70 cells</span></div>
+<div class="room" style="padding:0;border:0;background:none;width:max-content"><span class="key">2</span>
+<div class="grid">
+<div class="it rare" style="left:0;top:0;width:68px;height:204px">Longbow<small>Rare</small></div>
+<div class="it unc" style="left:68px;top:0;width:136px;height:204px">Studded Leather<small>Uncommon</small></div>
+<div class="it" style="left:204px;top:0;width:68px;height:68px">Potion<small>×3</small></div>
+<div class="it" style="left:272px;top:0;width:136px;height:68px">Arrows<small>×46</small></div>
+<div class="it epic" style="left:204px;top:68px;width:68px;height:68px">Ember Ring<small>Epic</small></div>
+<div class="it uni" style="left:408px;top:0;width:136px;height:136px">Warden's Greatshield<small>Needs STR 16</small></div>
+<div class="it" style="left:0;top:204px;width:136px;height:68px">Rope 50 ft</div>
+<div class="it rare" style="left:136px;top:204px;width:68px;height:136px">Moon Dagger<small>Rare</small></div>
+</div></div>
+<div class="trade"><span><b style="color:var(--orchid)">Brannoc</b> offers <b>Cloak of the Tide</b> · held in escrow</span><span style="margin-left:auto;display:flex;gap:8px"><button class="btn">Decline</button><button class="btn p">Accept</button></span></div>
+</section>
+<section class="room chat"><span class="key">3</span><p class="lbl" style="margin-bottom:12px">Party chat</p>
+<p><b>GM · Orrin</b>The fog lifts. A stone causeway leads to the drowned chapel.</p>
+<p><b>Brannoc</b>I'll trade you the cloak for two potions.</p>
+<p><b>Kaela</b>Deal — sending [Potion of Healing]</p>
+<p><b>Sefa</b>Rolling perception… 17.</p>
+<div class="in">Message the party…</div></section>
+</main></body></html>
