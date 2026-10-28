@@ -84,7 +84,7 @@ function createCharacter() {
       <div class="session-picker-shell relative w-full max-w-[960px] rounded-[2rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-5 shadow-[0_40px_120px_rgba(0,0,0,0.52)] sm:p-7">
         <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Choose Character</p>
+            <p class="text-[13px] font-semibold text-dim">Choose Character</p>
             <h2 class="mt-2 font-heading text-[28px] font-bold text-ink sm:text-[34px]">Session Entry</h2>
           </div>
 

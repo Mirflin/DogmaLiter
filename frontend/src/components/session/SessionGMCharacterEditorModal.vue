@@ -334,10 +334,10 @@ function emitSave() {
 
         <div class="min-h-0 flex-1 overflow-y-auto p-5 sm:p-7">
           <div class="pr-12">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">GM Character Editor</p>
+            <p class="text-[13px] font-semibold text-dim">GM Character Editor</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <h2 class="font-heading text-[28px] font-bold text-ink sm:text-[34px]">{{ character?.name || 'Character Setup' }}</h2>
-              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">
+              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[13px] font-semibold text-sky">
                 {{ selectedOwner?.username || character?.owner?.username || 'Unassigned' }}
               </span>
             </div>
@@ -353,7 +353,7 @@ function emitSave() {
           <div v-if="character" class="mt-6 grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
             <aside class="space-y-5 rounded-[1.75rem] border border-line bg-n1/78 p-5 xl:sticky xl:top-0 xl:self-start">
             <div>
-              <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Portrait</p>
+              <p class="text-[13px] font-semibold text-dim">Portrait</p>
               <div class="mt-4 overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
                 <div class="flex h-72 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(10,16,41,0.94))]">
                   <img v-if="portraitUrl" :src="portraitUrl" :alt="character.name" class="h-full w-full object-cover object-top" @error="markImageFailed(portraitUrl)" />
@@ -391,14 +391,14 @@ function emitSave() {
             </div>
 
             <div class="rounded-[1.4rem] border border-line-soft bg-n3 p-4">
-              <p class="text-[11px] uppercase tracking-[0.2em] text-dim">Inventory Space</p>
+              <p class="text-[13px] font-semibold text-dim">Inventory Space</p>
               <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                 <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Width</span>
+                  <span class="text-[13px] font-semibold text-faint">Width</span>
                   <input v-model.number="form.inventory_width" type="number" min="1" max="20" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
                 <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Height</span>
+                  <span class="text-[13px] font-semibold text-faint">Height</span>
                   <input v-model.number="form.inventory_height" type="number" min="1" max="20" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
               </div>
@@ -410,7 +410,7 @@ function emitSave() {
             <div class="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
               <div class="space-y-5">
                 <label class="block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
+                  <span class="text-[13px] font-semibold text-dim">Name</span>
                   <input
                     v-model="form.name"
                     type="text"
@@ -421,7 +421,7 @@ function emitSave() {
                 </label>
 
                 <label class="block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Backstory</span>
+                  <span class="text-[13px] font-semibold text-dim">Backstory</span>
                   <textarea
                     v-model="form.backstory"
                     rows="7"
@@ -431,7 +431,7 @@ function emitSave() {
                 </label>
 
                 <label class="block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Assigned To</span>
+                  <span class="text-[13px] font-semibold text-dim">Assigned To</span>
                   <SearchableSelect
                     v-model="form.owner_user_id"
                     :options="memberOptions"
@@ -444,7 +444,7 @@ function emitSave() {
 
               <div class="rounded-[1.5rem] border border-line-soft bg-n3 p-4">
                 <div class="flex items-center justify-between gap-3">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Currency</span>
+                  <span class="text-[13px] font-semibold text-dim">Currency</span>
                 </div>
                 <div class="mt-4 grid gap-3">
                   <label
@@ -452,7 +452,7 @@ function emitSave() {
                     :key="currency.key"
                     class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3"
                   >
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ currency.label }}</span>
+                    <span class="text-[13px] font-semibold text-faint">{{ currency.label }}</span>
                     <input v-model.number="form[currency.key]" type="number" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                   </label>
                 </div>
@@ -461,20 +461,20 @@ function emitSave() {
 
             <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
               <div class="flex items-center justify-between gap-3">
-                <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Health &amp; Armor</span>
+                <span class="text-[13px] font-semibold text-dim">Health &amp; Armor</span>
                 <span class="text-[12px] text-ink-soft/45">GM editable</span>
               </div>
               <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <label v-if="enableHealth" class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Max Health</span>
+                  <span class="text-[13px] font-semibold text-faint">Max Health</span>
                   <input v-model.number="form.max_health" type="number" min="0" max="9999999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
                 <label v-if="enableHealth" class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Current Health</span>
+                  <span class="text-[13px] font-semibold text-faint">Current Health</span>
                   <input v-model.number="form.current_health" type="number" min="0" max="9999999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
                 <label v-if="enableArmorClass" class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Armor Class</span>
+                  <span class="text-[13px] font-semibold text-faint">Armor Class</span>
                   <input v-model.number="form.armor_class" type="number" min="0" max="99999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
               </div>
@@ -482,7 +482,7 @@ function emitSave() {
 
             <div v-if="visibleBaseAttributeFields.length" class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
               <div class="flex items-center justify-between gap-3">
-                <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Base Attributes</span>
+                <span class="text-[13px] font-semibold text-dim">Base Attributes</span>
                 <span class="text-[12px] text-ink-soft/45">GM editable</span>
               </div>
 
@@ -492,7 +492,7 @@ function emitSave() {
                   :key="attribute.key"
                   class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3"
                 >
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ attribute.label }}</span>
+                  <span class="text-[13px] font-semibold text-faint">{{ attribute.label }}</span>
                   <input v-model.number="form.base_attributes[attribute.key]" type="number" min="0" max="999" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                 </label>
               </div>
@@ -501,7 +501,7 @@ function emitSave() {
             <div class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Custom Attributes</span>
+                  <span class="text-[13px] font-semibold text-dim">Custom Attributes</span>
                 </div>
                 <button
                   type="button"
@@ -521,11 +521,11 @@ function emitSave() {
                 >
                   <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Label</span>
+                      <span class="text-[13px] font-semibold text-faint">Label</span>
                       <input v-model="attribute.name" type="text" maxlength="100" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none focus:border-primary/34" />
                     </label>
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Value</span>
+                      <span class="text-[13px] font-semibold text-faint">Value</span>
                       <input v-model.number="attribute.value" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none focus:border-primary/34" />
                     </label>
                     <div class="flex flex-wrap items-end gap-2">

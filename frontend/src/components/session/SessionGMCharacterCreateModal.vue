@@ -117,7 +117,7 @@ function emitSave() {
         </button>
 
         <div class="pr-12">
-          <p class="text-[11px] uppercase tracking-[0.24em] text-dim">GM Character Creation</p>
+          <p class="text-[13px] font-semibold text-dim">GM Character Creation</p>
           <h2 class="mt-3 font-heading text-[28px] font-bold text-ink sm:text-[34px]">Create Named Character</h2>
           <p class="mt-3 max-w-[40rem] text-[14px] leading-relaxed text-ink-soft/62">
             Create a GM-owned character for your own vault or assign it directly to another member.
@@ -131,7 +131,7 @@ function emitSave() {
         <div class="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(260px,0.9fr)]">
           <section class="space-y-5 rounded-[1.75rem] border border-line bg-n1/78 p-5 sm:p-6">
             <label class="block">
-              <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
+              <span class="text-[13px] font-semibold text-dim">Name</span>
               <input
                 v-model="form.name"
                 type="text"
@@ -143,7 +143,7 @@ function emitSave() {
             </label>
 
             <label class="block">
-              <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Backstory</span>
+              <span class="text-[13px] font-semibold text-dim">Backstory</span>
               <textarea
                 v-model="form.backstory"
                 rows="8"
@@ -155,7 +155,7 @@ function emitSave() {
           </section>
 
           <aside class="rounded-[1.75rem] border border-line bg-n1/78 p-5">
-            <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Assigned To</p>
+            <p class="text-[13px] font-semibold text-dim">Assigned To</p>
             <label class="mt-4 block">
               <span class="text-[12px] text-ink-soft/52">Choose the member who will own the character immediately after creation.</span>
               <SearchableSelect
@@ -168,7 +168,7 @@ function emitSave() {
             </label>
 
             <div class="mt-5 rounded-[1.4rem] border border-line-soft bg-n3 p-4">
-              <p class="text-[11px] uppercase tracking-[0.2em] text-dim">Flow</p>
+              <p class="text-[13px] font-semibold text-dim">Flow</p>
               <p class="mt-3 text-[13px] leading-relaxed text-ink-soft/58">
                 Create into your own GM vault to keep it reusable, or assign it directly to a player, assistant GM, or another GM.
               </p>

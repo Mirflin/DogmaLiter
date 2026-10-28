@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import interact from 'interactjs'
-import { ITEM_ICONS } from './itemIcons'
+import { ITEM_ICONS } from '@/assets/icons/itemIcons'
 
 // A small working copy of the session inventory: same library (interact.js) and the same feel —
 // the grabbed item lifts and follows the pointer, cells under it light up, gear goes into slots,

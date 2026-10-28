@@ -11,6 +11,7 @@ import {
   LayoutGrid as LayoutGridIcon,
   MessageSquareText as MessageSquareTextIcon,
   Package as PackageIcon,
+  Plus as PlusIcon,
   RefreshCw as RefreshCwIcon,
   Settings as SettingsIcon,
   Trash2 as Trash2Icon,
@@ -20,6 +21,7 @@ import {
   X as XIcon,
 } from '@lucide/vue'
 import { API_URL } from '@/api'
+import { ATTRIBUTE_ICONS } from '@/assets/icons/attributeIcons'
 import SessionBackdrop from '@/components/session/SessionBackdrop.vue'
 import SessionCharacterPickerModal from '@/components/session/SessionCharacterPickerModal.vue'
 import SessionGMCharacterCreateModal from '@/components/session/SessionGMCharacterCreateModal.vue'
@@ -624,17 +626,18 @@ const tabs = computed(() => {
     return [rosterTab]
   }
 
+  // Switching characters lives in the header for everyone, so the roster is only a tab while a player
+  // still has to pick one. GMs get the whole party, the item compendium and the table's settings.
   const baseTabs = [
     { id: 'sheet', label: 'Character', icon: 'sheet', description: 'Portrait, identity, profile editing, and read-only character stats.' },
-    { id: 'inventory', label: 'Inventory', icon: 'inventory', description: 'Reserved inventory workspace with currency and storage stats.' },
-    rosterTab,
+    { id: 'inventory', label: 'Inventory', icon: 'inventory', description: 'Equipment, backpack and currency for the active character.' },
   ]
 
   if (isGM.value) {
     baseTabs.push(
-      { id: 'players', label: 'Players', icon: 'players', description: 'GM roster view for members and their accessible characters.' },
-      { id: 'items', label: 'Items', icon: 'items', description: 'Campaign compendium for item browsing, tagging, and creation.' },
-      { id: 'manage', label: 'Manage', icon: 'manage', description: 'GM control panel: chat history, player roster, and game settings.' },
+      { id: 'players', label: 'Party', icon: 'players', description: 'Every character in the campaign, with the GM tools for each.' },
+      { id: 'items', label: 'Compendium', icon: 'items', description: 'Campaign compendium for item browsing, tagging, and creation.' },
+      { id: 'manage', label: 'Table', icon: 'manage', description: 'Members and invites, chat and activity logs, and game settings.' },
     )
   }
 
@@ -646,7 +649,36 @@ const activeTabMeta = computed(() => tabs.value.find(tab => tab.id === activeTab
 const CHARACTERLESS_TABS = new Set(['players', 'items', 'manage'])
 const showCharacterHeader = computed(() => !CHARACTERLESS_TABS.has(activeTab.value))
 
-const showGameSettings = ref(false)
+// Inventory tab: the board stays centred. The character summary sits beside it when both sides have
+// room for it, otherwise it becomes a strip above the board. Measured, because the board's width
+// follows the character's backpack size and the chat dock takes space when open.
+const deskRef = ref(null)
+const boardWrap = ref(null)
+const deskMode = ref('stack')
+const boardWidth = ref(0)
+const SIDE_MIN_PX = 13.5 * 16
+const DESK_GAP_PX = 24
+let deskObserver = null
+
+function measureDesk() {
+  const desk = deskRef.value
+  const board = boardWrap.value?.firstElementChild
+  if (!desk || !board) return
+  boardWidth.value = Math.round(board.getBoundingClientRect().width)
+  const side = (desk.clientWidth - boardWidth.value - 2 * DESK_GAP_PX) / 2
+  deskMode.value = side >= SIDE_MIN_PX ? 'sides' : 'stack'
+}
+
+watch([deskRef, boardWrap], ([desk, wrap]) => {
+  deskObserver?.disconnect()
+  if (!desk || !wrap || typeof ResizeObserver === 'undefined') return
+  deskObserver = new ResizeObserver(() => measureDesk())
+  deskObserver.observe(desk)
+  if (wrap.firstElementChild) deskObserver.observe(wrap.firstElementChild)
+  measureDesk()
+})
+onBeforeUnmount(() => deskObserver?.disconnect())
+
 const managePanel = ref('players')
 const isGameOwner = computed(() => (game.value?.members ?? []).some(member => member.user_id === viewer.value?.user_id && member.role === 'gm'))
 const playerColumns = [
@@ -1160,10 +1192,6 @@ watch(managePanel, (panel) => {
 watch(activeTab, (tab) => {
   if (tab === 'manage') refreshManagePanel()
 })
-
-function openGameSettings() {
-  showGameSettings.value = true
-}
 
 function handleGameSettingsUpdated() {
   loadSession({ preserveCharacter: true, promptSelection: false })
@@ -1939,104 +1967,111 @@ onBeforeUnmount(() => {
         @save="saveGMCharacterEditor"
       />
 
-      <header class="session-header sticky top-0 z-30 border-b border-line-soft bg-n1/82 backdrop-blur-xl">
-        <div class="mx-auto flex max-w-[1920px] flex-col gap-4 px-4 py-4 pl-[4.75rem] sm:px-6 sm:pl-[5.75rem] lg:flex-row lg:items-center lg:justify-between xl:pl-[7rem]">
-          <div class="flex min-w-0 items-center gap-3">
-            <button
-              @click="goBack"
-              title="Exit session"
-              class="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink/70 transition-all duration-200 hover:border-primary hover:text-primary-ink"
-            >
-              <ArrowLeftIcon class="h-5 w-5" :stroke-width="2" />
-            </button>
+      <header class="session-header">
+        <div class="session-header__inner">
+          <button type="button" class="session-chrome session-icon-btn" title="Leave the session" aria-label="Leave the session" @click="goBack">
+            <ArrowLeftIcon class="h-5 w-5" :stroke-width="2" />
+          </button>
 
-            <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <h1 class="truncate font-heading text-[18px] font-bold tracking-wide text-ink sm:text-[22px]">{{ game.title }}</h1>
-                <span
-                  class="session-mode-pill rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em]"
-                  :class="isGM
-                    ? 'border-warning/42 bg-warning/18 text-warning'
-                    : 'border-[rgba(101,128,136,0.3)] bg-[rgba(101,128,136,0.14)] text-ink-soft'"
-                >
-                  {{ isGM ? 'GM Console' : 'Player View' }}
-                </span>
-              </div>
-            </div>
+          <div class="session-header__title">
+            <h1>{{ game.title }}</h1>
+            <span v-if="isGM" class="session-gm-badge" title="You run this game">GM</span>
           </div>
 
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="session-count-pill rounded-full border border-line bg-n2/64 px-3 py-2 text-[12px] text-dim">
-              {{ game.members?.length ?? 0 }} / {{ game.max_players }} players
+          <nav class="session-tabs" aria-label="Session sections">
+            <button
+              v-for="tab in tabs"
+              :key="tab.id"
+              type="button"
+              class="session-tab-button"
+              :class="{ 'is-active': activeTab === tab.id }"
+              :aria-current="activeTab === tab.id ? 'page' : undefined"
+              @click="activeTab = tab.id"
+            >
+              <component :is="tabIcons[tab.icon] || UserRoundIcon" class="h-4 w-4" :stroke-width="2" />
+              {{ tab.label }}
+            </button>
+          </nav>
+
+          <div class="session-header__actions">
+            <div v-if="showCharacterHeader && characters.length" class="session-switcher">
+              <SearchableSelect
+                :model-value="activeCharacterId"
+                :options="characterOptions"
+                placeholder="Choose a character"
+                class="session-switcher__select"
+                @update:model-value="$event && switchCharacter($event, { nextTab: activeTab })"
+              />
+              <button
+                v-if="viewer.can_create_character && !isGM"
+                type="button"
+                class="session-chrome session-icon-btn"
+                :disabled="creatingCharacter"
+                title="New character"
+                aria-label="New character"
+                @click="requestCharacterCreation"
+              >
+                <PlusIcon class="h-4 w-4" :stroke-width="2.2" />
+              </button>
             </div>
+
+            <button
+              v-if="activeCharacterId && (tradingEnabled || incomingTradeCount)"
+              type="button"
+              class="session-chrome session-action-btn"
+              :class="{ 'has-news': incomingTradeCount }"
+              @click="openTradeModal(incomingTradeCount ? 'incoming' : 'send')"
+            >
+              <ArrowLeftRightIcon class="h-4 w-4" :stroke-width="2" />
+              <span class="session-action-btn__label">Trade</span>
+              <span v-if="incomingTradeCount" class="session-count">{{ incomingTradeCount }}</span>
+            </button>
+
+            <button
+              v-if="game?.enable_chat"
+              type="button"
+              class="session-chrome session-action-btn"
+              :class="{ 'is-on': !chatCollapsed }"
+              :aria-pressed="!chatCollapsed"
+              @click="chatCollapsed ? focusChatInput() : (chatCollapsed = true)"
+            >
+              <MessageSquareTextIcon class="h-4 w-4" :stroke-width="2" />
+              <span class="session-action-btn__label">Chat</span>
+              <span v-if="chatMessages.length" class="session-count session-count--quiet">{{ chatMessages.length }}</span>
+            </button>
           </div>
         </div>
       </header>
 
-      <nav class="session-tab-rail" aria-label="Session tabs">
+      <!-- Phones: the same sections as a labelled bar along the bottom edge. -->
+      <nav class="session-tabbar" aria-label="Session sections">
         <button
           v-for="tab in tabs"
           :key="tab.id"
-          :aria-label="tab.label"
+          type="button"
+          class="session-tab-button"
+          :class="{ 'is-active': activeTab === tab.id }"
+          :aria-current="activeTab === tab.id ? 'page' : undefined"
           @click="activeTab = tab.id"
-          class="session-tab-button relative flex h-14 w-14 cursor-pointer items-center justify-center rounded-[1.35rem] border transition-all duration-200"
-          :class="activeTab === tab.id
-            ? 'border-warning/42 bg-warning/18 text-ink shadow-[0_14px_30px_rgba(61,37,20,0.32)]'
-            : 'border-[rgba(98,120,128,0.12)] bg-[rgba(15,18,22,0.74)] text-ink-soft/72 hover:border-warning/24 hover:bg-warning/8 hover:text-ink'"
         >
-          <component :is="tabIcons[tab.icon] || UserRoundIcon" class="h-5 w-5" :stroke-width="1.8" />
-
-          <span v-if="activeTab === tab.id" class="absolute -right-1 h-2.5 w-2.5 rounded-full bg-[#c58a38]"></span>
-          <span class="session-tooltip">{{ tab.label }}</span>
+          <component :is="tabIcons[tab.icon] || UserRoundIcon" class="h-5 w-5" :stroke-width="1.9" />
+          <span>{{ tab.label }}</span>
         </button>
       </nav>
 
       <div class="mx-auto max-w-[1920px] session-content-shell" :class="{ 'chat-collapsed': chatCollapsed || !game?.enable_chat }">
         <main class="min-w-0 @container">
-          <article v-if="showCharacterHeader" class="session-command-deck mb-6 rounded-[1.75rem] border border-line bg-n1/88 px-4 py-4 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:px-5">
-            <div class="flex flex-wrap items-center justify-between gap-4">
-              <div class="min-w-0">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-dim">{{ activeTabMeta?.label }}</p>
-                <div class="mt-2 flex flex-wrap items-center gap-3">
-                  <h2 class="truncate font-heading text-[28px] font-bold text-ink sm:text-[32px]">{{ characterSnapshot?.name || activeTabMeta?.label }}</h2>
-                  <span class="session-owner-pill rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">
-                    {{ characterSnapshot?.owner?.username || 'Choose character' }}
-                  </span>
-                </div>
-                
-              </div>
-
-              <div class="flex flex-wrap items-center gap-3">
-                <SearchableSelect
-                  v-if="characters.length"
-                  :model-value="activeCharacterId"
-                  :options="characterOptions"
-                  placeholder="Search characters…"
-                  clearable
-                  class="min-w-[14rem]"
-                  @update:model-value="switchCharacter($event, { nextTab: activeTab })"
-                />
-
-                <button
-                  @click="openCharacterPicker"
-                  class="cursor-pointer rounded-xl border border-primary/24 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/45"
-                >
-                  Open Picker
-                </button>
-              </div>
-            </div>
-          </article>
 
           <div v-if="characterError" class="session-banner mb-6 rounded-[1.5rem] border border-primary/28 bg-primary/12 px-5 py-4 text-[14px] text-primary-soft">
             {{ characterError }}
           </div>
 
           <section v-if="activeTab === 'sheet'" class="session-sheet-layout space-y-7">
-            <article class="session-sheet-frame rounded-[2rem] border border-line bg-n1/88 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
+            <div class="session-sheet-frame">
               <template v-if="characterSnapshot">
-                <div class="session-sheet-grid grid gap-6 xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)]">
+                <div v-if="profileEditMode && canEditCharacter" class="session-sheet-grid grid gap-6 xl:grid-cols-[minmax(360px,430px)_minmax(0,1fr)]">
                   <article class="session-dossier-panel overflow-hidden rounded-[1.9rem] border border-line bg-n1/78">
-                    <div class="flex h-[24rem] items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(10,16,41,0.94))] sm:h-[28rem]">
+                    <div class="flex items-center justify-center bg-n0" :class="currentPortraitUrl ? 'h-[24rem] sm:h-[28rem]' : 'h-44'">
                       <img
                         v-if="currentPortraitUrl"
                         :src="currentPortraitUrl"
@@ -2044,7 +2079,7 @@ onBeforeUnmount(() => {
                         class="h-full w-full object-cover object-top"
                         @error="markImageFailed(currentPortraitUrl)"
                       />
-                      <div v-else class="flex h-36 w-36 items-center justify-center rounded-full border-2 border-primary/30 bg-[linear-gradient(135deg,rgba(88,101,221,0.16),rgba(123,135,184,0.08))] font-heading text-[44px] font-bold text-primary-ink shadow-[inset_0_0_40px_rgba(164,174,255,0.08)]">
+                      <div v-else class="num flex h-24 w-24 items-center justify-center rounded-[1.4rem] bg-n3 text-[40px] font-bold text-primary-ink">
                         {{ initials(characterSnapshot.name) }}
                       </div>
                     </div>
@@ -2052,12 +2087,12 @@ onBeforeUnmount(() => {
                     <div class="border-t border-line-soft p-5">
                       <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0">
-                          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Character</p>
+                          <p class="text-[13px] font-semibold text-dim">Character</p>
                           <h3 class="mt-2 truncate font-heading text-[30px] font-bold text-ink">{{ characterSnapshot.name }}</h3>
                           <p class="mt-2 text-[13px] text-ink-soft/62">{{ characterSnapshot.owner?.username || 'Unknown owner' }}</p>
                         </div>
 
-                        <div v-if="characterLoading" class="inline-flex items-center gap-2 rounded-full border border-line bg-n3 px-3 py-1.5 text-[10px] uppercase tracking-[0.18em] text-sky">
+                        <div v-if="characterLoading" class="inline-flex items-center gap-2 rounded-full border border-line bg-n3 px-3 py-1.5 text-[13px] font-semibold text-sky">
                           <span class="h-2 w-2 animate-pulse rounded-full bg-sky"></span>
                           Loading
                         </div>
@@ -2068,7 +2103,7 @@ onBeforeUnmount(() => {
                   <article class="session-profile-panel rounded-[1.9rem] border border-line bg-n1/78 p-5 sm:p-6">
                     <div class="flex flex-wrap items-start justify-between gap-4">
                       <div>
-                        <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Profile</p>
+                        <p class="text-[13px] font-semibold text-dim">Profile</p>
                       </div>
 
                       <div class="flex flex-wrap gap-3">
@@ -2087,6 +2122,13 @@ onBeforeUnmount(() => {
                           Edit Profile
                         </button>
                         <button
+                          v-if="profileEditMode && canDeleteCharacter(characterSnapshot)"
+                          @click="requestCharacterDeletion(characterSnapshot)"
+                          class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-danger/40 bg-danger/12 px-4 py-2.5 text-[13px] font-semibold text-danger-soft transition-all duration-200 hover:border-danger/65"
+                        >
+                          <Trash2Icon class="h-4 w-4" :stroke-width="2" /> Delete character
+                        </button>
+                        <button
                           v-if="profileEditMode"
                           @click="cancelProfileEditor"
                           class="cursor-pointer rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-ink transition-all duration-200 hover:border-line-strong"
@@ -2103,7 +2145,7 @@ onBeforeUnmount(() => {
                     <div v-if="profileEditMode && canEditCharacter" class="mt-6 space-y-5">
                       <div class="session-profile-editor-grid grid gap-5 xl:grid-cols-[minmax(260px,320px)_minmax(0,1fr)]">
                         <div class="space-y-4 rounded-[1.5rem] border border-line-soft bg-n3 p-4">
-                          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Portrait</p>
+                          <p class="text-[13px] font-semibold text-dim">Portrait</p>
                           <div class="overflow-hidden rounded-[1.4rem] border border-line bg-n1/66">
                             <div class="flex h-64 items-center justify-center bg-[linear-gradient(180deg,rgba(16,32,52,0.94),rgba(10,16,41,0.94))]">
                               <img v-if="currentPortraitUrl" :src="currentPortraitUrl" :alt="characterSnapshot.name" class="h-full w-full object-cover object-top" @error="markImageFailed(currentPortraitUrl)" />
@@ -2141,7 +2183,7 @@ onBeforeUnmount(() => {
 
                         <div class="space-y-5">
                           <label class="block">
-                            <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
+                            <span class="text-[13px] font-semibold text-dim">Name</span>
                             <input
                               v-model="characterForm.name"
                               type="text"
@@ -2152,7 +2194,7 @@ onBeforeUnmount(() => {
                           </label>
 
                           <label class="block">
-                            <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Backstory</span>
+                            <span class="text-[13px] font-semibold text-dim">Backstory</span>
                             <textarea
                               v-model="characterForm.backstory"
                               rows="6"
@@ -2163,28 +2205,28 @@ onBeforeUnmount(() => {
 
                           <div>
                             <div class="flex items-center justify-between gap-3">
-                              <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Currency</span>
+                              <span class="text-[13px] font-semibold text-dim">Currency</span>
                             </div>
                             <div class="mt-4 grid gap-3 @xl:grid-cols-3">
                               <label class="rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3">
-                                <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Gold</span>
+                                <span class="text-[13px] font-semibold text-faint">Gold</span>
                                 <input v-model.number="characterForm.gold" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                               </label>
                               <label class="rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3">
-                                <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Silver</span>
+                                <span class="text-[13px] font-semibold text-faint">Silver</span>
                                 <input v-model.number="characterForm.silver" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                               </label>
                               <label class="rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3">
-                                <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Bronze</span>
+                                <span class="text-[13px] font-semibold text-faint">Bronze</span>
                                 <input v-model.number="characterForm.copper" type="number" min="0" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                               </label>
                             </div>
                           </div>
 
                           <div v-if="enableHealth">
-                            <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Health</span>
+                            <span class="text-[13px] font-semibold text-dim">Health</span>
                             <label class="mt-4 block rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3">
-                              <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Current HP (max {{ effectiveMaxHealth }})</span>
+                              <span class="text-[13px] font-semibold text-faint">Current HP (max {{ effectiveMaxHealth }})</span>
                               <input v-model.number="characterForm.currentHealth" type="number" min="0" :max="effectiveMaxHealth" class="session-input mt-3 pl-2 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                             </label>
                           </div>
@@ -2202,156 +2244,95 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
 
-                    <div v-else class="mt-6 space-y-5">
-                      <div class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
-                        <div class="flex items-center justify-between gap-3">
-                          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Backstory</p>
-                          <button
-                            v-if="characterSnapshot.backstory"
-                            type="button"
-                            @click="backstoryExpanded = !backstoryExpanded"
-                            class="cursor-pointer rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink transition-all duration-200 hover:border-line-strong"
-                          >
-                            {{ backstoryExpanded ? 'Collapse' : 'Expand' }}
-                          </button>
-                        </div>
-                        <p
-                          class="mt-4 whitespace-pre-wrap break-words pr-1 text-[15px] leading-relaxed text-ink/78 [overflow-wrap:anywhere] transition-all duration-200"
-                          :class="backstoryExpanded
-                            ? 'max-h-[18rem] overflow-y-auto pr-2 sm:max-h-[24rem]'
-                            : 'max-h-[8.5rem] overflow-hidden'"
-                        >
-                          {{ characterSnapshot.backstory || 'This character starts as a blank record. Enter edit mode to shape the profile.' }}
-                        </p>
-                      </div>
-
-                      <div class="grid gap-3 @xl:grid-cols-3">
-                        <div
-                          v-for="currency in currencyCards"
-                          :key="currency.key"
-                          class="rounded-[1.3rem] border border-line-soft bg-n3 px-4 py-3"
-                        >
-                          <p class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ currency.label }}</p>
-                          <p class="mt-2 text-[24px] font-semibold text-ink">{{ currency.value }}</p>
-                        </div>
-                      </div>
-
-                      <div v-if="enableHealth || enableArmorClass" class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
-                        <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Vitals</p>
-                        <div class="mt-4 grid gap-3 @sm:grid-cols-2">
-                          <div
-                            v-if="enableHealth"
-                            class="rounded-[1.3rem] border border-line bg-n1/62 px-4 py-4"
-                            @mouseenter="showStatTooltip($event, healthStat)"
-                            @mouseleave="hideStatTooltip"
-                          >
-                            <div class="flex items-center justify-between">
-                              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Health</p>
-                              <p class="text-[13px] font-semibold text-ink">{{ currentHealth }} / {{ effectiveMaxHealth }}</p>
-                            </div>
-                            <div class="mt-3 h-2.5 w-full overflow-hidden rounded-full bg-n1/80">
-                              <div class="h-full rounded-full bg-[linear-gradient(90deg,#ef4444,#f87171)] transition-all duration-300" :style="{ width: `${healthPercent}%` }"></div>
-                            </div>
-                          </div>
-                          <div
-                            v-if="enableArmorClass"
-                            class="rounded-[1.3rem] border border-line bg-n1/62 px-4 py-4"
-                            @mouseenter="showStatTooltip($event, armorClassStat)"
-                            @mouseleave="hideStatTooltip"
-                          >
-                            <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Armor Class</p>
-                            <div class="mt-2 flex items-baseline gap-2">
-                              <p class="text-[24px] font-bold text-ink">{{ effectiveArmorClass }}</p>
-                              <span v-if="armorClassBonus" class="text-[12px] font-semibold" :class="armorClassBonus > 0 ? 'text-success' : 'text-danger'">
-                                {{ baseArmorClass }} ({{ armorClassBonus > 0 ? '+' : '' }}{{ armorClassBonus }})
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div v-if="attributesEnabled" class="rounded-[1.5rem] border border-line-soft bg-n3 p-5">
-                        <div class="flex items-center justify-between gap-4">
-                          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Base Attributes</p>
-                          <span class="text-[12px] text-ink-soft/45">Read-only</span>
-                        </div>
-                        <div class="mt-4 grid gap-3 @sm:grid-cols-2 @4xl:grid-cols-3">
-                          <div
-                            v-for="attribute in attributeCards"
-                            :key="attribute.key"
-                            class="rounded-[1.3rem] border border-line bg-n1/62 px-4 py-4"
-                            @mouseenter="showStatTooltip($event, attribute)"
-                            @mouseleave="hideStatTooltip"
-                          >
-                            <p class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ attribute.label }}</p>
-                            <div class="mt-2 flex items-baseline gap-2">
-                              <p class="text-[24px] font-bold text-ink">{{ attribute.value }}</p>
-                              <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-success' : 'text-danger'">
-                                {{ attribute.base }} ({{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }})
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </article>
                 </div>
 
-                <div class="session-sheet-support-grid mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-                  <article class="session-attribute-panel rounded-[1.75rem] border border-line bg-n1/78 p-5">
-                    <div class="flex items-center justify-between gap-4">
-                      <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Custom Attributes</p>
-                      <span class="text-[12px] text-ink/45">{{ customAttributes.length }} tracked</span>
+                <!-- Read-only sheet: three columns that fit one screen on desktop; long lists scroll in place. -->
+                <div v-else class="sheet">
+                  <section class="sheet__col sheet__who">
+                    <div class="sheet__portrait" :class="{ 'has-image': currentPortraitUrl }">
+                      <img v-if="currentPortraitUrl" :src="currentPortraitUrl" :alt="characterSnapshot.name" @error="markImageFailed(currentPortraitUrl)" />
+                      <span v-else class="num">{{ initials(characterSnapshot.name) }}</span>
+                    </div>
+                    <div>
+                      <h2 class="sheet__name">{{ characterSnapshot.name }}</h2>
+                      <p class="sheet__owner">{{ characterSnapshot.owner?.username || 'Unknown owner' }}</p>
                     </div>
 
-                    <div v-if="customAttributeCards.length" class="mt-4 grid gap-3 md:grid-cols-2">
-                      <div
-                        v-for="attribute in customAttributeCards"
-                        :key="attribute.id"
-                        class="rounded-2xl border border-primary/12 bg-primary/8 px-4 py-3"
-                        @mouseenter="showStatTooltip($event, attribute)"
-                        @mouseleave="hideStatTooltip"
-                      >
-                        <p class="text-[11px] uppercase tracking-[0.18em] text-primary-ink/60">{{ attribute.name }}</p>
-                        <div class="mt-2 flex items-baseline gap-2">
-                          <p class="text-[20px] font-semibold text-ink">{{ attribute.value }}</p>
-                          <span v-if="attribute.bonus" class="text-[12px] font-semibold" :class="attribute.bonus > 0 ? 'text-success' : 'text-danger'">
-                            {{ attribute.base }} ({{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }})
-                          </span>
-                        </div>
+                    <div v-if="enableHealth || enableArmorClass" class="sheet__vitals">
+                      <div v-if="enableHealth" class="sheet-stat sheet-stat--wide" @mouseenter="showStatTooltip($event, healthStat)" @mouseleave="hideStatTooltip">
+                        <component :is="ATTRIBUTE_ICONS.health" class="sheet-stat__icon text-danger" :stroke-width="2" />
+                        <span class="sheet-stat__label">Health</span>
+                        <span class="sheet-stat__value num">{{ currentHealth }}<small>/{{ effectiveMaxHealth }}</small></span>
+                        <span class="sheet-hp" aria-hidden="true"><i :style="{ width: `${healthPercent}%` }" /></span>
+                      </div>
+                      <div v-if="enableArmorClass" class="sheet-stat" @mouseenter="showStatTooltip($event, armorClassStat)" @mouseleave="hideStatTooltip">
+                        <component :is="ATTRIBUTE_ICONS.armor_class" class="sheet-stat__icon text-sky" :stroke-width="2" />
+                        <span class="sheet-stat__label">Armor class</span>
+                        <span class="sheet-stat__value num">{{ effectiveArmorClass }}<em v-if="armorClassBonus" class="sheet-bonus" :class="{ 'is-neg': armorClassBonus < 0 }">{{ armorClassBonus > 0 ? '+' : '' }}{{ armorClassBonus }}</em></span>
                       </div>
                     </div>
 
-                    <p v-else class="mt-4 text-[14px] text-ink-soft/56">No custom attributes were configured for this character.</p>
-                  </article>
+                    <ul class="sheet__coins" aria-label="Currency">
+                      <li v-for="coin in currencyCards" :key="coin.key" :class="`inv-coin--${coin.key}`">
+                        <span class="num">{{ coin.value }}</span>
+                        <span class="sheet-stat__label">{{ coin.label }}</span>
+                      </li>
+                    </ul>
+                  </section>
 
-                  <article class="session-equipment-panel rounded-[1.75rem] border border-line bg-n1/78 p-5">
-                    <div class="flex items-center justify-between gap-4">
-                      <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Equipment</p>
-                      <span class="text-[12px] text-ink/45">{{ equipment.length }} slots filled</span>
-                    </div>
-
-                    <div v-if="equipment.length" class="mt-4 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-                      <div
-                        v-for="slot in equipment"
-                        :key="`${slot.slot}-${slot.inventory_item_id}`"
-                        @click="viewEquipmentItem(slot.inventory_item)"
-                        class="cursor-pointer rounded-2xl border border-line-soft bg-n3 px-4 py-3 transition-all duration-200 hover:border-line-strong hover:bg-n4"
-                      >
-                        <div class="flex items-start justify-between gap-3">
-                          <div>
-                            <p class="text-[11px] uppercase tracking-[0.18em] text-faint">{{ formatRole(slot.slot) }}</p>
-                            <p class="mt-2 text-[15px] font-semibold text-ink">{{ slot.inventory_item?.item?.name || 'Unknown item' }}</p>
-                          </div>
-                          <span class="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" :class="rarityClasses(slot.inventory_item?.item?.rarity)">
-                            {{ slot.inventory_item?.item?.rarity || 'common' }}
-                          </span>
-                        </div>
+                  <section class="sheet__col sheet__main">
+                    <div class="sheet__head">
+                      <h3 class="sheet__title">Attributes</h3>
+                      <div class="flex flex-wrap gap-2">
+                        <button v-if="isGM" type="button" class="session-chrome session-action-btn" @click="openGMCharacterEditor(characterSnapshot)">GM configure</button>
+                        <button v-if="canEditCharacter" type="button" class="session-chrome session-action-btn" @click="openProfileEditor">Edit profile</button>
                       </div>
                     </div>
+                    <p v-if="!canEditCharacter" class="sheet__note">You can view this character but not change it.</p>
 
-                    <p v-else class="mt-4 text-[14px] text-ink-soft/56">Nothing is equipped yet.</p>
-                  </article>
+                    <div class="sheet__scroll">
+                      <ul v-if="attributesEnabled && attributeCards.length" class="sheet__attrs" aria-label="Base attributes">
+                        <li v-for="attribute in attributeCards" :key="attribute.key" class="sheet-stat" @mouseenter="showStatTooltip($event, attribute)" @mouseleave="hideStatTooltip">
+                          <component :is="ATTRIBUTE_ICONS[attribute.key]" class="sheet-stat__icon" :stroke-width="2" />
+                          <span class="sheet-stat__label">{{ attribute.label }}</span>
+                          <span class="sheet-stat__value num">{{ attribute.value }}<em v-if="attribute.bonus" class="sheet-bonus" :class="{ 'is-neg': attribute.bonus < 0 }">{{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }}</em></span>
+                        </li>
+                      </ul>
+
+                      <template v-if="customAttributeCards.length">
+                        <h4 class="sheet__subtitle">Campaign attributes</h4>
+                        <ul class="sheet__attrs sheet__attrs--custom" aria-label="Campaign attributes">
+                          <li v-for="attribute in customAttributeCards" :key="attribute.id" class="sheet-stat sheet-stat--plain" @mouseenter="showStatTooltip($event, attribute)" @mouseleave="hideStatTooltip">
+                            <span class="sheet-stat__label">{{ attribute.name }}</span>
+                            <span class="sheet-stat__value num">{{ attribute.value }}<em v-if="attribute.bonus" class="sheet-bonus" :class="{ 'is-neg': attribute.bonus < 0 }">{{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }}</em></span>
+                          </li>
+                        </ul>
+                      </template>
+                      <p v-else-if="isGM" class="sheet__empty">No campaign attributes on this character. Add them in GM configure.</p>
+                    </div>
+                  </section>
+
+                  <section class="sheet__col sheet__side">
+                    <div class="sheet__block sheet__block--story">
+                      <h3 class="sheet__title">Backstory</h3>
+                      <p class="sheet__story" :class="{ 'is-empty': !characterSnapshot.backstory }">{{ characterSnapshot.backstory || 'No backstory yet.' }}<template v-if="!characterSnapshot.backstory && canEditCharacter"> Use Edit profile to write one.</template></p>
+                    </div>
+
+                    <div class="sheet__block">
+                      <div class="sheet__head">
+                        <h3 class="sheet__title">Equipped</h3>
+                        <span class="sheet__count num">{{ equipment.length }}</span>
+                      </div>
+                      <ul v-if="equipment.length" class="sheet__list">
+                        <li v-for="slot in equipment" :key="`${slot.slot}-${slot.inventory_item_id}`" class="is-link" :style="{ '--resin': `var(--color-r-${slot.inventory_item?.item?.rarity || 'common'})` }" @click="viewEquipmentItem(slot.inventory_item)">
+                          <span class="sheet__list-name"><i class="sheet__dot" />{{ slot.inventory_item?.item?.name || 'Unknown item' }}</span>
+                          <span class="sheet__slot">{{ formatRole(slot.slot) }}</span>
+                        </li>
+                      </ul>
+                      <p v-else class="sheet__empty">Nothing equipped. Drag gear onto slots in Inventory.</p>
+                    </div>
+                  </section>
                 </div>
               </template>
 
@@ -2365,53 +2346,89 @@ onBeforeUnmount(() => {
                   Open Character Picker
                 </button>
               </div>
-            </article>
+            </div>
           </section>
 
-          <section v-else-if="activeTab === 'inventory'">
-            <div v-if="activeCharacterId && (tradingEnabled || incomingTradeCount)" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-line bg-n1/70 px-5 py-3.5">
-              <div class="flex items-center gap-2.5">
-                <ArrowLeftRightIcon class="h-5 w-5 text-sky" :stroke-width="2" />
-                <div>
-                  <p class="text-[14px] font-semibold text-ink">Player Trading</p>
-                  <p class="text-[12px] text-dim">Offer items to another character and let them accept.</p>
+          <section v-else-if="activeTab === 'inventory'" ref="deskRef" class="inv-desk" :class="`inv-desk--${deskMode}`" :style="{ '--board-w': `${boardWidth}px` }">
+            <!-- The player's side of the table: who they are, what they carry, what is waiting for them. -->
+            <aside v-if="characterSnapshot" class="inv-desk__summary">
+              <div class="inv-who">
+                <div class="inv-who__portrait">
+                  <img v-if="currentPortraitUrl" :src="currentPortraitUrl" :alt="characterSnapshot.name" @error="markImageFailed(currentPortraitUrl)" />
+                  <span v-else class="num">{{ initials(characterSnapshot.name) }}</span>
+                </div>
+                <div class="min-w-0">
+                  <p class="inv-who__name">{{ characterSnapshot.name }}</p>
+                  <p class="inv-who__owner">{{ characterSnapshot.owner?.username || '—' }}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                @click="openTradeModal(incomingTradeCount ? 'incoming' : 'send')"
-                class="relative inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n4 px-4 py-2.5 text-[13px] font-semibold text-sky transition-all duration-200 hover:border-n7"
-              >
-                <ArrowLeftRightIcon class="h-4 w-4" :stroke-width="2" />
-                Trade
-                <span v-if="incomingTradeCount" class="ml-1 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-white">{{ incomingTradeCount }}</span>
-              </button>
+
+              <div v-if="enableHealth || enableArmorClass" class="inv-vitals">
+                <div v-if="enableHealth" class="inv-vital" @mouseenter="showStatTooltip($event, healthStat)" @mouseleave="hideStatTooltip">
+                  <span class="inv-label inline-flex items-center gap-1"><component :is="ATTRIBUTE_ICONS.health" class="h-3.5 w-3.5 text-danger" :stroke-width="2" />Health</span>
+                  <span class="num inv-vital__value">{{ currentHealth }}<small>/{{ effectiveMaxHealth }}</small></span>
+                  <span class="inv-vital__bar" aria-hidden="true"><i :style="{ width: `${healthPercent}%` }" /></span>
+                </div>
+                <div v-if="enableArmorClass" class="inv-vital" @mouseenter="showStatTooltip($event, armorClassStat)" @mouseleave="hideStatTooltip">
+                  <span class="inv-label inline-flex items-center gap-1"><component :is="ATTRIBUTE_ICONS.armor_class" class="h-3.5 w-3.5 text-sky" :stroke-width="2" />Armor class</span>
+                  <span class="num inv-vital__value">{{ effectiveArmorClass }}<em v-if="armorClassBonus" class="inv-bonus">{{ armorClassBonus > 0 ? '+' : '' }}{{ armorClassBonus }}</em></span>
+                </div>
+              </div>
+
+              <ul v-if="attributeCards.length" class="inv-stats" aria-label="Attributes">
+                <li v-for="attribute in attributeCards" :key="attribute.key" :title="attribute.label" @mouseenter="showStatTooltip($event, attribute)" @mouseleave="hideStatTooltip">
+                  <span class="inv-label inline-flex items-center gap-1"><component :is="ATTRIBUTE_ICONS[attribute.key]" class="h-3.5 w-3.5" :stroke-width="2" />{{ attribute.label.slice(0, 3).toUpperCase() }}</span>
+                  <span class="num inv-stats__value">{{ attribute.value }}</span>
+                  <em v-if="attribute.bonus" class="inv-bonus num" :class="{ 'is-neg': attribute.bonus < 0 }">{{ attribute.bonus > 0 ? '+' : '' }}{{ attribute.bonus }}</em>
+                </li>
+              </ul>
+
+              <ul class="inv-coins" aria-label="Currency">
+                <li v-for="coin in currencyCards" :key="coin.key" :class="`inv-coin--${coin.key}`">
+                  <span class="num">{{ coin.value }}</span>
+                  <span class="inv-label">{{ coin.label }}</span>
+                </li>
+              </ul>
+
+            </aside>
+
+            <div ref="boardWrap" class="inv-desk__board">
+              <SessionInventoryBoard
+                :character-name="characterSnapshot?.name || ''"
+                :inventory-items="inventoryItems"
+                :equipment="equipment"
+                :currency-cards="currencyCards"
+                :inventory-width="inventoryWidth"
+                :inventory-height="inventoryHeight"
+                :character-attributes="effectiveAttributeMap"
+                :attributes-enabled="attributesEnabled"
+                :disabled-standard-attrs="disabledStandardAttrs"
+                :character-id="activeCharacterId"
+                :can-edit="canEditCharacter"
+                @persist="persistInventoryLayout"
+                @update-item="handleInventoryItemUpdate"
+                @delete-item="handleInventoryItemDelete"
+                @share="shareInventoryItem"
+                @split="handleInventoryItemSplit"
+              />
             </div>
-            <SessionInventoryBoard
-              :character-name="characterSnapshot?.name || ''"
-              :inventory-items="inventoryItems"
-              :equipment="equipment"
-              :currency-cards="currencyCards"
-              :inventory-width="inventoryWidth"
-              :inventory-height="inventoryHeight"
-              :character-attributes="effectiveAttributeMap"
-              :attributes-enabled="attributesEnabled"
-              :disabled-standard-attrs="disabledStandardAttrs"
-              :character-id="activeCharacterId"
-              :can-edit="canEditCharacter"
-              @persist="persistInventoryLayout"
-              @update-item="handleInventoryItemUpdate"
-              @delete-item="handleInventoryItemDelete"
-              @share="shareInventoryItem"
-              @split="handleInventoryItemSplit"
-            />
+            <aside v-if="tradeIncoming.length" class="inv-desk__offers inv-offers" aria-label="Trade offers">
+                <p class="inv-offers__title">Waiting for you</p>
+                <div v-for="offer in tradeIncoming" :key="offer.id" class="inv-offer">
+                  <p class="inv-offer__text"><span class="text-orchid font-semibold">{{ offer.from_character_name || offer.from_username }}</span> offers {{ offer.items.map(entry => entry.item?.name).filter(Boolean).join(', ') }}<template v-if="offer.to_character_name"> to {{ offer.to_character_name }}</template>.</p>
+                  <div class="inv-offer__actions">
+                    <button type="button" class="session-chrome session-action-btn" :disabled="tradeBusy" @click="declineTradeOffer(offer)">Decline</button>
+                    <button type="button" class="session-primary-btn" :disabled="tradeBusy" @click="acceptTradeOffer(offer)"><CheckIcon class="h-4 w-4" :stroke-width="2.4" /> Accept</button>
+                  </div>
+                </div>
+              </aside>
           </section>
 
           <section v-else-if="activeTab === 'characters'" ref="fillHeightSectionRef" class="flex min-h-[42rem] flex-col gap-5 xl:min-h-0" :style="fillSectionHeight ? { height: fillSectionHeight } : {}">
             <article class="shrink-0 rounded-[2rem] border border-line bg-n1/88 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <div class="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Character Switcher</p>
+                  <p class="text-[13px] font-semibold text-dim">Character Switcher</p>
                   <h3 class="mt-2 font-heading text-[30px] font-bold text-ink">{{ rosterTitle }}</h3>
                 </div>
 
@@ -2506,13 +2523,19 @@ onBeforeUnmount(() => {
             <article class="flex flex-1 flex-col min-h-0 rounded-[2rem] border border-line bg-n1/88 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
               <div class="flex shrink-0 flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Campaign Roster</p>
-                  <h3 class="mt-1 font-heading text-[26px] font-bold text-ink">Characters</h3>
+                  <h3 class="session-section-title">Party</h3>
+                  <p class="mt-1 text-[14px] text-dim">{{ campaignCharacterRows.length }} characters · {{ game.members?.length ?? 0 }} members</p>
                 </div>
-                <div class="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-sky">
-                  <span class="rounded-full border border-line bg-n3 px-3 py-1.5">{{ game.members?.length ?? 0 }} members</span>
-                  <span class="rounded-full border border-line bg-n3 px-3 py-1.5">{{ campaignCharacterRows.length }} characters</span>
-                </div>
+                <button
+                  v-if="viewer.can_create_character"
+                  type="button"
+                  class="session-primary-btn"
+                  :disabled="creatingCharacter"
+                  @click="requestCharacterCreation"
+                >
+                  <PlusIcon class="h-4 w-4" :stroke-width="2.2" />
+                  {{ creatingCharacter ? 'Creating…' : 'New character' }}
+                </button>
               </div>
 
               <DataTable
@@ -2550,6 +2573,14 @@ onBeforeUnmount(() => {
                 <template #cell-sizeLabel="{ row }"><span class="text-dim">{{ row.sizeLabel }}</span></template>
                 <template #cell-actions="{ row }">
                   <div class="flex flex-wrap justify-end gap-2">
+                    <button
+                      v-if="characters.some(character => character.id === row.id)"
+                      @click="switchCharacter(row.id, { nextTab: 'sheet' })"
+                      :disabled="row.id === activeCharacterId"
+                      class="cursor-pointer rounded-lg border border-primary/24 bg-primary/12 px-3 py-1.5 text-[12px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/45 disabled:cursor-default disabled:opacity-60"
+                    >
+                      {{ row.id === activeCharacterId ? 'Active' : 'Play as' }}
+                    </button>
                     <button @click="openInspectChoice(row)" class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] font-semibold text-sky transition-all duration-200 hover:border-n7">
                       <EyeIcon class="h-3.5 w-3.5" :stroke-width="2" /> View
                     </button>
@@ -2576,13 +2607,13 @@ onBeforeUnmount(() => {
 
           <section v-else-if="activeTab === 'manage' && isGM" ref="fillHeightSectionRef" class="flex min-h-[42rem] flex-col gap-6 xl:min-h-0" :style="fillSectionHeight ? { height: fillSectionHeight } : {}">
             <article class="shrink-0 rounded-[2rem] border border-line bg-n1/88 p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)] sm:p-6">
-              <p class="text-[11px] uppercase tracking-[0.22em] text-dim">GM Control Panel</p>
-              <h3 class="mt-2 font-heading text-[30px] font-bold text-ink">Manage Game</h3>
+              <h3 class="session-section-title">Table</h3>
+              <p class="mt-1 text-[14px] text-dim">Who plays, what happened, and how this game runs.</p>
 
               <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
                 <div class="inline-flex flex-wrap gap-1.5 rounded-2xl border border-line bg-n1/60 p-1.5">
                   <div
-                    v-for="panel in [{ id: 'players', label: 'Players' }, { id: 'chat', label: 'Chat History' }, { id: 'activity', label: 'Activity' }]"
+                    v-for="panel in [{ id: 'players', label: 'Members' }, { id: 'chat', label: 'Chat log' }, { id: 'activity', label: 'Activity' }, { id: 'settings', label: 'Settings' }]"
                     :key="panel.id"
                     role="button"
                     tabindex="0"
@@ -2596,28 +2627,29 @@ onBeforeUnmount(() => {
                     {{ panel.label }}
                   </div>
                 </div>
-                <div class="flex items-center gap-2">
+                <div v-if="managePanel !== 'settings'" class="flex items-center gap-2">
                   <div
                     role="button"
                     tabindex="0"
                     @click="refreshCurrentManagePanel"
                     @keydown.enter="refreshCurrentManagePanel"
                     title="Refresh"
+                    aria-label="Refresh"
                     class="inline-flex cursor-pointer select-none items-center justify-center rounded-xl border border-line bg-n3 p-2.5 text-sky transition-all duration-200 hover:border-n7"
                   >
                     <RefreshCwIcon class="h-4 w-4" :class="{ 'animate-spin': manageRefreshing }" :stroke-width="2" />
                   </div>
-                  <button
-                    type="button"
-                    @click="openGameSettings"
-                    class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-4 py-2.5 text-[13px] font-semibold text-sky transition-all duration-200 hover:border-n7"
-                  >
-                    <SettingsIcon class="h-4 w-4" :stroke-width="2" />
-                    Game Settings
-                  </button>
                 </div>
               </div>
             </article>
+
+            <GameSettingsModal
+              v-if="managePanel === 'settings'"
+              inline
+              :game-id="gameId"
+              @updated="handleGameSettingsUpdated"
+              @deleted="handleGameDeleted"
+            />
 
             <!-- Players table -->
             <div v-show="managePanel === 'players'" class="flex-1 min-h-0 flex flex-col">
@@ -2739,7 +2771,7 @@ onBeforeUnmount(() => {
         <div v-if="memberPendingRemoval" class="fixed inset-0 z-[12560] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="cancelRemoveMember"></div>
           <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-danger/24 bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-danger/70">Remove Player</p>
+            <p class="text-[13px] font-semibold text-danger/70">Remove Player</p>
             <h3 class="mt-2 break-words font-heading text-[22px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ memberPendingRemoval.username }}</h3>
             <p class="mt-3 text-[14px] leading-relaxed text-ink-soft/68">
               This removes the player from the game and deletes their characters here (with inventory and equipment). This action cannot be undone.
@@ -2756,19 +2788,12 @@ onBeforeUnmount(() => {
         </div>
       </Teleport>
 
-      <GameSettingsModal
-        :visible="showGameSettings"
-        :game-id="gameId"
-        @close="showGameSettings = false"
-        @updated="handleGameSettingsUpdated"
-        @deleted="handleGameDeleted"
-      />
 
       <Teleport to="body">
         <div v-if="characterPendingDeletion" class="fixed inset-0 z-[12550] flex items-center justify-center p-4">
           <div class="absolute inset-0 bg-n0/82 backdrop-blur-md" @click="cancelCharacterDeletion"></div>
           <div class="relative w-full max-w-[28rem] overflow-hidden rounded-[1.6rem] border border-danger/24 bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-6 shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-danger/70">Delete Character</p>
+            <p class="text-[13px] font-semibold text-danger/70">Delete Character</p>
             <h3 class="mt-2 break-words font-heading text-[22px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ characterPendingDeletion.name || 'Character' }}</h3>
             <p class="mt-3 text-[14px] leading-relaxed text-ink-soft/68">
               This permanently removes the character along with its inventory, equipment, and attributes. This action cannot be undone.
@@ -2802,20 +2827,20 @@ onBeforeUnmount(() => {
                   <h3 class="break-words text-[20px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ sharedItem.name || 'Unnamed item' }}</h3>
                   <div class="mt-1.5 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]" :class="rarityClasses(sharedItem.rarity)">{{ sharedItem.rarity || 'common' }}</span>
-                    <span class="text-[11px] uppercase tracking-[0.16em] text-faint">{{ formatAttrLabel(sharedItem.category || 'other') }}</span>
-                    <span class="text-[11px] uppercase tracking-[0.16em] text-faint">{{ sharedItem.grid_width || 1 }}x{{ sharedItem.grid_height || 1 }}</span>
+                    <span class="text-[13px] font-semibold text-faint">{{ formatAttrLabel(sharedItem.category || 'other') }}</span>
+                    <span class="text-[13px] font-semibold text-faint">{{ sharedItem.grid_width || 1 }}x{{ sharedItem.grid_height || 1 }}</span>
                   </div>
                   <p v-if="sharedItem.owner" class="mt-1 text-[12px] text-ink-soft/60">Shared by {{ sharedItem.owner }}</p>
                 </div>
               </div>
 
               <div class="mt-4">
-                <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Description</p>
+                <p class="text-[13px] font-semibold text-dim">Description</p>
                 <p class="mt-1 break-words whitespace-pre-line text-[13px] leading-relaxed text-ink-soft/72 [overflow-wrap:anywhere]">{{ sharedItem.description?.trim() || 'No description provided.' }}</p>
               </div>
 
               <div v-if="attributesEnabled && sharedItem.required_attributes?.length" class="mt-4">
-                <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Requirements</p>
+                <p class="text-[13px] font-semibold text-dim">Requirements</p>
                 <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
                   <li v-for="(requirement, index) in sharedItem.required_attributes" :key="`sreq-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] text-ink-soft/82">
                     <span>{{ formatAttrLabel(requirement.attribute_name) }}</span>
@@ -2825,7 +2850,7 @@ onBeforeUnmount(() => {
               </div>
 
               <div v-if="attributesEnabled && sharedItem.attribute_modifiers?.length" class="mt-4">
-                <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Grants</p>
+                <p class="text-[13px] font-semibold text-dim">Grants</p>
                 <ul class="mt-2 grid gap-1.5 sm:grid-cols-2">
                   <li v-for="(modifier, index) in sharedItem.attribute_modifiers" :key="`smod-${index}`" class="flex items-center justify-between gap-2 rounded-lg border border-line bg-n3 px-3 py-1.5 text-[12px] text-ink-soft/82">
                     <span>{{ formatAttrLabel(modifier.attribute_name) }}</span>
@@ -2858,7 +2883,7 @@ onBeforeUnmount(() => {
                 <div v-else class="flex h-full w-full items-center justify-center font-heading text-[22px] font-bold text-faint">{{ (viewMember.username || '?').charAt(0).toUpperCase() }}</div>
               </div>
               <div class="min-w-0 flex-1">
-                <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Player Overview</p>
+                <p class="text-[13px] font-semibold text-dim">Player Overview</p>
                 <h2 class="mt-1 break-words font-heading text-[24px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ viewMember.username }}</h2>
                 <div class="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
                   <span class="rounded-full border border-line bg-n3 px-3 py-1 font-semibold uppercase tracking-[0.14em] text-sky">{{ formatRole(viewMember.role) }}</span>
@@ -2869,7 +2894,7 @@ onBeforeUnmount(() => {
             </div>
 
             <div class="min-h-0 flex-1 overflow-y-auto p-6">
-              <p class="text-[10px] uppercase tracking-[0.18em] text-dim">Characters ({{ viewMemberCharacters.length }})</p>
+              <p class="text-[13px] font-semibold text-dim">Characters ({{ viewMemberCharacters.length }})</p>
               <div v-if="viewMemberCharacters.length" class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
                 <div v-for="character in viewMemberCharacters" :key="character.id" class="flex flex-col items-center rounded-[1.1rem] border border-line bg-n1/70 p-3 text-center">
                   <div class="h-16 w-16 overflow-hidden rounded-[0.9rem] border-2 border-line bg-n1/66">
@@ -2881,7 +2906,7 @@ onBeforeUnmount(() => {
               </div>
               <p v-else class="mt-2 text-[13px] text-faint">This player has no characters in this game.</p>
 
-              <p class="mt-6 text-[10px] uppercase tracking-[0.18em] text-dim">Recent messages</p>
+              <p class="mt-6 text-[13px] font-semibold text-dim">Recent messages</p>
               <div v-if="viewMemberLoading" class="mt-3 flex justify-center py-6">
                 <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
               </div>
@@ -2935,7 +2960,7 @@ onBeforeUnmount(() => {
               <!-- New offer -->
               <div v-if="tradePanel === 'send'">
                 <p v-if="!tradingEnabled" class="mb-4 rounded-xl border border-danger/24 bg-danger/8 px-4 py-3 text-[13px] text-danger">Item trading is disabled for this game. You can still respond to existing offers.</p>
-                <label class="block text-[11px] uppercase tracking-[0.16em] text-dim">Send to</label>
+                <label class="block text-[13px] font-semibold text-dim">Send to</label>
                 <div class="relative mt-1.5">
                   <input
                     v-model="tradeRecipientSearch"
@@ -2962,7 +2987,7 @@ onBeforeUnmount(() => {
                   </div>
                 </div>
 
-                <p class="mt-5 text-[11px] uppercase tracking-[0.16em] text-dim">Items to offer ({{ tradeSelectedIds.length }} selected)</p>
+                <p class="mt-5 text-[13px] font-semibold text-dim">Items to offer ({{ tradeSelectedIds.length }} selected)</p>
                 <p v-if="!tradeOfferableItems.length" class="mt-3 text-[13px] text-faint">No tradeable items. Unequip items first to offer them.</p>
                 <div v-else class="mt-3 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
                   <button
@@ -3050,7 +3075,7 @@ onBeforeUnmount(() => {
             <button type="button" @click="closeInspectChoice" aria-label="Close" class="absolute right-4 top-4 flex h-9 w-9 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32">
               <XIcon class="h-5 w-5" :stroke-width="2" />
             </button>
-            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Inspect</p>
+            <p class="text-[13px] font-semibold text-dim">Inspect</p>
             <h3 class="mt-1 break-words pr-10 font-heading text-[20px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ inspectChoice.name }}</h3>
             <p class="mt-2 text-[13px] text-ink-soft/62">What would you like to open?</p>
             <div class="mt-5 grid grid-cols-2 gap-3">
@@ -3073,7 +3098,7 @@ onBeforeUnmount(() => {
           <div class="relative flex max-h-[94vh] w-full max-w-[80rem] flex-col overflow-hidden rounded-[1.6rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] shadow-[0_40px_120px_rgba(0,0,0,0.55)]">
             <div class="flex items-center justify-between gap-3 border-b border-line-soft px-6 py-4">
               <div class="min-w-0">
-                <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Inventory (read-only)</p>
+                <p class="text-[13px] font-semibold text-dim">Inventory (read-only)</p>
                 <h2 class="mt-1 break-words font-heading text-[22px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ inventoryViewCharacter.name }}</h2>
               </div>
               <button type="button" @click="closeCharacterInventory" aria-label="Close inventory" class="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-line bg-n3 text-ink transition-all duration-200 hover:border-primary/32">
@@ -3110,7 +3135,7 @@ onBeforeUnmount(() => {
           class="pointer-events-none fixed z-[12000] w-[15rem] rounded-xl border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-3 text-left shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
           :style="{ left: `${statTooltip.left}px`, top: `${statTooltip.top}px` }"
         >
-          <p class="text-[10px] uppercase tracking-[0.18em] text-dim">{{ statTooltip.label }} breakdown</p>
+          <p class="text-[13px] font-semibold text-dim">{{ statTooltip.label }} breakdown</p>
           <div class="mt-2 flex items-center justify-between text-[12px] text-ink-soft/75">
             <span>Base</span><span class="font-semibold">{{ statTooltip.base }}</span>
           </div>
@@ -3130,21 +3155,12 @@ onBeforeUnmount(() => {
         </div>
       </Teleport>
 
-      <button
-        v-if="game?.enable_chat && chatCollapsed"
-        @click="focusChatInput"
-        class="session-chat-launcher border-warning/24 bg-[rgba(16,19,23,0.96)] text-ink"
-      >
-        <MessageSquareTextIcon class="h-5 w-5" :stroke-width="1.8" />
-        <span class="text-[11px] font-semibold uppercase tracking-[0.18em]">Chat</span>
-        <span class="rounded-full border border-line px-2 py-0.5 text-[10px] font-semibold">{{ chatMessages.length }}</span>
-      </button>
 
-      <aside v-else-if="game?.enable_chat" class="session-chat-dock">
+      <aside v-if="game?.enable_chat && !chatCollapsed" class="session-chat-dock">
         <div class="session-chat-dock__shell">
           <div class="flex items-center justify-between gap-4 border-b border-line-soft px-4 py-4">
             <div>
-              <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Session Chat</p>
+              <p class="text-[13px] font-semibold text-dim">Session Chat</p>
               <p class="mt-1 truncate text-[14px] text-ink">Latest 40 messages</p>
             </div>
 
@@ -3205,7 +3221,7 @@ onBeforeUnmount(() => {
                       <PackageIcon class="h-4 w-4 shrink-0 text-sky" :stroke-width="2" />
                       <span class="min-w-0">
                         <span class="block truncate text-[13px] font-semibold text-ink">{{ parseSharedItem(message.content).name || 'Item' }}</span>
-                        <span class="block text-[11px] uppercase tracking-[0.14em] text-sky/70">Shared item · view</span>
+                        <span class="block text-[13px] font-semibold text-sky/70">Shared item · view</span>
                       </span>
                     </button>
                     <p v-else class="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-ink/78">{{ message.content }}</p>
@@ -3231,7 +3247,7 @@ onBeforeUnmount(() => {
             ></textarea>
 
             <div class="mt-3 flex items-center justify-between gap-3">
-              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Enter to send</p>
+              <p class="text-[13px] font-semibold text-faint">Enter to send</p>
               <button
                 @click="sendChatMessage"
                 :disabled="!chatDraft.trim() || !game.enable_chat || chatSending"
@@ -3254,22 +3270,891 @@ onBeforeUnmount(() => {
   color: var(--dl-brand-text);
 }
 
+/* One-row header: back, game, sections, then the character and the table's tools. */
 .session-header {
   position: sticky;
-  background: linear-gradient(180deg, rgba(14, 18, 33, 0.96), rgba(8, 11, 22, 0.94)) !important;
-  border-bottom-color: rgba(123, 135, 184, 0.14) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.34);
+  top: 0;
+  z-index: 30;
+  background: rgb(6 10 28 / 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
-.session-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 68%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 72px);
-  opacity: 0.55;
+.session-header__inner {
+  max-width: 1920px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  min-height: 4rem;
+  padding: 0.6rem 1.5rem;
+}
+
+.session-header__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.session-header__title h1 {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.session-gm-badge {
+  flex-shrink: 0;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-warning);
+  background: rgb(239 195 94 / 0.14);
+}
+
+.session-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-right: auto;
+}
+
+.session-tabs .session-tab-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.85rem;
+  border: 0;
+  border-radius: 0.65rem;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-dim);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.session-tabs .session-tab-button:hover {
+  color: var(--color-ink);
+  background: rgb(27 39 80 / 0.7);
+}
+
+.session-tab-button.is-active {
+  color: var(--color-ink);
+  font-weight: 600;
+  background: rgb(88 101 221 / 0.22);
+  box-shadow: inset 0 0 0 1px rgb(164 174 255 / 0.35);
+}
+
+.session-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.session-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.session-switcher__select {
+  width: 15rem;
+}
+
+.session-icon-btn,
+.session-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: var(--color-n3);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.16s ease;
+}
+
+.session-icon-btn {
+  width: 2.5rem;
+  flex-shrink: 0;
+}
+
+.session-action-btn {
+  padding: 0 0.9rem;
+}
+
+.session-icon-btn:hover,
+.session-action-btn:hover {
+  background: var(--color-n4);
+}
+
+.session-icon-btn:active,
+.session-action-btn:active {
+  transform: scale(0.96);
+}
+
+.session-icon-btn:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.session-action-btn.is-on {
+  background: rgb(88 101 221 / 0.22);
+  box-shadow: inset 0 0 0 1px rgb(164 174 255 / 0.35);
+}
+
+/* An incoming trade waits for an answer: the button carries the orchid of the logo's moons. */
+.session-action-btn.has-news {
+  box-shadow: inset 0 0 0 1px rgb(232 144 210 / 0.55);
+}
+
+.session-count {
+  min-width: 1.35rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  font-family: var(--font-num);
+  font-size: 13px;
+  line-height: 1.35rem;
+  text-align: center;
+  color: #fff;
+  background: var(--color-orchid);
+}
+
+.session-count--quiet {
+  color: var(--color-dim);
+  background: var(--color-n5);
+}
+
+/* ---------- Inventory tab: board centred, summary beside or above it ---------- */
+.inv-desk {
+  display: grid;
+  gap: 1.25rem 1.5rem;
+}
+
+.inv-desk__summary,
+.inv-desk__offers {
+  display: grid;
+  gap: 1.1rem;
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: rgb(8 13 36 / 0.82);
+  box-shadow: inset 0 0 0 1px rgb(74 90 150 / 0.35);
+}
+
+/* Sides: equal outer tracks keep the board on the centre line of the screen. */
+.inv-desk--sides {
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.inv-desk--sides .inv-desk__summary,
+.inv-desk--sides .inv-desk__offers {
+  position: sticky;
+  top: 5.5rem;
+  width: min(100%, 19rem);
+}
+
+.inv-desk--sides .inv-desk__summary {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.inv-desk--sides .inv-desk__board {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.inv-desk--sides .inv-desk__offers {
+  grid-column: 3;
+  grid-row: 1;
+  justify-self: start;
+}
+
+/* Stack: a compact strip as wide as the board, then the board, then any offers. */
+.inv-desk--stack {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
+/* The board centres itself (it is fit-content from lg up, full width below). */
+.inv-desk--stack .inv-desk__board {
+  justify-self: stretch;
+  min-width: 0;
+}
+
+.inv-desk--sides .inv-desk__board {
+  min-width: 0;
+}
+
+.inv-desk--stack .inv-desk__summary,
+.inv-desk--stack .inv-desk__offers {
+  width: 100%;
+  max-width: max(var(--board-w), 20rem);
+}
+
+.inv-desk--stack .inv-desk__summary {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  padding: 0.85rem 1rem;
+}
+
+.inv-desk--stack .inv-desk__offers {
+  order: -1;
+}
+
+.inv-desk--stack .inv-vitals {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.inv-desk--stack .inv-vital {
+  padding: 0.45rem 0.7rem;
+  min-width: 6.5rem;
+}
+
+.inv-desk--stack .inv-vital__value {
+  font-size: 21px;
+}
+
+.inv-desk--stack .inv-stats {
+  grid-template-columns: repeat(auto-fit, minmax(3.4rem, 1fr));
+}
+
+.inv-desk--stack .inv-stats li {
+  padding: 0.35rem 0.2rem;
+}
+
+.inv-desk--stack .inv-stats__value {
+  font-size: 18px;
+}
+
+.inv-desk--stack .inv-coins {
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.inv-desk--stack .inv-coins .num {
+  font-size: 16px;
+}
+
+.inv-desk--stack .inv-who__portrait {
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 16px;
+}
+
+@media (max-width: 899px) {
+  .inv-desk--stack .inv-desk__summary {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .inv-desk--stack .inv-stats {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+
+  .inv-desk--stack .inv-coins {
+    flex-direction: row;
+    gap: 0.9rem;
+  }
+}
+
+@media (max-width: 599px) {
+  .inv-desk--stack .inv-desk__summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .inv-desk--stack .inv-vital {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.inv-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-faint);
+}
+
+.inv-bonus {
+  margin-left: 0.15rem;
+  font-style: normal;
+  font-size: 13px;
+  color: var(--color-orchid);
+}
+
+.inv-who {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.inv-who__portrait {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  background: var(--color-n3);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-primary-ink);
+}
+
+.inv-who__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.inv-who__name {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.inv-who__owner {
+  margin: 0.1rem 0 0;
+  font-size: 13px;
+  color: var(--color-dim);
+}
+
+.inv-vitals {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+}
+
+.inv-vital {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 0.8rem;
+  background: var(--color-n2);
+}
+
+.inv-vital__value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+.inv-vital__value small {
+  font-size: 16px;
+  color: var(--color-dim);
+}
+
+.inv-vital__bar {
+  height: 4px;
+  margin-top: 0.35rem;
+  border-radius: 2px;
+  background: var(--color-n4);
+}
+
+.inv-vital__bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-success);
+}
+
+.inv-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inv-stats li {
+  display: grid;
+  justify-items: center;
+  padding: 0.5rem 0.25rem;
+  border-radius: 0.7rem;
+  background: var(--color-n2);
+  cursor: default;
+}
+
+.inv-stats__value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--color-ink);
+}
+
+.inv-coins {
+  display: flex;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inv-coins li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.inv-coins .num {
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.inv-coin--gold .num { color: #f1cf72; }
+.inv-coin--silver .num { color: #d3d9ea; }
+.inv-coin--copper .num { color: #e0a079; }
+
+.inv-offers {
+  gap: 0.6rem;
+}
+
+.inv-offers__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.inv-offer {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  border-radius: 0.8rem;
+  background: var(--color-n2);
+  box-shadow: inset 0 0 0 1px rgb(232 144 210 / 0.4);
+}
+
+.inv-offer__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-ink-soft);
+}
+
+.inv-offer__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+
+/* ---------- Character tab: read-only sheet ---------- */
+.sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+.sheet__col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: rgb(8 13 36 / 0.82);
+  box-shadow: inset 0 0 0 1px rgb(74 90 150 / 0.35);
+}
+
+.sheet__portrait {
+  display: grid;
+  place-items: center;
+  flex-shrink: 1;
+  min-height: 7rem;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  background: var(--color-n0);
+  font-size: 44px;
+  font-weight: 700;
+  color: var(--color-primary-ink);
+}
+
+.sheet__portrait.has-image {
+  aspect-ratio: 3 / 4;
+}
+
+@media (max-width: 899px) {
+  .sheet__portrait:not(.has-image) {
+    aspect-ratio: auto;
+    height: 6rem;
+    font-size: 34px;
+  }
+
+  .sheet__portrait.has-image {
+    max-height: 22rem;
+  }
+}
+
+.sheet__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.sheet__name {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.sheet__owner {
+  margin: 0.2rem 0 0;
+  font-size: 14px;
+  color: var(--color-dim);
+}
+
+.sheet__vitals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.sheet-stat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 0.5rem;
+  row-gap: 0.15rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.8rem;
+  background: var(--color-n2);
+  cursor: default;
+}
+
+.sheet-stat--wide {
+  grid-column: 1 / -1;
+}
+
+.sheet-stat__icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: var(--color-primary-ink);
+}
+
+.sheet-stat__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-dim);
+}
+
+.sheet-stat__value {
+  grid-column: 1 / -1;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.05;
+  color: var(--color-ink);
+}
+
+.sheet-stat__value small {
+  font-size: 16px;
+  color: var(--color-dim);
+}
+
+.sheet-bonus {
+  margin-left: 0.3rem;
+  font-style: normal;
+  font-size: 15px;
+  color: var(--color-orchid);
+}
+
+/* Gear can also take a stat down; that reads as a penalty, not a bonus. */
+.sheet-bonus.is-neg,
+.inv-bonus.is-neg {
+  color: var(--color-danger);
+}
+
+.sheet-stat--plain {
+  grid-template-columns: 1fr;
+}
+
+.sheet__subtitle {
+  margin: 1.25rem 0 0.6rem;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-dim);
+}
+
+.sheet__scroll {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.sheet-hp {
+  grid-column: 1 / -1;
+  height: 5px;
+  margin-top: 0.3rem;
+  border-radius: 3px;
+  background: var(--color-n4);
+}
+
+.sheet-hp i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-success);
+  transition: width 0.3s ease;
+}
+
+.sheet__coins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheet__coins li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+.sheet__coins .num {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.sheet__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.sheet__count {
+  font-size: 15px;
+  color: var(--color-dim);
+}
+
+.sheet__story {
+  margin: 0;
+  min-height: 0;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-ink-soft);
+}
+
+.sheet__story.is-empty {
+  color: var(--color-faint);
+}
+
+.sheet__note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-faint);
+}
+
+.sheet__attrs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheet__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.sheet__list {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0.2rem 0 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.sheet__list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.65rem;
+  background: var(--color-n2);
+}
+
+.sheet__list li.is-link {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sheet__list li.is-link:hover {
+  background: var(--color-n3);
+}
+
+.sheet__list-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+
+.sheet__list-value {
+  flex-shrink: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.sheet__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  flex-shrink: 0;
+  border-radius: 0.2rem;
+  background: color-mix(in oklab, var(--resin) 40%, var(--color-n2));
+  box-shadow: inset 0 0 0 1.5px var(--resin);
+}
+
+.sheet__slot {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--color-dim);
+}
+
+.sheet__empty {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-faint);
+}
+
+@media (min-width: 900px) {
+  .sheet {
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr);
+  }
+
+  .sheet__side {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Desktop: the whole sheet fits one screen under the header; long text and lists scroll inside. */
+@media (min-width: 1280px) and (min-height: 640px) {
+  /* Columns are as tall as their content, never taller than the screen under the header. */
+  .sheet {
+    grid-template-columns: minmax(15rem, 19rem) minmax(0, 1fr) minmax(16rem, 21rem);
+    align-items: start;
+  }
+
+  .sheet__col {
+    max-height: calc(100svh - 7.75rem);
+  }
+
+  .sheet__side {
+    grid-column: auto;
+  }
+
+  .sheet__who {
+    overflow: hidden;
+  }
+
+  .sheet__portrait {
+    min-height: 0;
+    max-height: 42vh;
+  }
+
+  /* Story and gear share the column; each scrolls in its half when long. */
+  .sheet__side .sheet__block {
+    flex: 0 1 auto;
+    max-height: 50%;
+  }
+
+  .sheet__main {
+    overflow: hidden;
+  }
+}
+
+.session-section-title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
+.session-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.6rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: var(--color-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.session-primary-btn:hover {
+  background: var(--color-primary-hover);
+}
+
+.session-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* Bottom tab bar, phones only. */
+.session-tabbar {
+  display: none;
 }
 
 .session-header > div {
@@ -3291,20 +4176,20 @@ onBeforeUnmount(() => {
   background: transparent;
 }
 
-.session-stage button:not(.session-tab-button):not(.session-chat-launcher) {
-  border-color: var(--dl-panel-border) !important;
-  background: linear-gradient(180deg, rgba(21, 29, 50, 0.92), rgba(12, 18, 31, 0.96)) !important;
-  color: var(--dl-brand-text) !important;
-  border-radius: 0.55rem !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 24px rgba(0, 0, 0, 0.16);
+.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn) {
+  border-color: transparent !important;
+  background: var(--color-n3) !important;
+  color: var(--color-ink) !important;
+  border-radius: 0.6rem !important;
+  box-shadow: none;
 }
 
-.session-stage button:not(.session-tab-button):not(.session-chat-launcher):hover {
-  border-color: rgba(88, 101, 221, 0.32) !important;
+.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn):hover {
+  background: var(--color-n4) !important;
   color: #ffffff !important;
 }
 
-.session-stage button:not(.session-tab-button):not(.session-chat-launcher):disabled {
+.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn):disabled {
   box-shadow: none;
 }
 
@@ -3312,11 +4197,11 @@ onBeforeUnmount(() => {
 .session-stage textarea,
 .session-stage input:not([type='file']):not(.border-0),
 .session-input {
-  border-radius: 0.5rem !important;
-  border-color: var(--dl-panel-border) !important;
-  background: rgba(11, 17, 31, 0.88) !important;
-  color: var(--dl-brand-text) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 1px 0 rgba(0, 0, 0, 0.3);
+  border-radius: 0.65rem !important;
+  border-color: var(--color-n5) !important;
+  background: var(--color-n0) !important;
+  color: var(--color-ink) !important;
+  box-shadow: none;
 }
 
 .session-stage select:focus,
@@ -3329,48 +4214,10 @@ onBeforeUnmount(() => {
 
 .session-stage article:not(.session-chat-message) {
   position: relative;
-  overflow: hidden;
-  border-radius: 0.75rem !important;
-  border-color: rgba(123, 135, 184, 0.14) !important;
-  background: var(--dl-panel-bg) !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
-}
-
-.session-stage article:not(.session-chat-message)::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 26%),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 18px);
-  opacity: 0.65;
-}
-
-.session-stage article:not(.session-chat-message)::after {
-  content: '';
-  position: absolute;
-  inset: 9px;
-  pointer-events: none;
-  border: 1px solid rgba(123, 135, 184, 0.1);
-  clip-path: polygon(0 14px, 14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%);
-}
-
-.session-stage article:not(.session-chat-message) > * {
-  position: relative;
-  z-index: 1;
-}
-
-.session-command-deck {
-  border-color: rgba(88, 101, 221, 0.24) !important;
-  background: linear-gradient(135deg, rgba(39, 18, 31, 0.96), rgba(15, 23, 43, 0.96) 45%, rgba(10, 14, 26, 0.98)) !important;
-}
-
-.session-command-deck::before {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 32%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 72px),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 28%);
+  border-radius: 1.25rem !important;
+  border-color: transparent !important;
+  background: rgb(8 13 36 / 0.82) !important;
+  box-shadow: inset 0 0 0 1px rgb(74 90 150 / 0.35) !important;
 }
 
 .session-mode-pill,
@@ -3394,108 +4241,12 @@ onBeforeUnmount(() => {
 }
 
 .session-content-shell {
-  padding: 1.5rem 1rem 22rem 5rem;
+  padding: 1.5rem 1rem 22rem;
   transition: padding-right 0.28s ease, padding-bottom 0.28s ease;
 }
 
 .session-content-shell.chat-collapsed {
   padding-bottom: 5rem;
-}
-
-.session-tab-rail {
-  position: fixed;
-  left: 0.75rem;
-  top: 50%;
-  z-index: 45;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  transform: translateY(-50%);
-  overflow: hidden;
-  border: 1px solid rgba(123, 135, 184, 0.14);
-  border-radius: 0.8rem;
-  background: linear-gradient(180deg, rgba(14, 18, 33, 0.96), rgba(9, 13, 25, 0.98));
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
-}
-
-.session-tab-rail::before {
-  content: '';
-  position: absolute;
-  inset: 6px;
-  pointer-events: none;
-  border: 1px solid rgba(123, 135, 184, 0.08);
-}
-
-.session-tab-button {
-  isolation: isolate;
-  overflow: hidden;
-  border-radius: 0.5rem !important;
-  clip-path: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
-}
-
-.session-tab-button::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(135deg, rgba(88, 101, 221, 0.12), transparent 38%, rgba(123, 135, 184, 0.08));
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.session-tab-button:hover::before,
-.session-tab-button:focus-visible::before {
-  opacity: 1;
-}
-
-.session-tab-button:hover {
-  transform: translateX(2px);
-}
-
-.session-tooltip {
-  pointer-events: none;
-  position: absolute;
-  left: calc(100% + 0.75rem);
-  top: 50%;
-  transform: translateY(-50%) translateX(-0.25rem);
-  opacity: 0;
-  white-space: nowrap;
-  border: 1px solid rgba(123, 135, 184, 0.14);
-  border-radius: 0.5rem;
-  background: rgba(11, 16, 29, 0.96);
-  padding: 0.45rem 0.85rem;
-  font-size: 0.7rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(232, 232, 240, 0.92);
-  transition: opacity 0.18s ease, transform 0.18s ease;
-}
-
-.session-tab-button:hover .session-tooltip {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-  transition-delay: 0.5s;
-}
-
-.session-tab-button:focus-visible .session-tooltip {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
-}
-
-.session-chat-launcher {
-  position: fixed;
-  right: 1rem;
-  bottom: 1rem;
-  z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.7rem;
-  border-radius: 0.7rem;
-  padding: 0.9rem 1rem;
-  backdrop-filter: blur(18px);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
-  clip-path: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
 }
 
 .session-chat-dock {
@@ -3545,7 +4296,7 @@ onBeforeUnmount(() => {
 }
 
 .session-sheet-frame {
-  padding: 1.75rem 1.75rem 2rem !important;
+  padding: 0;
 }
 
 .session-sheet-grid {
@@ -3557,7 +4308,6 @@ onBeforeUnmount(() => {
   align-items: stretch;
 }
 
-.session-dossier-panel,
 .session-profile-panel,
 .session-attribute-panel,
 .session-equipment-panel,
@@ -3570,6 +4320,7 @@ onBeforeUnmount(() => {
 .session-dossier-panel {
   display: flex;
   flex-direction: column;
+  align-self: start;
 }
 
 /* Equipment panel fills the height of the taller Custom Attributes panel so its
@@ -3653,34 +4404,94 @@ onBeforeUnmount(() => {
     padding-bottom: 9.5rem;
   }
 
-  /* Below sm, the tab rail moves from a floating side column to a bottom
-     bar so it never overlaps card content or the chat dock's left edge. */
-  .session-tab-rail {
-    left: 0.5rem;
-    right: 0.5rem;
-    top: auto;
-    bottom: 0.5rem;
-    transform: none;
-    flex-direction: row;
-    justify-content: space-between;
-  }
-
-  .session-tooltip {
-    display: none;
-  }
-
-  .session-chat-launcher {
-    bottom: 4.75rem;
-  }
-
   .session-chat-dock {
     bottom: 4.75rem;
   }
 }
 
+/* Below the width where every section fits beside the header tools, sections move to a bottom bar. */
+@media (max-width: 1099px) {
+  .session-tabs {
+    display: none;
+  }
+
+  .session-tabbar {
+    position: fixed;
+    left: 0.5rem;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    z-index: 45;
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.35rem;
+    border-radius: 1rem;
+    background: rgb(6 10 28 / 0.9);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: inset 0 0 0 1px rgb(51 66 122 / 0.6);
+  }
+
+  .session-tabbar .session-tab-button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.45rem 0.25rem;
+    border: 0;
+    border-radius: 0.7rem;
+    background: none;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-dim);
+    cursor: pointer;
+  }
+
+  .session-content-shell,
+  .session-content-shell.chat-collapsed {
+    padding-bottom: 6rem;
+  }
+
+  .session-chat-dock {
+    bottom: 4.9rem !important;
+  }
+
+  .session-header__title {
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .session-header__inner {
+    flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .session-header__actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .session-switcher {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .session-switcher__select {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .session-action-btn__label {
+    display: none;
+  }
+}
+
 @media (min-width: 640px) {
   .session-content-shell {
-    padding-left: 5.75rem;
+    padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
 
@@ -3697,27 +4508,22 @@ onBeforeUnmount(() => {
 @media (min-width: 1280px) {
   .session-content-shell {
     padding-bottom: 2rem;
-    padding-left: 7rem;
-    padding-right: 29rem;
+    padding-left: 1.5rem;
+    padding-right: 27rem;
   }
 
   .session-content-shell.chat-collapsed {
     padding-bottom: 2rem;
-    padding-right: 6rem;
+    padding-right: 1.5rem;
   }
 
   .session-chat-dock {
-    top: 5.85rem;
+    top: 4.75rem;
     bottom: 1.5rem;
     right: 1.5rem;
     left: auto;
     width: 24rem;
     height: auto;
-  }
-
-  .session-chat-launcher {
-    right: 1.5rem;
-    bottom: 1.5rem;
   }
 
   .session-sheet-grid {
@@ -3751,12 +4557,9 @@ onBeforeUnmount(() => {
 
 @media (min-width: 1536px) {
   .session-content-shell {
-    padding-right: 31rem;
+    padding-right: 27rem;
   }
 
-  .session-sheet-frame {
-    padding: 2rem 2rem 2.25rem !important;
-  }
 
   .session-empty-bay--inventory {
     min-height: 38rem;

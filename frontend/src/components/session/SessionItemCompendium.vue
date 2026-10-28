@@ -1459,10 +1459,10 @@ function itemSizeLabel(item) {
     <article class="overflow-hidden rounded-[1.9rem] border border-line bg-[linear-gradient(180deg,rgba(10,16,41,0.98),rgba(6,10,28,0.98))] p-5 shadow-[0_32px_90px_rgba(0,0,0,0.35)] sm:p-6">
       <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p class="text-[11px] uppercase tracking-[0.24em] text-dim">GM Compendium</p>
+          <p class="text-[13px] font-semibold text-dim">GM Compendium</p>
           <div class="mt-3 flex flex-wrap items-center gap-3">
             <h2 class="font-heading text-[28px] font-bold text-ink sm:text-[34px]">Item Compendium</h2>
-            <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">
+            <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[13px] font-semibold text-sky">
               {{ compendiumStats.totalItems }} total
             </span>
           </div>
@@ -1494,7 +1494,7 @@ function itemSizeLabel(item) {
     <article class="rounded-[1.75rem] border border-line bg-n1/78 p-5 sm:p-6">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Filters</p>
+          <p class="text-[13px] font-semibold text-dim">Filters</p>
         </div>
         <button
           v-if="hasActiveFilters"
@@ -1508,7 +1508,7 @@ function itemSizeLabel(item) {
 
       <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_repeat(5,minmax(0,1fr))]">
         <label class="block xl:col-span-1">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Search</span>
+          <span class="text-[13px] font-semibold text-faint">Search</span>
           <div class="mt-2 flex items-center gap-3 rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3">
             <Search class="h-4 w-4 text-faint" :stroke-width="2" />
             <input
@@ -1521,7 +1521,7 @@ function itemSizeLabel(item) {
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Quality</span>
+          <span class="text-[13px] font-semibold text-faint">Quality</span>
           <select v-model="rarityFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
             <option value="all">All qualities</option>
             <option v-for="rarity in RARITY_OPTIONS" :key="rarity" :value="rarity">{{ formatLabel(rarity) }}</option>
@@ -1529,7 +1529,7 @@ function itemSizeLabel(item) {
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Category</span>
+          <span class="text-[13px] font-semibold text-faint">Category</span>
           <select v-model="categoryFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
             <option value="all">All categories</option>
             <option v-for="category in CATEGORY_OPTIONS" :key="category" :value="category">{{ formatLabel(category) }}</option>
@@ -1537,7 +1537,7 @@ function itemSizeLabel(item) {
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Slot</span>
+          <span class="text-[13px] font-semibold text-faint">Slot</span>
           <select v-model="slotFilter" class="session-input mt-2 w-full rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
             <option value="all">All slots</option>
             <option v-for="slot in EQUIP_SLOT_OPTIONS" :key="slot" :value="slot">{{ formatLabel(slot) }}</option>
@@ -1545,7 +1545,7 @@ function itemSizeLabel(item) {
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Tag</span>
+          <span class="text-[13px] font-semibold text-faint">Tag</span>
           <SearchableSelect
             v-model="tagFilter"
             :options="[{ value: 'all', label: 'All tags' }, ...availableTagNames.map(tag => ({ value: tag, label: tag }))]"
@@ -1555,7 +1555,7 @@ function itemSizeLabel(item) {
         </label>
 
         <label class="block">
-          <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Sort</span>
+          <span class="text-[13px] font-semibold text-faint">Sort</span>
           <select v-model="sortMode" class="session-input mt-2 w-full rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
             <option v-for="option in SORT_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
           </select>
@@ -1577,7 +1577,7 @@ function itemSizeLabel(item) {
       <article class="flex min-h-[42rem] flex-col overflow-hidden rounded-[1.75rem] border border-line bg-n1/78 xl:h-full xl:min-h-0">
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft px-5 py-4 sm:px-6">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Compendium Entries</p>
+            <p class="text-[13px] font-semibold text-dim">Compendium Entries</p>
           </div>
         </div>
 
@@ -1636,10 +1636,10 @@ function itemSizeLabel(item) {
                 </p>
 
                 <div class="mt-3 flex flex-wrap gap-2">
-                  <span class="rounded-full border border-line bg-n3 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-sky">
+                  <span class="rounded-full border border-line bg-n3 px-2.5 py-1 text-[13px] font-semibold text-sky">
                     {{ formatLabel(item.category) }}
                   </span>
-                  <span v-if="item.equip_slot" class="rounded-full border border-line bg-ink/5 px-2.5 py-1 text-[11px] uppercase tracking-[0.12em] text-ink-soft/68">
+                  <span v-if="item.equip_slot" class="rounded-full border border-line bg-ink/5 px-2.5 py-1 text-[13px] font-semibold text-ink-soft/68">
                     {{ formatLabel(item.equip_slot) }}
                   </span>
                   <span v-for="tag in item.tags.slice(0, 3)" :key="`${item.id}-${tag}`" class="rounded-full border border-primary/16 bg-primary/8 px-2.5 py-1 text-[11px] text-primary-soft">
@@ -1684,7 +1684,7 @@ function itemSizeLabel(item) {
 
         <article class="flex min-h-[42rem] flex-col overflow-y-auto rounded-[1.75rem] border border-line bg-n1/78 p-5 sm:p-6 xl:h-full xl:min-h-0">
           <div>
-            <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Inspector</p>
+            <p class="text-[13px] font-semibold text-dim">Inspector</p>
             <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Pinned preview for the currently selected compendium entry.</p>
           </div>
 
@@ -1708,25 +1708,25 @@ function itemSizeLabel(item) {
 
             <div class="grid gap-3 sm:grid-cols-2">
               <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-                <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Category</p>
+                <p class="text-[13px] font-semibold text-faint">Category</p>
                 <p class="mt-2 text-[15px] font-semibold text-ink">{{ formatLabel(inspectorItem.category) }}</p>
               </div>
               <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-                <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Size</p>
+                <p class="text-[13px] font-semibold text-faint">Grid Size</p>
                 <p class="mt-2 text-[15px] font-semibold text-ink">{{ itemSizeLabel(inspectorItem) }}</p>
               </div>
               <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-                <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Equip Slot</p>
+                <p class="text-[13px] font-semibold text-faint">Equip Slot</p>
                 <p class="mt-2 text-[15px] font-semibold text-ink">{{ inspectorItem.equip_slot ? formatLabel(inspectorItem.equip_slot) : 'Not equippable' }}</p>
               </div>
               <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-                <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Updated</p>
+                <p class="text-[13px] font-semibold text-faint">Updated</p>
                 <p class="mt-2 text-[15px] font-semibold text-ink">{{ formatDateTime(inspectorItem.updated_at) }}</p>
               </div>
             </div>
 
             <div v-if="inspectorItem.required_attributes.length" class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Requirements</p>
+              <p class="text-[13px] font-semibold text-faint">Requirements</p>
               <ul class="mt-2.5 space-y-1.5">
                 <li v-for="(requirement, index) in inspectorItem.required_attributes" :key="`insp-req-${index}`" class="flex items-center justify-between gap-2 text-[13px] text-ink-soft/82">
                   <span>{{ formatLabel(requirement.attribute_name) }}</span>
@@ -1736,7 +1736,7 @@ function itemSizeLabel(item) {
             </div>
 
             <div v-if="inspectorItem.attribute_modifiers.length" class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Modifiers</p>
+              <p class="text-[13px] font-semibold text-faint">Modifiers</p>
               <ul class="mt-2.5 space-y-1.5">
                 <li v-for="(modifier, index) in inspectorItem.attribute_modifiers" :key="`insp-mod-${index}`" class="flex items-center justify-between gap-2 text-[13px] text-ink-soft/82">
                   <span>{{ formatLabel(modifier.attribute_name) }}</span>
@@ -1748,7 +1748,7 @@ function itemSizeLabel(item) {
             </div>
 
             <div class="min-h-[5.75rem]">
-              <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Custom Tags</p>
+              <p class="text-[13px] font-semibold text-faint">Custom Tags</p>
               <div v-if="inspectorItem.tags.length" class="mt-3 flex min-h-[2.5rem] flex-wrap content-start gap-2">
                 <span v-for="tag in inspectorItem.tags" :key="`${inspectorItem.id}-${tag}`" class="rounded-full border border-primary/18 bg-primary/8 px-3 py-1.5 text-[12px] text-primary-soft">
                   {{ tag }}
@@ -1794,7 +1794,7 @@ function itemSizeLabel(item) {
               <Trash2 class="h-6 w-6" :stroke-width="2" />
             </div>
             <div class="min-w-0">
-              <p class="text-[11px] uppercase tracking-[0.24em] text-danger/70">Delete Item</p>
+              <p class="text-[13px] font-semibold text-danger/70">Delete Item</p>
               <h3 class="mt-1 break-words font-heading text-[22px] font-bold leading-tight text-ink [overflow-wrap:anywhere]">{{ deleteCandidateItem.name }}</h3>
             </div>
           </div>
@@ -1832,10 +1832,10 @@ function itemSizeLabel(item) {
           </button>
 
           <div class="border-b border-line-soft px-5 py-5 pr-16 sm:px-6">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Deliver Items</p>
+            <p class="text-[13px] font-semibold text-dim">Deliver Items</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <h2 class="font-heading text-[26px] font-bold text-ink sm:text-[32px]">Transfer Cart</h2>
-              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">{{ cartCount }} item(s)</span>
+              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[13px] font-semibold text-sky">{{ cartCount }} item(s)</span>
             </div>
             <p class="mt-3 max-w-[44rem] text-[13px] leading-relaxed text-ink-soft/58">Tune each item's quantity, enchantment, and optional durability, then choose a character to receive the whole cart.</p>
           </div>
@@ -1862,15 +1862,15 @@ function itemSizeLabel(item) {
 
                     <div class="mt-3 grid gap-3 sm:grid-cols-3">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Quantity</span>
+                        <span class="text-[13px] font-semibold text-faint">Quantity</span>
                         <input v-model.number="line.quantity" type="number" min="1" max="9999" class="session-input mt-1.5 w-full rounded-[1rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Durability</span>
+                        <span class="text-[13px] font-semibold text-faint">Durability</span>
                         <input v-model.number="line.durability" type="number" min="0" :max="line.maxDurability" class="session-input mt-1.5 w-full rounded-[1rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Max durability</span>
+                        <span class="text-[13px] font-semibold text-faint">Max durability</span>
                         <input v-model.number="line.maxDurability" type="number" min="1" class="session-input mt-1.5 w-full rounded-[1rem] border border-line bg-n1/72 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                     </div>
@@ -1899,7 +1899,7 @@ function itemSizeLabel(item) {
             <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)]">
               <div>
                 <div class="flex items-center justify-between gap-3">
-                  <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Recipients</span>
+                  <span class="text-[13px] font-semibold text-faint">Recipients</span>
                   <span v-if="cartTargetCharacterIds.length" class="text-[11px] font-semibold text-sky">{{ cartTargetCharacterIds.length }} selected</span>
                 </div>
                 <div class="mt-2 flex items-center gap-3 rounded-[1.2rem] border border-line bg-n1/72 px-4 py-3">
@@ -1972,10 +1972,10 @@ function itemSizeLabel(item) {
           </button>
 
           <div class="border-b border-line-soft px-5 py-5 pr-16 sm:px-6">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">Compendium Entry</p>
+            <p class="text-[13px] font-semibold text-dim">Compendium Entry</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <h2 class="font-heading text-[28px] font-bold text-ink sm:text-[34px]">{{ itemDetailMode === 'edit' ? 'Edit Compendium Entry' : 'Compendium Entry Details' }}</h2>
-              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[11px] uppercase tracking-[0.16em] text-sky">
+              <span class="rounded-full border border-line bg-n3 px-3 py-1.5 text-[13px] font-semibold text-sky">
                 {{ detailPreviewItem.name }}
               </span>
             </div>
@@ -2014,21 +2014,21 @@ function itemSizeLabel(item) {
 
                 <div class="mt-5 grid gap-3 sm:grid-cols-2">
                   <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Category</p>
+                    <p class="text-[13px] font-semibold text-faint">Category</p>
                     <p class="mt-2 text-[15px] font-semibold text-ink">{{ formatLabel(detailPreviewItem.category) }}</p>
                   </div>
                   <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Size</p>
+                    <p class="text-[13px] font-semibold text-faint">Grid Size</p>
                     <p class="mt-2 text-[15px] font-semibold text-ink">{{ itemSizeLabel(detailPreviewItem) }}</p>
                   </div>
                   <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3 sm:col-span-2">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Equip Slot</p>
+                    <p class="text-[13px] font-semibold text-faint">Equip Slot</p>
                     <p class="mt-2 text-[15px] font-semibold text-ink">{{ detailPreviewItem.equip_slot ? formatLabel(detailPreviewItem.equip_slot) : 'Not equippable' }}</p>
                   </div>
                 </div>
 
                 <div class="mt-5 min-h-[5.75rem]">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Custom Tags</p>
+                  <p class="text-[13px] font-semibold text-faint">Custom Tags</p>
                   <div v-if="detailPreviewItem.tags.length" class="mt-3 flex min-h-[2.5rem] flex-wrap content-start gap-2">
                     <span v-for="tag in detailPreviewItem.tags" :key="`detail-tag-${tag}`" class="rounded-full border border-primary/18 bg-primary/8 px-3 py-1.5 text-[12px] text-primary-soft">
                       {{ tag }}
@@ -2045,7 +2045,7 @@ function itemSizeLabel(item) {
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
                   <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
+                    <span class="text-[13px] font-semibold text-dim">Name</span>
                     <input
                       v-model="detailItemDraft.name"
                       type="text"
@@ -2058,21 +2058,21 @@ function itemSizeLabel(item) {
 
                   <div class="grid gap-4 sm:grid-cols-3">
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Quality</span>
+                      <span class="text-[13px] font-semibold text-dim">Quality</span>
                       <select v-model="detailItemDraft.rarity" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65">
                         <option v-for="rarity in RARITY_OPTIONS" :key="rarity" :value="rarity">{{ formatLabel(rarity) }}</option>
                       </select>
                     </label>
 
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Category</span>
+                      <span class="text-[13px] font-semibold text-dim">Category</span>
                       <select v-model="detailItemDraft.category" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65">
                         <option v-for="category in CATEGORY_OPTIONS" :key="category" :value="category">{{ formatLabel(category) }}</option>
                       </select>
                     </label>
 
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Equip Slot</span>
+                      <span class="text-[13px] font-semibold text-dim">Equip Slot</span>
                       <select v-model="detailItemDraft.equipSlot" :disabled="detailFormDisabled || detailItemDraft.category !== 'equipment'" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-45">
                         <option v-for="slot in EQUIP_SLOT_OPTIONS" :key="slot" :value="slot">{{ formatLabel(slot) }}</option>
                       </select>
@@ -2081,7 +2081,7 @@ function itemSizeLabel(item) {
                 </div>
 
                 <label class="mt-5 block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Description</span>
+                  <span class="text-[13px] font-semibold text-dim">Description</span>
                   <textarea
                     v-model="detailItemDraft.description"
                     rows="6"
@@ -2095,7 +2095,7 @@ function itemSizeLabel(item) {
 
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Image Upload</p>
+                  <p class="text-[13px] font-semibold text-dim">Image Upload</p>
                   <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Select a replacement image to upload after the item details are saved. Leaving this empty keeps the current image.</p>
                 </div>
 
@@ -2111,7 +2111,7 @@ function itemSizeLabel(item) {
                 </div>
 
                 <div class="mt-4 rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Selected File</p>
+                  <p class="text-[13px] font-semibold text-faint">Selected File</p>
                   <p class="mt-2 text-[14px] text-ink">{{ detailItemImageMetaLabel }}</p>
                   <p class="mt-2 text-[12px] text-ink-soft/54">JPEG, PNG, or WebP up to 5MB.</p>
                 </div>
@@ -2119,17 +2119,17 @@ function itemSizeLabel(item) {
 
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Footprint</p>
+                  <p class="text-[13px] font-semibold text-dim">Footprint</p>
                   <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">These values still define the occupied inventory cells for this item.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Width</span>
+                    <span class="text-[13px] font-semibold text-faint">Grid Width</span>
                     <input v-model.number="detailItemDraft.gridWidth" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                   </label>
                   <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Height</span>
+                    <span class="text-[13px] font-semibold text-faint">Grid Height</span>
                     <input v-model.number="detailItemDraft.gridHeight" :disabled="detailFormDisabled" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                   </label>
                 </div>
@@ -2137,13 +2137,13 @@ function itemSizeLabel(item) {
 
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Tags</p>
+                  <p class="text-[13px] font-semibold text-dim">Tags</p>
                   <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Game-scoped tags remain unique. Add a new one or attach an existing campaign tag.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
                   <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Create New Tag</span>
+                    <span class="text-[13px] font-semibold text-faint">Create New Tag</span>
                     <input
                       v-model="detailNewTagDraft"
                       type="text"
@@ -2162,7 +2162,7 @@ function itemSizeLabel(item) {
                 </div>
 
                 <div class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Selected Tags</p>
+                  <p class="text-[13px] font-semibold text-faint">Selected Tags</p>
                   <div v-if="detailItemDraft.tags.length" class="mt-3 flex flex-wrap gap-2">
                     <button
                       v-for="tag in detailItemDraft.tags"
@@ -2180,7 +2180,7 @@ function itemSizeLabel(item) {
                 </div>
 
                 <div v-if="detailTagSuggestions.length" class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Existing Game Tags</p>
+                  <p class="text-[13px] font-semibold text-faint">Existing Game Tags</p>
                   <div class="mt-3 flex flex-wrap gap-2">
                     <button
                       v-for="tag in detailTagSuggestions"
@@ -2199,7 +2199,7 @@ function itemSizeLabel(item) {
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Requirements</p>
+                    <p class="text-[13px] font-semibold text-dim">Requirements</p>
                     <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Edit the stat gates that must be met before the item can be used.</p>
                   </div>
                   <button type="button" @click="addDetailRequirementRow" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
@@ -2212,11 +2212,11 @@ function itemSizeLabel(item) {
                   <article v-for="(requirement, index) in detailItemDraft.requiredAttributes" :key="`detail-requirement-${index}`" class="rounded-[1.2rem] border border-line bg-n1/62 p-4">
                     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Attribute</span>
+                        <span class="text-[13px] font-semibold text-faint">Attribute</span>
                         <SearchableSelect v-model="requirement.attribute_name" :options="attributeOptions" :disabled="detailFormDisabled" class="mt-2" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Minimum</span>
+                        <span class="text-[13px] font-semibold text-faint">Minimum</span>
                         <input v-model.number="requirement.min_value" :disabled="detailFormDisabled" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                       </label>
                       <div class="flex items-end justify-start lg:justify-end">
@@ -2232,7 +2232,7 @@ function itemSizeLabel(item) {
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Modifiers</p>
+                    <p class="text-[13px] font-semibold text-dim">Modifiers</p>
                     <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Tune the bonuses or penalties this item grants.</p>
                   </div>
                   <button type="button" @click="addDetailModifierRow" :disabled="detailFormDisabled" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
@@ -2245,15 +2245,15 @@ function itemSizeLabel(item) {
                   <article v-for="(modifier, index) in detailItemDraft.attributeModifiers" :key="`detail-modifier-${index}`" class="rounded-[1.2rem] border border-line bg-n1/62 p-4">
                     <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Attribute</span>
+                        <span class="text-[13px] font-semibold text-faint">Attribute</span>
                         <SearchableSelect v-model="modifier.attribute_name" :options="attributeOptions" :disabled="detailFormDisabled" class="mt-2" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Value</span>
+                        <span class="text-[13px] font-semibold text-faint">Value</span>
                         <input v-model.number="modifier.modifier_value" :disabled="detailFormDisabled" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Mode</span>
+                        <span class="text-[13px] font-semibold text-faint">Mode</span>
                         <select v-model="modifier.is_percentage" :disabled="detailFormDisabled" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-65">
                           <option :value="false">Flat</option>
                           <option :value="true">Percent</option>
@@ -2319,7 +2319,7 @@ function itemSizeLabel(item) {
           </button>
 
           <div class="border-b border-line-soft px-5 py-5 pr-16 sm:px-6">
-            <p class="text-[11px] uppercase tracking-[0.24em] text-dim">GM Item Forge</p>
+            <p class="text-[13px] font-semibold text-dim">GM Item Forge</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
               <h2 class="font-heading text-[28px] font-bold text-ink sm:text-[34px]">Create Compendium Entry</h2>
             </div>
@@ -2333,7 +2333,7 @@ function itemSizeLabel(item) {
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
                   <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Name</span>
+                    <span class="text-[13px] font-semibold text-dim">Name</span>
                     <input
                       v-model="itemDraft.name"
                       type="text"
@@ -2346,21 +2346,21 @@ function itemSizeLabel(item) {
 
                   <div class="grid gap-4 sm:grid-cols-3">
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Quality</span>
+                      <span class="text-[13px] font-semibold text-dim">Quality</span>
                       <select v-model="itemDraft.rarity" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
                         <option v-for="rarity in RARITY_OPTIONS" :key="rarity" :value="rarity">{{ formatLabel(rarity) }}</option>
                       </select>
                     </label>
 
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Category</span>
+                      <span class="text-[13px] font-semibold text-dim">Category</span>
                       <select v-model="itemDraft.category" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none">
                         <option v-for="category in CATEGORY_OPTIONS" :key="category" :value="category">{{ formatLabel(category) }}</option>
                       </select>
                     </label>
 
                     <label class="block">
-                      <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Equip Slot</span>
+                      <span class="text-[13px] font-semibold text-dim">Equip Slot</span>
                       <select v-model="itemDraft.equipSlot" :disabled="itemDraft.category !== 'equipment'" class="session-input mt-2 w-full rounded-[1.25rem] border border-line bg-n1/72 px-4 py-3 text-[14px] text-ink outline-none disabled:cursor-not-allowed disabled:opacity-45">
                         <option v-for="slot in EQUIP_SLOT_OPTIONS" :key="slot" :value="slot">{{ formatLabel(slot) }}</option>
                       </select>
@@ -2369,7 +2369,7 @@ function itemSizeLabel(item) {
                 </div>
 
                 <label class="mt-5 block">
-                  <span class="text-[11px] uppercase tracking-[0.22em] text-dim">Description</span>
+                  <span class="text-[13px] font-semibold text-dim">Description</span>
                   <textarea
                     v-model="itemDraft.description"
                     rows="6"
@@ -2384,7 +2384,7 @@ function itemSizeLabel(item) {
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Image Upload</p>
+                    <p class="text-[13px] font-semibold text-dim">Image Upload</p>
                     <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">The item is created first, then the selected image is uploaded and linked automatically.</p>
                   </div>
                 </div>
@@ -2401,7 +2401,7 @@ function itemSizeLabel(item) {
                 </div>
 
                 <div class="mt-4 rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Selected File</p>
+                  <p class="text-[13px] font-semibold text-faint">Selected File</p>
                   <p class="mt-2 text-[14px] text-ink">{{ itemImageMetaLabel }}</p>
                   <p class="mt-2 text-[12px] text-ink-soft/54">JPEG, PNG, or WebP up to 5MB.</p>
                 </div>
@@ -2409,21 +2409,21 @@ function itemSizeLabel(item) {
 
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Footprint</p>
+                  <p class="text-[13px] font-semibold text-dim">Footprint</p>
                   <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">These values still control the inventory footprint, while the preview keeps the classic item card layout.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Width</span>
+                    <span class="text-[13px] font-semibold text-faint">Grid Width</span>
                     <input v-model.number="itemDraft.gridWidth" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                   </label>
                   <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Height</span>
+                    <span class="text-[13px] font-semibold text-faint">Grid Height</span>
                     <input v-model.number="itemDraft.gridHeight" type="number" min="1" max="12" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
                   </label>
                   <div class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3 sm:col-span-2">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Preview Summary</span>
+                    <span class="text-[13px] font-semibold text-faint">Preview Summary</span>
                     <p class="mt-3 text-[18px] font-semibold text-ink">{{ itemSizeLabel(draftPreviewItem) }}</p>
                     <p class="mt-2 text-[13px] leading-relaxed text-ink-soft/56">Adjust width and height to match the intended inventory footprint.</p>
                   </div>
@@ -2432,13 +2432,13 @@ function itemSizeLabel(item) {
 
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div>
-                  <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Tags</p>
+                  <p class="text-[13px] font-semibold text-dim">Tags</p>
                   <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Create a new game tag or attach existing ones before the item is saved.</p>
                 </div>
 
                 <div class="mt-5 grid gap-4 xl:grid-cols-[minmax(0,1fr)_auto]">
                   <label class="block">
-                    <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Create New Tag</span>
+                    <span class="text-[13px] font-semibold text-faint">Create New Tag</span>
                     <input
                       v-model="newTagDraft"
                       type="text"
@@ -2457,7 +2457,7 @@ function itemSizeLabel(item) {
                 </div>
 
                 <div class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Selected Tags</p>
+                  <p class="text-[13px] font-semibold text-faint">Selected Tags</p>
                   <div v-if="itemDraft.tags.length" class="mt-3 flex flex-wrap gap-2">
                     <button
                       v-for="tag in itemDraft.tags"
@@ -2474,7 +2474,7 @@ function itemSizeLabel(item) {
                 </div>
 
                 <div v-if="selectedTagSuggestions.length" class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Existing Game Tags</p>
+                  <p class="text-[13px] font-semibold text-faint">Existing Game Tags</p>
                   <div class="mt-3 flex flex-wrap gap-2">
                     <button
                       v-for="tag in selectedTagSuggestions"
@@ -2492,7 +2492,7 @@ function itemSizeLabel(item) {
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Requirements</p>
+                    <p class="text-[13px] font-semibold text-dim">Requirements</p>
                     <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Add explicit stat gates row by row.</p>
                   </div>
                   <button type="button" @click="addRequirementRow" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
@@ -2505,11 +2505,11 @@ function itemSizeLabel(item) {
                   <article v-for="(requirement, index) in itemDraft.requiredAttributes" :key="`requirement-${index}`" class="rounded-[1.2rem] border border-line bg-n1/62 p-4">
                     <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_auto]">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Attribute</span>
+                        <span class="text-[13px] font-semibold text-faint">Attribute</span>
                         <SearchableSelect v-model="requirement.attribute_name" :options="attributeOptions" class="mt-2" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Minimum</span>
+                        <span class="text-[13px] font-semibold text-faint">Minimum</span>
                         <input v-model.number="requirement.min_value" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                       <div class="flex items-end justify-start lg:justify-end">
@@ -2525,7 +2525,7 @@ function itemSizeLabel(item) {
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
                 <div class="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Modifiers</p>
+                    <p class="text-[13px] font-semibold text-dim">Modifiers</p>
                     <p class="mt-2 text-[14px] leading-relaxed text-ink-soft/58">Configure bonuses and penalties row by row.</p>
                   </div>
                   <button type="button" @click="addModifierRow" :disabled="createItemSubmitting" class="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary/22 bg-primary/12 px-4 py-2.5 text-[13px] font-semibold text-primary-soft transition-all duration-200 hover:border-primary/38 disabled:cursor-not-allowed disabled:opacity-60">
@@ -2538,15 +2538,15 @@ function itemSizeLabel(item) {
                   <article v-for="(modifier, index) in itemDraft.attributeModifiers" :key="`modifier-${index}`" class="rounded-[1.2rem] border border-line bg-n1/62 p-4">
                     <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_160px_180px_auto]">
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Attribute</span>
+                        <span class="text-[13px] font-semibold text-faint">Attribute</span>
                         <SearchableSelect v-model="modifier.attribute_name" :options="attributeOptions" class="mt-2" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Value</span>
+                        <span class="text-[13px] font-semibold text-faint">Value</span>
                         <input v-model.number="modifier.modifier_value" type="number" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none" />
                       </label>
                       <label class="block">
-                        <span class="text-[11px] uppercase tracking-[0.18em] text-faint">Mode</span>
+                        <span class="text-[13px] font-semibold text-faint">Mode</span>
                         <select v-model="modifier.is_percentage" class="session-input mt-2 w-full rounded-xl border border-line bg-n3 px-3 py-2.5 text-[14px] text-ink outline-none">
                           <option :value="false">Flat</option>
                           <option :value="true">Percent</option>
@@ -2565,7 +2565,7 @@ function itemSizeLabel(item) {
 
             <aside class="min-h-0 overflow-y-auto">
               <article class="rounded-[1.6rem] border border-line bg-n1/78 p-5">
-                <p class="text-[11px] uppercase tracking-[0.22em] text-dim">Live Preview</p>
+                <p class="text-[13px] font-semibold text-dim">Live Preview</p>
                 <div class="mt-5 overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
                   <div class="flex h-64 items-center justify-center" :class="itemFrameClass(draftPreviewItem.rarity)">
                     <img v-if="resolvedItemImageUrl(draftPreviewItem)" :src="resolvedItemImageUrl(draftPreviewItem)" :alt="draftPreviewItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(draftPreviewItem))" />
@@ -2585,21 +2585,21 @@ function itemSizeLabel(item) {
 
                 <div class="mt-5 grid gap-3 sm:grid-cols-2">
                   <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Category</p>
+                    <p class="text-[13px] font-semibold text-faint">Category</p>
                     <p class="mt-2 text-[15px] font-semibold text-ink">{{ formatLabel(draftPreviewItem.category) }}</p>
                   </div>
                   <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Grid Size</p>
+                    <p class="text-[13px] font-semibold text-faint">Grid Size</p>
                     <p class="mt-2 text-[15px] font-semibold text-ink">{{ itemSizeLabel(draftPreviewItem) }}</p>
                   </div>
                   <div class="rounded-[1.2rem] border border-line-soft bg-n3 px-4 py-3 sm:col-span-2">
-                    <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Equip Slot</p>
+                    <p class="text-[13px] font-semibold text-faint">Equip Slot</p>
                     <p class="mt-2 text-[15px] font-semibold text-ink">{{ draftPreviewItem.equip_slot ? formatLabel(draftPreviewItem.equip_slot) : 'Not equippable' }}</p>
                   </div>
                 </div>
 
                 <div class="mt-5">
-                  <p class="text-[11px] uppercase tracking-[0.18em] text-faint">Custom Tags</p>
+                  <p class="text-[13px] font-semibold text-faint">Custom Tags</p>
                   <div v-if="draftPreviewItem.tags.length" class="mt-3 flex flex-wrap gap-2">
                     <span v-for="tag in draftPreviewItem.tags" :key="`preview-tag-${tag}`" class="rounded-full border border-primary/18 bg-primary/8 px-3 py-1.5 text-[12px] text-primary-soft">
                       {{ tag }}

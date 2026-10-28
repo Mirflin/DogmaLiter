@@ -146,7 +146,7 @@ function rowId(row, index) {
       </div>
 
       <label v-for="column in filterableColumns" :key="column.key" class="flex items-center gap-2">
-        <span class="text-[11px] uppercase tracking-[0.14em] text-faint">{{ column.label }}</span>
+        <span class="text-[13px] font-semibold text-faint">{{ column.label }}</span>
         <SearchableSelect
           v-model="columnFilters[column.key]"
           :options="filterOptions(column)"
@@ -161,7 +161,7 @@ function rowId(row, index) {
     <div class="overflow-x-auto" :class="fillHeight ? 'flex-1 min-h-0 overflow-y-auto' : ''" :style="minHeight ? { minHeight } : {}">
       <table class="w-full text-left text-[13px]" :style="{ minWidth }">
         <thead>
-          <tr class="text-[11px] uppercase tracking-[0.16em] text-faint" :class="fillHeight ? 'sticky top-0 z-10 bg-n1/98' : ''">
+          <tr class="text-[13px] font-semibold text-faint" :class="fillHeight ? 'sticky top-0 z-10 bg-n1/98' : ''">
             <th
               v-for="column in columns"
               :key="column.key"
