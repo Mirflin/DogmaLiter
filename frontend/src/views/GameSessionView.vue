@@ -20,6 +20,7 @@ import {
   X as XIcon,
 } from '@lucide/vue'
 import { API_URL } from '@/api'
+import SessionBackdrop from '@/components/session/SessionBackdrop.vue'
 import SessionCharacterPickerModal from '@/components/session/SessionCharacterPickerModal.vue'
 import SessionGMCharacterCreateModal from '@/components/session/SessionGMCharacterCreateModal.vue'
 import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
@@ -1880,6 +1881,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="session-stage min-h-screen w-screen overflow-x-hidden text-ink">
+    <SessionBackdrop />
     <div v-if="loading" class="flex min-h-screen flex-col items-center justify-center px-6 text-center">
       <div class="h-11 w-11 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
       <p class="mt-4 text-[14px] text-faint">Loading session workspace...</p>
@@ -3250,28 +3252,6 @@ onBeforeUnmount(() => {
   position: relative;
   isolation: isolate;
   color: var(--dl-brand-text);
-}
-
-.session-stage::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  pointer-events: none;
-  background:
-    linear-gradient(90deg, rgba(123, 135, 184, 0.032) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(123, 135, 184, 0.024) 1px, transparent 1px),
-    linear-gradient(180deg, #060a1c 0%, #09101d 56%, #060912 100%);
-  background-size: 88px 88px, 88px 88px, auto;
-}
-
-.session-stage::after {
-  content: '';
-  position: fixed;
-  inset: 14px;
-  z-index: -1;
-  pointer-events: none;
-  border: 1px solid rgba(123, 135, 184, 0.07);
 }
 
 .session-header {
