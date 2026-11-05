@@ -141,7 +141,8 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="rootRef"
-    class="session-inventory-item group relative h-full w-full cursor-grab touch-none select-none outline-none transition-transform duration-150 ease-out hover:scale-[1.05]"
+    class="session-inventory-item group relative h-full w-full cursor-grab touch-none select-none outline-none transition-transform duration-150 ease-out"
+    :class="{ 'hover:scale-[1.05]': variant === 'grid' }"
     :data-entry-id="entry.id"
     tabindex="0"
     @mouseenter="onEnter"
@@ -171,7 +172,8 @@ onBeforeUnmount(() => {
       <!-- Hover inspect indicator: eye + filling progress ring -->
       <div
         v-show="hovering"
-        class="pointer-events-none absolute bottom-[0.22rem] right-[0.22rem] z-[2] h-[2.1rem] w-[2.1rem]"
+        class="pointer-events-none absolute z-[3]"
+        :class="round ? 'inset-0 m-auto h-[58%] w-[58%] max-h-[2.1rem] max-w-[2.1rem]' : 'bottom-[0.22rem] right-[0.22rem] h-[2.1rem] w-[2.1rem]'"
       >
         <svg viewBox="0 0 36 36" class="absolute inset-0 h-full w-full -rotate-90">
           <circle cx="18" cy="18" r="15" fill="rgba(6,10,28,0.85)" stroke="rgba(255,255,255,0.22)" stroke-width="4" />
@@ -257,8 +259,20 @@ onBeforeUnmount(() => {
   border-radius: 0.5rem;
   color: color-mix(in oklab, var(--resin) 35%, white);
   background: color-mix(in oklab, var(--resin) 24%, var(--color-n2));
-  box-shadow: inset 0 0 0 1.5px color-mix(in oklab, var(--resin) 70%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.08);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.2s ease;
+}
+
+/* The rarity frame sits above the picture: an inset shadow on the tile itself
+   would be painted under an item image and vanish. */
+.inv-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--resin) 85%, transparent), inset 0 1px 0 rgb(255 255 255 / 0.1);
+  transition: box-shadow 0.2s ease;
 }
 
 .inv-tile.is-round {
@@ -268,7 +282,11 @@ onBeforeUnmount(() => {
 .session-inventory-item:hover .inv-tile,
 .session-inventory-item:focus-visible .inv-tile {
   background: color-mix(in oklab, var(--resin) 34%, var(--color-n2));
-  box-shadow: inset 0 0 0 2px var(--resin), inset 0 1px 0 rgb(255 255 255 / 0.12);
+}
+
+.session-inventory-item:hover .inv-tile::after,
+.session-inventory-item:focus-visible .inv-tile::after {
+  box-shadow: inset 0 0 0 2.5px var(--resin), inset 0 1px 0 rgb(255 255 255 / 0.14);
 }
 
 /* Gear the character can't wear yet stays greyed out. */
@@ -303,13 +321,14 @@ onBeforeUnmount(() => {
   font-weight: 600;
   line-height: 1.15;
   text-overflow: ellipsis;
+  z-index: 2;
   white-space: nowrap;
   text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
 }
 
 .inv-tile__chip {
   position: absolute;
-  z-index: 1;
+  z-index: 2;
   padding: 0 0.3rem;
   border-radius: 999px;
   font-family: var(--font-num);
@@ -336,6 +355,7 @@ onBeforeUnmount(() => {
   left: 0.3rem;
   right: 0.3rem;
   bottom: 0.2rem;
+  z-index: 2;
   height: 3px;
   border-radius: 2px;
   background: rgb(255 255 255 / 0.14);

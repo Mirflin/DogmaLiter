@@ -84,9 +84,11 @@ provide('inventoryDisabledStandardAttrs', computed(() => props.disabledStandardA
 const SLOT_DEFAULT = 'border-n4 bg-n2'
 const SLOT_ACTIVE = 'border-success bg-success/14'
 const SLOT_BLOCKED = 'border-danger bg-danger/14'
+const SLOT_SWAP = 'border-sky bg-sky/14'
 const CELL_DEFAULT = 'border-n1 bg-n2'
 const CELL_ACTIVE = 'border-success bg-success/18'
 const CELL_BLOCKED = 'border-danger bg-danger/18'
+const CELL_SWAP = 'border-sky bg-sky/18'
 
 const boardRef = ref(null)
 const gridRef = ref(null)
@@ -94,6 +96,8 @@ const placements = ref({})
 
 const dragging = ref(false)
 const dragEntryId = ref('')
+// Where the dragged item came from, so that part of the board is lifted above the rest.
+const dragOrigin = ref('')
 const grabOffset = ref({ dx: 0, dy: 0 })
 const hoverCell = ref(null)
 const hoverSlot = ref(null)
@@ -169,13 +173,24 @@ const dragFootprint = computed(() => {
   const x = hoverCell.value.x - grabOffset.value.dx
   const y = hoverCell.value.y - grabOffset.value.dy
 
+  const plan = planGridDrop(dragEntryId.value, x, y)
   return {
     x,
     y,
     width,
     height,
-    valid: canPlaceInInventory(dragEntryId.value, x, y),
+    valid: Boolean(plan),
+    swap: plan?.swap ?? false,
+    swapWith: plan?.swapWith ?? '',
   }
+})
+
+// The item that would trade places with the dragged one, outlined so the swap is visible
+// even though it covers the highlighted cells.
+const swapTargetId = computed(() => {
+  if (!dragging.value) return ''
+  if (hoverSlot.value) return planSlotDrop(dragEntryId.value, hoverSlot.value)?.swapWith ?? ''
+  return dragFootprint.value?.swapWith ?? ''
 })
 
 watch(
@@ -263,6 +278,7 @@ function onDragStart(event) {
     dy: clampInt(grabDY, 0, height - 1),
   }
   dragEntryId.value = entryId
+  dragOrigin.value = placements.value[entryId]?.kind || 'inventory'
   dragging.value = true
 
   // Pixel offset from the cursor to the dragged item's top-left, so the grabbed
@@ -298,18 +314,19 @@ function onDragEnd(event) {
 
   dragging.value = false
   dragEntryId.value = ''
+  dragOrigin.value = ''
   hoverCell.value = null
   hoverSlot.value = null
 
   if (!entry) return
 
   if (slot) {
-    placeIntoEquipment(entryId, slot)
+    applyDrop(planSlotDrop(entryId, slot))
     return
   }
 
   if (cell) {
-    placeIntoInventory(entryId, cell.x - offset.dx, cell.y - offset.dy)
+    applyDrop(planGridDrop(entryId, cell.x - offset.dx, cell.y - offset.dy))
   }
 }
 
@@ -401,21 +418,97 @@ function inventoryItemStyle(entry, placement) {
   }
 }
 
-function placeIntoInventory(entryId, x, y) {
+// A drop is planned before it happens: the plan says where each moved item ends up,
+// so the same answer drives the highlight while dragging and the move on release.
+// Dropping onto exactly one other item swaps the two when each fits where the other was.
+function planGridDrop(entryId, x, y) {
   const entry = allEntriesById.value[entryId]
-  if (!entry) return
-  if (!canPlaceInInventory(entryId, x, y)) return
+  if (!entry) return null
+  if (canPlaceInInventory(entryId, x, y)) {
+    return { swap: false, next: { [entryId]: { entryId, kind: 'inventory', x, y } } }
+  }
 
-  placements.value = {
-    ...placements.value,
-    [entryId]: {
-      entryId,
-      kind: 'inventory',
-      x,
-      y,
+  const { width, height } = getEntrySize(entry)
+  const others = overlappingEntryIds(entryId, x, y, width, height)
+  if (others.length !== 1) return null
+  const otherId = others[0]
+  if (!canPlaceInInventory(entryId, x, y, { ignore: [otherId] })) return null
+
+  const from = placements.value[entryId]
+  const otherNext = placementForDisplaced(otherId, from, { entryId, x, y, width, height })
+  if (!otherNext) return null
+  return {
+    swap: true,
+    swapWith: otherId,
+    next: {
+      [entryId]: { entryId, kind: 'inventory', x, y },
+      [otherId]: otherNext,
     },
   }
+}
+
+function planSlotDrop(entryId, slot) {
+  const entry = allEntriesById.value[entryId]
+  if (!slotAccepts(entry, slot)) return null
+
+  const occupant = Object.values(placements.value).find((placement) => placement.kind === 'equipment' && placement.slot === slot)
+  if (!occupant || occupant.entryId === entryId) {
+    return { swap: false, next: { [entryId]: { entryId, kind: 'equipment', slot } } }
+  }
+
+  const from = placements.value[entryId]
+  const otherNext = placementForDisplaced(occupant.entryId, from, null)
+  if (!otherNext) return null
+  return {
+    swap: true,
+    swapWith: occupant.entryId,
+    next: {
+      [entryId]: { entryId, kind: 'equipment', slot },
+      [occupant.entryId]: otherNext,
+    },
+  }
+}
+
+// Where the item pushed aside by a swap goes: the spot the dragged item left.
+// `incoming` is the dragged item's new grid footprint, which the displaced item must not overlap.
+function placementForDisplaced(otherId, from, incoming) {
+  if (!from) return null
+  if (from.kind === 'equipment') {
+    return slotAccepts(allEntriesById.value[otherId], from.slot) ? { entryId: otherId, kind: 'equipment', slot: from.slot } : null
+  }
+  const fits = canPlaceInInventory(otherId, from.x, from.y, { ignore: [from.entryId], avoid: incoming })
+  return fits ? { entryId: otherId, kind: 'inventory', x: from.x, y: from.y } : null
+}
+
+function applyDrop(plan) {
+  if (!plan) return
+  for (const placement of Object.values(plan.next)) {
+    if (placement.kind !== 'equipment') continue
+    const entry = allEntriesById.value[placement.entryId]
+    if (!meetsItemRequirements(entry)) {
+      notify.warning({
+        title: 'Requirements not met',
+        message: `Your character does not meet the requirements to equip ${entry?.item?.name || 'this item'}.`,
+      })
+      return
+    }
+  }
+  placements.value = { ...placements.value, ...plan.next }
   schedulePersist()
+}
+
+function overlappingEntryIds(entryId, x, y, width, height) {
+  const ids = []
+  for (const placement of Object.values(placements.value)) {
+    if (placement.entryId === entryId || placement.kind !== 'inventory') continue
+    const other = allEntriesById.value[placement.entryId]
+    if (!other) continue
+    const size = getEntrySize(other)
+    if (x < placement.x + size.width && x + width > placement.x && y < placement.y + size.height && y + height > placement.y) {
+      ids.push(placement.entryId)
+    }
+  }
+  return ids
 }
 
 function buildLayout() {
@@ -558,43 +651,17 @@ function meetsItemRequirements(entry) {
   })
 }
 
-function placeIntoEquipment(entryId, slot) {
-  const entry = allEntriesById.value[entryId]
-  if (!canEquip(entry, slot)) return
-
-  if (!meetsItemRequirements(entry)) {
-    notify.warning({
-      title: 'Requirements not met',
-      message: `Your character does not meet the requirements to equip ${entry.item?.name || 'this item'}.`,
-    })
-    return
-  }
-
-  placements.value = {
-    ...placements.value,
-    [entryId]: {
-      entryId,
-      kind: 'equipment',
-      slot,
-    },
-  }
-  schedulePersist()
-}
-
-function canEquip(entry, slot) {
+// Whether the item is the right kind for the slot, regardless of what sits there now.
+function slotAccepts(entry, slot) {
   if (!entry?.item?.equip_slot) return false
-
   const isRingSlot = slot === 'ring_1' || slot === 'ring_2'
   const isRingItem = entry.item.equip_slot === 'ring'
-  if (!((isRingSlot && isRingItem) || entry.item.equip_slot === slot)) return false
-
-  const slotOwner = Object.values(placements.value).find((placement) => placement.kind === 'equipment' && placement.slot === slot)
-  if (slotOwner && slotOwner.entryId !== entry.id) return false
-
-  return true
+  return (isRingSlot && isRingItem) || entry.item.equip_slot === slot
 }
 
-function canPlaceInInventory(entryId, x, y) {
+// `ignore`: items treated as gone (the ones trading places). `avoid`: a footprint
+// that is about to be taken, given as { x, y, width, height }.
+function canPlaceInInventory(entryId, x, y, { ignore = [], avoid = null } = {}) {
   const entry = allEntriesById.value[entryId]
   if (!entry) return false
 
@@ -608,8 +675,10 @@ function canPlaceInInventory(entryId, x, y) {
     }
   }
 
+  if (avoid && x < avoid.x + avoid.width && x + width > avoid.x && y < avoid.y + avoid.height && y + height > avoid.y) return false
+
   for (const placement of Object.values(placements.value)) {
-    if (placement.entryId === entryId || placement.kind !== 'inventory') continue
+    if (placement.entryId === entryId || placement.kind !== 'inventory' || ignore.includes(placement.entryId)) continue
 
     const otherEntry = allEntriesById.value[placement.entryId]
     if (!otherEntry) continue
@@ -636,19 +705,22 @@ function cellHighlight(cell) {
     && cell.y < footprint.y + footprint.height
 
   if (!inside) return ''
-  return footprint.valid ? 'active' : 'blocked'
+  if (!footprint.valid) return 'blocked'
+  return footprint.swap ? 'swap' : 'active'
 }
 
 function slotHighlight(slot) {
   if (!dragging.value || hoverSlot.value !== slot) return ''
-  const entry = allEntriesById.value[dragEntryId.value]
-  return canEquip(entry, slot) ? 'active' : 'blocked'
+  const plan = planSlotDrop(dragEntryId.value, slot)
+  if (!plan) return 'blocked'
+  return plan.swap ? 'swap' : 'active'
 }
 
 function cellStateClasses(cell) {
   if (!cell.open) return cellHighlight(cell) ? 'is-closed is-refused border-danger/50' : 'is-closed border-transparent'
   const state = cellHighlight(cell)
   if (state === 'active') return CELL_ACTIVE
+  if (state === 'swap') return CELL_SWAP
   if (state === 'blocked') return CELL_BLOCKED
   return CELL_DEFAULT
 }
@@ -656,6 +728,7 @@ function cellStateClasses(cell) {
 function slotStateClasses(slot) {
   const state = slotHighlight(slot)
   if (state === 'active') return SLOT_ACTIVE
+  if (state === 'swap') return SLOT_SWAP
   if (state === 'blocked') return SLOT_BLOCKED
   return SLOT_DEFAULT
 }
@@ -673,11 +746,11 @@ function equipmentEntry(slot) {
   <article
     ref="boardRef"
     @dblclick="onBoardDblClick"
-    :class="mounted ? 'opacity-100' : 'opacity-0'"
+    :class="[mounted ? 'opacity-100' : 'opacity-0', { 'is-dragging': dragging }]"
     class="inv-board relative mx-auto w-full max-w-full transition-opacity duration-500 ease-out rounded-[1.25rem] p-[0.48rem] md:p-[0.7rem] lg:w-fit lg:p-[clamp(0.55rem,1.4vw,0.95rem)] [--inv-cell:clamp(1.58rem,8.8vw,2.15rem)] min-[480px]:[--inv-cell:clamp(1.72rem,8vw,2.6rem)] md:[--inv-cell:clamp(1.9rem,6.2vw,3.85rem)] lg:[--inv-cell:clamp(1.9rem,5.9vw,4.95rem)] [--inv-gap:calc(var(--inv-cell)*0.28)] [--inv-weapon-col:calc(var(--inv-cell)*2.6)] [--inv-trinket-col:calc(var(--inv-cell)*0.98)] [--inv-center-col:calc(var(--inv-cell)*2.08)] [--inv-weapon-h:calc(var(--inv-cell)*3.76)] [--inv-glove-h:calc(var(--inv-cell)*1.88)] [--inv-head:calc(var(--inv-cell)*2)] [--inv-chest-h:calc(var(--inv-cell)*2.42)] [--inv-belt-h:calc(var(--inv-cell)*1.03)] [--inv-ring:calc(var(--inv-cell)*0.91)] [--inv-amulet:var(--inv-cell)]"
   >
     <div class="relative z-[1] flex flex-col gap-[0.4rem] p-[0.42rem] min-[480px]:p-[0.55rem] md:gap-[0.6rem] md:p-[0.78rem] lg:gap-[clamp(0.45rem,1vw,0.8rem)] lg:p-[clamp(0.6rem,1.5vw,1rem)]">
-      <section class="shrink-0">
+      <section class="relative shrink-0" :style="{ zIndex: dragOrigin === 'equipment' ? 5 : null }">
         <div class="mx-auto flex w-fit max-w-full items-stretch justify-center gap-[var(--inv-gap)]">
           <div class="flex h-auto w-[var(--inv-weapon-col)] flex-col gap-[var(--inv-gap)]">
             <div
@@ -781,7 +854,7 @@ function equipmentEntry(slot) {
         </div>
       </section>
 
-      <section class="mx-auto w-fit max-w-full max-md:w-full">
+      <section class="relative mx-auto w-fit max-w-full max-md:w-full" :style="{ zIndex: dragOrigin === 'inventory' ? 5 : null }">
         <div
           ref="gridRef"
           class="session-inventory-grid grid w-fit gap-0 rounded-[0.6rem] p-[clamp(0.14rem,0.35vw,0.28rem)] grid-cols-[repeat(var(--inv-cols),minmax(0,var(--inv-cell)))] grid-rows-[repeat(var(--inv-rows),minmax(0,var(--inv-cell)))] max-md:max-w-full"
@@ -803,7 +876,8 @@ function equipmentEntry(slot) {
             v-for="inventoryEntry in inventoryEntries"
             :key="inventoryEntry.entry.id"
             class="relative z-[1] min-w-0 min-h-0"
-            :style="inventoryItemStyle(inventoryEntry.entry, inventoryEntry.placement)"
+            :class="{ 'inv-swap-target': swapTargetId === inventoryEntry.entry.id }"
+            :style="[inventoryItemStyle(inventoryEntry.entry, inventoryEntry.placement), dragEntryId === inventoryEntry.entry.id ? { zIndex: 60 } : null]"
           >
             <SessionInventoryDraggableItem :entry="inventoryEntry.entry" variant="grid" />
           </div>
@@ -951,6 +1025,21 @@ function equipmentEntry(slot) {
 .inv-board {
   background: rgb(8 13 36 / 0.82);
   box-shadow: inset 0 0 0 1px rgb(74 90 150 / 0.35);
+}
+
+/* While an item is carried, the others stop reacting: no hover lift, no inspect ring. */
+.inv-board.is-dragging :deep(.session-inventory-item) {
+  pointer-events: none;
+}
+
+.inv-swap-target {
+  border-radius: 0.5rem;
+  outline: 2px dashed var(--color-sky);
+  outline-offset: -1px;
+}
+
+.inv-swap-target > :deep(*) {
+  opacity: 0.7;
 }
 
 /* Slot silhouettes, tinted from the palette instead of the source art's brown. */

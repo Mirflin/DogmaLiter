@@ -47,6 +47,10 @@ pnpm-debug.log*
 
 # ===== General =====
 
+# AI assistant and design tool folders
+.claude/
+.impeccable/
+
 .env
 .env.*
 .DS_Store
