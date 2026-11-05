@@ -46,11 +46,7 @@ func serializeTradeOffer(offer *models.TradeOffer) map[string]interface{} {
 func placeTradeItems(character *models.Character, items []models.TradeOfferItem) ([]models.CharacterInventory, bool) {
 	width := character.InventoryWidth
 	height := character.InventoryHeight
-	occupied := make([][]bool, height)
-	for y := range occupied {
-		occupied[y] = make([]bool, width)
-	}
-	markInventoryOccupancy(occupied, character.Inventory)
+	occupied := newInventoryOccupancy(character)
 
 	entries := make([]models.CharacterInventory, 0, len(items))
 	allPlaced := true

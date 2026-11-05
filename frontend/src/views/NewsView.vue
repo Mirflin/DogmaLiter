@@ -1,4 +1,5 @@
 <script setup>
+import ImagePlaceholder from '@/components/ImagePlaceholder.vue'
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -115,7 +116,7 @@ function getPreviewText(content) {
         >
           <div class="h-44 bg-n3 flex items-center justify-center relative overflow-hidden">
             <img v-if="imageUrl(post)" :src="imageUrl(post)" :alt="post.title" class="w-full h-full object-cover" />
-            <span v-else class="text-faint text-sm">No image</span>
+            <ImagePlaceholder v-else kind="news" />
             <div class="absolute inset-0 bg-linear-to-t from-n2/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           </div>
           <div class="p-4">

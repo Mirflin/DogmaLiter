@@ -1,4 +1,5 @@
 <script setup>
+import ImagePlaceholder from '@/components/ImagePlaceholder.vue'
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import GameSettingsModal from '@/components/GameSettingsModal.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -101,11 +102,7 @@ onMounted(loadGame)
         <div class="flex-1 min-w-0">
           <div class="w-full h-[300px] rounded-xl overflow-hidden bg-n2/60 border border-line-soft mb-6">
             <img v-if="coverUrl()" :src="coverUrl()" :alt="game.title" class="w-full h-full object-cover" />
-            <div v-else class="w-full h-full flex items-center justify-center">
-              <svg class="w-16 h-16 text-faint" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-              </svg>
-            </div>
+            <ImagePlaceholder v-else kind="game" :seed="game.id" />
           </div>
           <h1 class="font-heading text-[36px] font-bold text-ink tracking-wide mb-6 leading-tight">{{ game.title }}</h1>
           <div class="flex items-center gap-4 mb-8">

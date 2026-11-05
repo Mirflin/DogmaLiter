@@ -28,6 +28,10 @@ type Character struct {
 
 	InventoryWidth  int `gorm:"default:10" json:"inventory_width"`
 	InventoryHeight int `gorm:"default:6" json:"inventory_height"`
+	// InventoryMask shapes the backpack: one '1' (open) or '0' (closed) per cell,
+	// row by row across InventoryWidth x InventoryHeight. Empty means every cell
+	// is open, the plain rectangular grid.
+	InventoryMask string `gorm:"type:varchar(400);not null;default:''" json:"inventory_mask"`
 
 	CurrencyGold   int `gorm:"default:0" json:"currency_gold"`
 	CurrencySilver int `gorm:"default:0" json:"currency_silver"`

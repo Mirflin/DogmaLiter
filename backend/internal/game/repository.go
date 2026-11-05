@@ -171,6 +171,7 @@ func (r *Repository) UpdateCharacter(character *models.Character, replaceCustomA
 				"base_charisma":     character.BaseCharisma,
 				"inventory_width":   character.InventoryWidth,
 				"inventory_height":  character.InventoryHeight,
+				"inventory_mask":    character.InventoryMask,
 				"currency_gold":     character.CurrencyGold,
 				"currency_silver":   character.CurrencySilver,
 				"currency_copper":   character.CurrencyCopper,
@@ -803,6 +804,9 @@ func (r *Repository) DeleteGame(gameID string) error {
 		if err := tx.Where("game_id = ?", gameID).Delete(&models.Character{}).Error; err != nil {
 			return err
 		}
+		if err := tx.Where("game_id = ?", gameID).Delete(&models.InventoryPreset{}).Error; err != nil {
+			return err
+		}
 
 		var itemIDs []string
 		if err := tx.Model(&models.Item{}).Where("game_id = ?", gameID).Pluck("id", &itemIDs).Error; err != nil {
@@ -954,4 +958,65 @@ func applyItemListSort(query *gorm.DB, sort string) *gorm.DB {
 	default:
 		return query.Order("items.updated_at DESC").Order("items.created_at DESC").Order("items.id DESC")
 	}
+}
+
+func (r *Repository) ListInventoryPresets(gameID string) ([]models.InventoryPreset, error) {
+	var presets []models.InventoryPreset
+	err := r.db.Where("game_id = ?", gameID).Order("name ASC").Find(&presets).Error
+	return presets, err
+}
+
+func (r *Repository) CountInventoryPresets(gameID string) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.InventoryPreset{}).Where("game_id = ?", gameID).Count(&count).Error
+	return count, err
+}
+
+func (r *Repository) GetInventoryPreset(gameID, presetID string) (*models.InventoryPreset, error) {
+	var preset models.InventoryPreset
+	if err := r.db.Where("game_id = ? AND id = ?", gameID, presetID).First(&preset).Error; err != nil {
+		return nil, err
+	}
+	return &preset, nil
+}
+
+func (r *Repository) CreateInventoryPreset(preset *models.InventoryPreset) error {
+	return r.db.Create(preset).Error
+}
+
+func (r *Repository) UpdateInventoryPreset(preset *models.InventoryPreset) error {
+	return r.db.Model(&models.InventoryPreset{}).
+		Where("game_id = ? AND id = ?", preset.GameID, preset.ID).
+		Updates(map[string]interface{}{
+			"name":       preset.Name,
+			"width":      preset.Width,
+			"height":     preset.Height,
+			"mask":       preset.Mask,
+			"updated_at": time.Now(),
+		}).Error
+}
+
+func (r *Repository) DeleteInventoryPreset(gameID, presetID string) (int64, error) {
+	result := r.db.Where("game_id = ? AND id = ?", gameID, presetID).Delete(&models.InventoryPreset{})
+	return result.RowsAffected, result.Error
+}
+
+// ApplyInventoryShape writes the grid size and shape of several characters in
+// one transaction, so a preset handed to a group lands on all of them or none.
+func (r *Repository) ApplyInventoryShape(gameID string, characters []*models.Character) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		for _, character := range characters {
+			if err := tx.Model(&models.Character{}).
+				Where("game_id = ? AND id = ?", gameID, character.ID).
+				Updates(map[string]interface{}{
+					"inventory_width":  character.InventoryWidth,
+					"inventory_height": character.InventoryHeight,
+					"inventory_mask":   character.InventoryMask,
+					"updated_at":       time.Now(),
+				}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }

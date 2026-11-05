@@ -28,6 +28,8 @@ import SessionGMCharacterCreateModal from '@/components/session/SessionGMCharact
 import SessionGMCharacterEditorModal from '@/components/session/SessionGMCharacterEditorModal.vue'
 import SessionInventoryBoard from '@/components/session/SessionInventoryBoard.vue'
 import SessionItemCompendium from '@/components/session/SessionItemCompendium.vue'
+import SessionBackpackPresets from '@/components/session/SessionBackpackPresets.vue'
+import { countOpen } from '@/components/session/inventoryMask'
 import SearchableSelect from '@/components/session/SearchableSelect.vue'
 import GameSettingsModal from '@/components/GameSettingsModal.vue'
 import DataTable from '@/components/DataTable.vue'
@@ -125,7 +127,7 @@ const rosterCharacters = computed(() => {
 })
 const characterVaultRows = computed(() => rosterCharacters.value.map(character => ({
   ...character,
-  sizeLabel: `${character.inventory_width}x${character.inventory_height}`,
+  sizeLabel: `${character.inventory_width}x${character.inventory_height}${character.inventory_mask ? ' · shaped' : ''}`,
 })))
 const campaignCharacterRows = computed(() => {
   const memberById = new Map((game.value?.members ?? []).map(member => [member.user_id, member]))
@@ -136,7 +138,7 @@ const campaignCharacterRows = computed(() => {
       ownerName: character.owner?.username || member?.username || 'Unknown',
       roleLabel: formatRole(member?.role || ''),
       createdAt: character.created_at || '',
-      sizeLabel: `${character.inventory_width}x${character.inventory_height}`,
+      sizeLabel: `${character.inventory_width}x${character.inventory_height}${character.inventory_mask ? ' · shaped' : ''}`,
     }
   })
 })
@@ -452,6 +454,7 @@ async function duplicateCharacter(character) {
       owner_user_id: source.user_id,
       inventory_width: source.inventory_width,
       inventory_height: source.inventory_height,
+      inventory_mask: source.inventory_mask || '',
       currency_gold: source.currency_gold,
       currency_silver: source.currency_silver,
       currency_copper: source.currency_copper,
@@ -582,7 +585,8 @@ async function shareInventoryItem(entry) {
 }
 const inventoryWidth = computed(() => characterSnapshot.value?.inventory_width ?? 0)
 const inventoryHeight = computed(() => characterSnapshot.value?.inventory_height ?? 0)
-const inventoryCapacity = computed(() => inventoryWidth.value * inventoryHeight.value)
+const inventoryMask = computed(() => characterSnapshot.value?.inventory_mask ?? '')
+const inventoryCapacity = computed(() => (inventoryMask.value ? countOpen(inventoryMask.value) : inventoryWidth.value * inventoryHeight.value))
 const occupiedInventoryCells = computed(() => inventoryItems.value.reduce((total, entry) => {
   const width = entry.item?.grid_width ?? 1
   const height = entry.item?.grid_height ?? 1
@@ -1116,6 +1120,11 @@ function handleRealtimeEvent(type, data) {
         refreshManagePanel(managePanel.value, { silent: true })
       }
       break
+    case 'game_updated':
+      // Settings changed (e.g. a base attribute was turned off): reload so the
+      // sheet and inventory stop showing what the GM disabled.
+      loadSession({ preserveCharacter: true, promptSelection: false })
+      break
   }
 }
 
@@ -1454,6 +1463,7 @@ function characterSignature(character) {
     portrait: character.portrait_id,
     iw: character.inventory_width,
     ih: character.inventory_height,
+    im: character.inventory_mask,
   })
 }
 
@@ -2400,6 +2410,7 @@ onBeforeUnmount(() => {
                 :currency-cards="currencyCards"
                 :inventory-width="inventoryWidth"
                 :inventory-height="inventoryHeight"
+                :inventory-mask="inventoryMask"
                 :character-attributes="effectiveAttributeMap"
                 :attributes-enabled="attributesEnabled"
                 :disabled-standard-attrs="disabledStandardAttrs"
@@ -2613,7 +2624,7 @@ onBeforeUnmount(() => {
               <div class="mt-5 flex flex-wrap items-center justify-between gap-3">
                 <div class="inline-flex flex-wrap gap-1.5 rounded-2xl border border-line bg-n1/60 p-1.5">
                   <div
-                    v-for="panel in [{ id: 'players', label: 'Members' }, { id: 'chat', label: 'Chat log' }, { id: 'activity', label: 'Activity' }, { id: 'settings', label: 'Settings' }]"
+                    v-for="panel in [{ id: 'players', label: 'Members' }, { id: 'chat', label: 'Chat log' }, { id: 'activity', label: 'Activity' }, { id: 'backpacks', label: 'Backpacks' }, { id: 'settings', label: 'Settings' }]"
                     :key="panel.id"
                     role="button"
                     tabindex="0"
@@ -2627,7 +2638,7 @@ onBeforeUnmount(() => {
                     {{ panel.label }}
                   </div>
                 </div>
-                <div v-if="managePanel !== 'settings'" class="flex items-center gap-2">
+                <div v-if="managePanel !== 'settings' && managePanel !== 'backpacks'" class="flex items-center gap-2">
                   <div
                     role="button"
                     tabindex="0"
@@ -2649,6 +2660,13 @@ onBeforeUnmount(() => {
               :game-id="gameId"
               @updated="handleGameSettingsUpdated"
               @deleted="handleGameDeleted"
+            />
+
+            <SessionBackpackPresets
+              v-if="managePanel === 'backpacks'"
+              :game-id="gameId"
+              :characters="characters"
+              @applied="loadSession({ preserveCharacter: true, promptSelection: false })"
             />
 
             <!-- Players table -->
@@ -3118,6 +3136,7 @@ onBeforeUnmount(() => {
                 :currency-cards="inventoryViewCurrency"
                 :inventory-width="inventoryViewCharacter.inventory_width ?? 0"
                 :inventory-height="inventoryViewCharacter.inventory_height ?? 0"
+                :inventory-mask="inventoryViewCharacter.inventory_mask ?? ''"
                 :character-attributes="inventoryViewAttributes"
                 :attributes-enabled="attributesEnabled"
                 :disabled-standard-attrs="disabledStandardAttrs"
@@ -3216,12 +3235,13 @@ onBeforeUnmount(() => {
                       v-if="parseSharedItem(message.content)"
                       type="button"
                       @click="openSharedItem(parseSharedItem(message.content))"
-                      class="mt-2 inline-flex max-w-full cursor-pointer items-center gap-2 rounded-xl border border-line bg-n3 px-3 py-2 text-left transition-all duration-200 hover:border-primary/40 hover:bg-primary/10"
+                      class="chat-item-link session-own mt-2 inline-flex max-w-full cursor-pointer items-center gap-2.5 px-3 py-2 text-left"
+                      :style="{ '--resin': `var(--color-r-${parseSharedItem(message.content).rarity || 'common'})` }"
                     >
-                      <PackageIcon class="h-4 w-4 shrink-0 text-sky" :stroke-width="2" />
+                      <PackageIcon class="chat-item-link__icon h-4 w-4 shrink-0" :stroke-width="2" />
                       <span class="min-w-0">
-                        <span class="block truncate text-[13px] font-semibold text-ink">{{ parseSharedItem(message.content).name || 'Item' }}</span>
-                        <span class="block text-[13px] font-semibold text-sky/70">Shared item · view</span>
+                        <span class="chat-item-link__name block truncate text-[13px] font-semibold">{{ parseSharedItem(message.content).name || 'Item' }}</span>
+                        <span class="block text-[12px] font-semibold text-sky">Shared item · view</span>
                       </span>
                     </button>
                     <p v-else class="mt-2 whitespace-pre-wrap break-words text-[14px] leading-relaxed text-ink/78">{{ message.content }}</p>
@@ -4176,7 +4196,7 @@ onBeforeUnmount(() => {
   background: transparent;
 }
 
-.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn) {
+.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn):not(.session-own) {
   border-color: transparent !important;
   background: var(--color-n3) !important;
   color: var(--color-ink) !important;
@@ -4184,12 +4204,12 @@ onBeforeUnmount(() => {
   box-shadow: none;
 }
 
-.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn):hover {
+.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn):not(.session-own):hover {
   background: var(--color-n4) !important;
   color: #ffffff !important;
 }
 
-.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn):disabled {
+.session-stage button:not(.session-tab-button):not(.session-chrome):not(.session-primary-btn):not(.session-own):disabled {
   box-shadow: none;
 }
 
@@ -4285,6 +4305,29 @@ onBeforeUnmount(() => {
 .session-chat-message {
   border-radius: 0.65rem !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+/* A shared item in chat reads as a link: lifted off the message, ringed and named in its rarity colour. */
+.chat-item-link {
+  border-radius: 0.6rem;
+  background: color-mix(in oklab, var(--resin) 16%, var(--color-n1));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--resin) 45%, transparent);
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.chat-item-link:hover {
+  background: color-mix(in oklab, var(--resin) 26%, var(--color-n1));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--resin) 75%, transparent);
+}
+
+.chat-item-link:focus-visible {
+  outline: 2px solid var(--color-sky);
+  outline-offset: 2px;
+}
+
+.chat-item-link__icon,
+.chat-item-link__name {
+  color: color-mix(in oklab, var(--resin) 80%, white);
 }
 
 .session-empty-bay {

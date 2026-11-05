@@ -53,6 +53,11 @@ func (h *Handler) Routes() chi.Router {
 	r.Post("/{gameID}/characters/{characterID}/inventory/{inventoryItemID}/split", h.SplitInventoryItem)
 	r.Delete("/{gameID}/characters/{characterID}/inventory/{inventoryItemID}", h.DeleteInventoryItem)
 	r.Post("/{gameID}/characters/{characterID}/portrait", h.UploadCharacterPortrait)
+	r.Get("/{gameID}/inventory-presets", h.ListInventoryPresets)
+	r.Post("/{gameID}/inventory-presets", h.CreateInventoryPreset)
+	r.Put("/{gameID}/inventory-presets/{presetID}", h.UpdateInventoryPreset)
+	r.Delete("/{gameID}/inventory-presets/{presetID}", h.DeleteInventoryPreset)
+	r.Post("/{gameID}/inventory-presets/{presetID}/apply", h.ApplyInventoryPreset)
 	r.Get("/{gameID}/trades", h.ListTrades)
 	r.Post("/{gameID}/trades", h.CreateTrade)
 	r.Post("/{gameID}/trades/{tradeID}/accept", h.AcceptTrade)
@@ -392,6 +397,7 @@ func (h *Handler) UpdateGame(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, 500, map[string]string{"error": "Failed to update game"})
 		return
 	}
+	h.broadcast(game.ID, realtime.EventGameUpdated, nil)
 
 	respondJSON(w, 200, map[string]interface{}{
 		"id":                         game.ID,

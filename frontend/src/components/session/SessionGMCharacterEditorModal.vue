@@ -4,6 +4,9 @@ import { API_URL } from '@/api'
 import { useImageFallback } from '@/composables/useImageFallback'
 import { computed, ref, watch } from 'vue'
 import SearchableSelect from '@/components/session/SearchableSelect.vue'
+import InventoryShapeEditor from '@/components/session/InventoryShapeEditor.vue'
+import { expandMask, occupiedCells, resizeMask } from '@/components/session/inventoryMask'
+import { useAuthStore } from '@/stores/auth'
 
 const MAX_PORTRAIT_SIZE = 5 * 1024 * 1024
 const ALLOWED_PORTRAIT_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -59,6 +62,12 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'save'])
+
+const auth = useAuthStore()
+const presets = ref([])
+const presetId = ref('')
+const presetOptions = computed(() => presets.value.map(preset => ({ value: preset.id, label: `${preset.name} · ${preset.width}×${preset.height}` })))
+const lockedCells = computed(() => occupiedCells(props.character))
 
 // Hide base-attribute inputs for attributes the game has turned off.
 const visibleBaseAttributeFields = computed(() => {
@@ -145,6 +154,8 @@ function createFormState(character = null) {
     owner_user_id: character?.user_id ?? props.members[0]?.user_id ?? '',
     inventory_width: character?.inventory_width ?? 10,
     inventory_height: character?.inventory_height ?? 6,
+    inventory_mode: character?.inventory_mask ? 'shaped' : 'grid',
+    inventory_mask: expandMask(character?.inventory_mask ?? '', character?.inventory_width ?? 10, character?.inventory_height ?? 6),
     currency_gold: character?.currency_gold ?? 0,
     currency_silver: character?.currency_silver ?? 0,
     currency_copper: character?.currency_copper ?? 0,
@@ -183,8 +194,46 @@ function resetTransientState() {
 
 function syncForm(character) {
   form.value = createFormState(character)
+  presetId.value = ''
   resetTransientState()
+  loadPresets()
 }
+
+async function loadPresets() {
+  if (!characterGameId()) return
+  try {
+    const data = await auth.getInventoryPresets(characterGameId())
+    presets.value = data.presets || []
+  } catch {
+    presets.value = []
+  }
+}
+
+function characterGameId() {
+  return props.character?.game_id || ''
+}
+
+// Keep the drawn shape in step with the grid size; new cells start open.
+watch(
+  () => [form.value.inventory_width, form.value.inventory_height],
+  ([width, height], [oldWidth, oldHeight] = []) => {
+    const valid = (value) => Number.isInteger(value) && value >= 1 && value <= 20
+    if (!valid(width) || !valid(height) || !valid(oldWidth) || !valid(oldHeight)) return
+    if (width === oldWidth && height === oldHeight) return
+    // A freshly loaded character or preset already brings a mask of the new size.
+    if (form.value.inventory_mask.length !== oldWidth * oldHeight) return
+    form.value.inventory_mask = resizeMask(form.value.inventory_mask, oldWidth, oldHeight, width, height, '1')
+  },
+)
+
+watch(presetId, (id) => {
+  const preset = presets.value.find(item => item.id === id)
+  if (!preset) return
+  form.value.inventory_mode = 'shaped'
+  form.value.inventory_width = preset.width
+  form.value.inventory_height = preset.height
+  form.value.inventory_mask = preset.mask
+})
 
 function close() {
   if (!props.saving) {
@@ -288,6 +337,11 @@ function emitSave() {
     })
   }
 
+  if (form.value.inventory_mode === 'shaped' && !form.value.inventory_mask.includes('1')) {
+    localError.value = 'Open at least one backpack cell'
+    return
+  }
+
   localError.value = ''
   emit('save', {
     payload: {
@@ -296,6 +350,7 @@ function emitSave() {
       owner_user_id: form.value.owner_user_id,
       inventory_width: normalizeInteger(form.value.inventory_width, 10),
       inventory_height: normalizeInteger(form.value.inventory_height, 6),
+      inventory_mask: form.value.inventory_mode === 'shaped' ? form.value.inventory_mask : '',
       currency_gold: normalizeInteger(form.value.currency_gold),
       currency_silver: normalizeInteger(form.value.currency_silver),
       currency_copper: normalizeInteger(form.value.currency_copper),
@@ -342,7 +397,7 @@ function emitSave() {
               </span>
             </div>
             <p class="mt-3 max-w-[48rem] text-[14px] leading-relaxed text-ink-soft/62">
-              Configure portrait, narrative profile, base attributes, inventory dimensions, custom stats, and character ownership.
+              Configure portrait, narrative profile, base attributes, backpack, custom stats, and character ownership.
             </p>
           </div>
 
@@ -391,18 +446,42 @@ function emitSave() {
             </div>
 
             <div class="rounded-[1.4rem] border border-line-soft bg-n3 p-4">
-              <p class="text-[13px] font-semibold text-dim">Inventory Space</p>
-              <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+              <p class="text-[13px] font-semibold text-dim">Backpack</p>
+              <div class="backpack-mode mt-3" role="radiogroup" aria-label="Backpack type">
+                <label v-for="mode in [{ id: 'grid', label: 'Grid' }, { id: 'shaped', label: 'Shaped' }]" :key="mode.id" class="backpack-mode__option" :class="{ 'is-on': form.inventory_mode === mode.id }">
+                  <input v-model="form.inventory_mode" type="radio" name="backpack-mode" :value="mode.id" class="sr-only" />
+                  {{ mode.label }}
+                </label>
+              </div>
+              <div class="mt-3 grid grid-cols-2 gap-3">
                 <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
                   <span class="text-[13px] font-semibold text-faint">Width</span>
-                  <input v-model.number="form.inventory_width" type="number" min="1" max="20" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
+                  <input v-model.number.lazy="form.inventory_width" type="number" min="1" max="20" class="session-input mt-2 w-full border-0 bg-transparent p-0 text-[22px] font-semibold text-ink outline-none" />
                 </label>
                 <label class="rounded-[1.2rem] border border-line bg-n1/62 px-4 py-3">
                   <span class="text-[13px] font-semibold text-faint">Height</span>
-                  <input v-model.number="form.inventory_height" type="number" min="1" max="20" class="session-input mt-3 w-full border-0 bg-transparent p-0 text-[24px] font-semibold text-ink outline-none" />
+                  <input v-model.number.lazy="form.inventory_height" type="number" min="1" max="20" class="session-input mt-2 w-full border-0 bg-transparent p-0 text-[22px] font-semibold text-ink outline-none" />
                 </label>
               </div>
-              <p class="mt-3 text-[12px] leading-relaxed text-ink-soft/54">Shrinking the grid is blocked if existing items would no longer fit.</p>
+
+              <template v-if="form.inventory_mode === 'shaped'">
+                <label v-if="presets.length" class="mt-4 block">
+                  <span class="text-[13px] font-semibold text-faint">Start from a preset</span>
+                  <SearchableSelect v-model="presetId" :options="presetOptions" placeholder="Choose a preset…" class="mt-1.5" />
+                </label>
+                <InventoryShapeEditor
+                  v-if="form.inventory_mask.length === form.inventory_width * form.inventory_height"
+                  v-model="form.inventory_mask"
+                  :width="form.inventory_width"
+                  :height="form.inventory_height"
+                  :locked-cells="lockedCells"
+                  :disabled="saving"
+                  class="mt-4"
+                />
+              </template>
+              <p class="mt-3 text-[12px] leading-relaxed text-ink-soft/54">
+                {{ form.inventory_mode === 'shaped' ? 'Press and drag to open or close cells. Items only go on open cells.' : 'A plain rectangle. Shrinking is blocked if items would no longer fit.' }}
+              </p>
             </div>
           </aside>
 
@@ -567,3 +646,34 @@ function emitSave() {
     </div>
   </Teleport>
 </template>
+<style scoped>
+.backpack-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+  border-radius: 0.8rem;
+  background: var(--color-n1);
+  padding: 0.25rem;
+}
+
+.backpack-mode__option {
+  border-radius: 0.6rem;
+  padding: 0.45rem 0.5rem;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-dim);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.backpack-mode__option.is-on {
+  background: var(--color-primary);
+  color: white;
+}
+
+.backpack-mode__option:has(:focus-visible) {
+  outline: 2px solid var(--color-sky);
+  outline-offset: 1px;
+}
+</style>

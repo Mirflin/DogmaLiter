@@ -508,6 +508,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		OwnerUserID      *string                                  `json:"owner_user_id"`
 		InventoryWidth   *int                                     `json:"inventory_width"`
 		InventoryHeight  *int                                     `json:"inventory_height"`
+		InventoryMask    *string                                  `json:"inventory_mask"`
 		BaseAttributes   *updateCharacterBaseAttributesRequest    `json:"base_attributes"`
 		CustomAttributes *[]updateCharacterCustomAttributeRequest `json:"custom_attributes"`
 	}
@@ -584,7 +585,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Max health and armor class are GM-only base stats (items modify them).
-	if req.OwnerUserID != nil || req.InventoryWidth != nil || req.InventoryHeight != nil || req.BaseAttributes != nil || req.CustomAttributes != nil || req.MaxHealth != nil || req.ArmorClass != nil {
+	if req.OwnerUserID != nil || req.InventoryWidth != nil || req.InventoryHeight != nil || req.InventoryMask != nil || req.BaseAttributes != nil || req.CustomAttributes != nil || req.MaxHealth != nil || req.ArmorClass != nil {
 		if !isGM {
 			respondJSON(w, 403, map[string]string{"error": "Only the GM can edit advanced character settings"})
 			return
@@ -621,6 +622,7 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		hasChanges = true
 	}
 
+	previousWidth, previousHeight := character.InventoryWidth, character.InventoryHeight
 	if req.InventoryWidth != nil {
 		value, err := validateInventoryDimension(*req.InventoryWidth, "Inventory width")
 		if err != nil {
@@ -719,7 +721,23 @@ func (h *Handler) UpdateCharacter(w http.ResponseWriter, r *http.Request) {
 		hasChanges = true
 	}
 
-	if req.InventoryWidth != nil || req.InventoryHeight != nil {
+	if req.InventoryMask != nil {
+		mask, err := normalizeInventoryMask(*req.InventoryMask, character.InventoryWidth, character.InventoryHeight)
+		if err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+		character.InventoryMask = mask
+		hasChanges = true
+	} else if character.InventoryWidth != previousWidth || character.InventoryHeight != previousHeight {
+		character.InventoryMask = resizeInventoryMask(character.InventoryMask, previousWidth, previousHeight, character.InventoryWidth, character.InventoryHeight)
+		if _, err := normalizeInventoryMask(character.InventoryMask, character.InventoryWidth, character.InventoryHeight); err != nil {
+			respondJSON(w, 400, map[string]string{"error": err.Error()})
+			return
+		}
+	}
+
+	if req.InventoryWidth != nil || req.InventoryHeight != nil || req.InventoryMask != nil {
 		if err := validateInventoryResize(character); err != nil {
 			respondJSON(w, 400, map[string]string{"error": err.Error()})
 			return
@@ -791,11 +809,7 @@ func (h *Handler) GiveInventoryItems(w http.ResponseWriter, r *http.Request) {
 
 	width := character.InventoryWidth
 	height := character.InventoryHeight
-	occupied := make([][]bool, height)
-	for y := range occupied {
-		occupied[y] = make([]bool, width)
-	}
-	markInventoryOccupancy(occupied, character.Inventory)
+	occupied := newInventoryOccupancy(character)
 
 	entries := make([]models.CharacterInventory, 0, len(req.Items))
 	unplaced := make([]string, 0)
@@ -957,7 +971,7 @@ func (h *Handler) UpdateInventoryLayout(w http.ResponseWriter, r *http.Request) 
 		if height < 1 {
 			height = 1
 		}
-		if line.GridX < 0 || line.GridY < 0 || line.GridX+width > character.InventoryWidth || line.GridY+height > character.InventoryHeight {
+		if !inventoryRegionOpen(character, line.GridX, line.GridY, width, height) {
 			respondJSON(w, 400, map[string]string{"error": fmt.Sprintf("%s does not fit at the requested position", entry.Item.Name)})
 			return
 		}
@@ -1246,11 +1260,7 @@ func (h *Handler) SplitInventoryItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	occupied := make([][]bool, character.InventoryHeight)
-	for y := range occupied {
-		occupied[y] = make([]bool, character.InventoryWidth)
-	}
-	markInventoryOccupancy(occupied, character.Inventory)
+	occupied := newInventoryOccupancy(character)
 
 	width := target.Item.GridWidth
 	height := target.Item.GridHeight
@@ -1750,6 +1760,7 @@ func serializeCharacterSummaries(characters []models.Character) []map[string]int
 			"portrait_id":      character.PortraitID,
 			"inventory_width":  character.InventoryWidth,
 			"inventory_height": character.InventoryHeight,
+			"inventory_mask":   character.InventoryMask,
 			"currency_gold":    character.CurrencyGold,
 			"currency_silver":  character.CurrencySilver,
 			"currency_copper":  character.CurrencyCopper,
@@ -1799,6 +1810,7 @@ func serializeCharacterDetail(character *models.Character) map[string]interface{
 		"portrait_id":      character.PortraitID,
 		"inventory_width":  character.InventoryWidth,
 		"inventory_height": character.InventoryHeight,
+		"inventory_mask":   character.InventoryMask,
 		"currency_gold":    character.CurrencyGold,
 		"currency_silver":  character.CurrencySilver,
 		"currency_copper":  character.CurrencyCopper,
@@ -2180,7 +2192,17 @@ func validateInventoryDimension(value int, label string) (int, error) {
 }
 
 func validateInventoryResize(character *models.Character) error {
+	equipped := make(map[string]bool, len(character.Equipment))
+	for _, slot := range character.Equipment {
+		equipped[slot.InventoryItemID] = true
+	}
+
 	for _, entry := range character.Inventory {
+		// Equipped items sit in their slots, not on the grid.
+		if equipped[entry.ID] {
+			continue
+		}
+
 		itemWidth := entry.Item.GridWidth
 		itemHeight := entry.Item.GridHeight
 		if itemWidth < 1 {
@@ -2193,10 +2215,13 @@ func validateInventoryResize(character *models.Character) error {
 			itemWidth, itemHeight = itemHeight, itemWidth
 		}
 
-		if entry.GridX < 0 || entry.GridY < 0 || entry.GridX+itemWidth > character.InventoryWidth || entry.GridY+itemHeight > character.InventoryHeight {
+		if !inventoryRegionOpen(character, entry.GridX, entry.GridY, itemWidth, itemHeight) {
 			itemName := strings.TrimSpace(entry.Item.Name)
 			if itemName == "" {
 				itemName = "An item"
+			}
+			if entry.GridX >= 0 && entry.GridY >= 0 && entry.GridX+itemWidth <= character.InventoryWidth && entry.GridY+itemHeight <= character.InventoryHeight {
+				return fmt.Errorf("%s would sit on a closed cell of the backpack", itemName)
 			}
 			return fmt.Errorf("%s no longer fits inside a %dx%d inventory", itemName, character.InventoryWidth, character.InventoryHeight)
 		}

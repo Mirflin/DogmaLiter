@@ -33,6 +33,7 @@ func AutoMigrate(db *gorm.DB) {
 		&models.ActivityLog{},
 		&models.TradeOffer{},
 		&models.TradeOfferItem{},
+		&models.InventoryPreset{},
 	)
 	if err != nil {
 		log.Fatalf("Error with migration (stage 1): %v", err)

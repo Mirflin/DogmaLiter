@@ -1,4 +1,5 @@
 <script setup>
+import ImagePlaceholder from '@/components/ImagePlaceholder.vue'
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import LandingDie from '@/components/landing/LandingDie.vue'
@@ -210,6 +211,7 @@ function formatDate(value) {
             <router-link v-for="post in news" :key="post.id" :to="`/news/${post.id}`" class="news__item">
               <div class="news__img">
                 <img v-if="post.image_id" :src="`${API_URL}/api/uploads/${post.image_id}`" :alt="post.title" />
+                <ImagePlaceholder v-else kind="news" />
               </div>
               <p class="text-[13px] text-faint">{{ formatDate(post.created_at) }}</p>
               <h3 class="mt-1 text-[17px] font-semibold text-ink">{{ post.title }}</h3>

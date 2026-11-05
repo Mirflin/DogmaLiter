@@ -21,4 +21,9 @@ const (
 
 	// EventActivityChanged: the activity log changed (GM manage panel).
 	EventActivityChanged = "activity_changed"
+
+	// EventGameUpdated: the GM changed game settings (enabled attributes,
+	// health, chat...) — clients should reload the session so what they show
+	// follows the new settings without a manual refresh.
+	EventGameUpdated = "game_updated"
 )

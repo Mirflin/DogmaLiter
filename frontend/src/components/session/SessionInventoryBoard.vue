@@ -1,4 +1,5 @@
 <script setup>
+import ImagePlaceholder from '@/components/ImagePlaceholder.vue'
 import interact from 'interactjs'
 import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
 import { API_URL } from '@/api'
@@ -41,6 +42,11 @@ const props = defineProps({
   inventoryHeight: {
     type: Number,
     default: 6,
+  },
+  // '1'/'0' per cell, row by row; empty means every cell of the grid is open.
+  inventoryMask: {
+    type: String,
+    default: '',
   },
   characterAttributes: {
     type: Object,
@@ -100,6 +106,11 @@ let persistTimer = null
 
 const safeInventoryWidth = computed(() => Math.max(1, Number(props.inventoryWidth) || 10))
 const safeInventoryHeight = computed(() => Math.max(1, Number(props.inventoryHeight) || 6))
+const shapedMask = computed(() => (props.inventoryMask.length === safeInventoryWidth.value * safeInventoryHeight.value ? props.inventoryMask : ''))
+
+function isCellOpen(x, y) {
+  return !shapedMask.value || shapedMask.value[y * safeInventoryWidth.value + x] === '1'
+}
 
 const allEntriesById = computed(() => {
   const entries = {}
@@ -123,7 +134,7 @@ const gridCells = computed(() => {
 
   for (let y = 0; y < safeInventoryHeight.value; y += 1) {
     for (let x = 0; x < safeInventoryWidth.value; x += 1) {
-      cells.push({ id: `cell-${x}-${y}`, x, y, kind: 'inventory' })
+      cells.push({ id: `cell-${x}-${y}`, x, y, kind: 'inventory', open: isCellOpen(x, y) })
     }
   }
 
@@ -591,6 +602,11 @@ function canPlaceInInventory(entryId, x, y) {
   if (x < 0 || y < 0) return false
   if (x + width > safeInventoryWidth.value) return false
   if (y + height > safeInventoryHeight.value) return false
+  for (let cy = y; cy < y + height; cy += 1) {
+    for (let cx = x; cx < x + width; cx += 1) {
+      if (!isCellOpen(cx, cy)) return false
+    }
+  }
 
   for (const placement of Object.values(placements.value)) {
     if (placement.entryId === entryId || placement.kind !== 'inventory') continue
@@ -630,6 +646,7 @@ function slotHighlight(slot) {
 }
 
 function cellStateClasses(cell) {
+  if (!cell.open) return cellHighlight(cell) ? 'is-closed is-refused border-danger/50' : 'is-closed border-transparent'
   const state = cellHighlight(cell)
   if (state === 'active') return CELL_ACTIVE
   if (state === 'blocked') return CELL_BLOCKED
@@ -767,7 +784,8 @@ function equipmentEntry(slot) {
       <section class="mx-auto w-fit max-w-full max-md:w-full">
         <div
           ref="gridRef"
-          class="session-inventory-grid grid w-fit gap-0 rounded-[0.6rem] bg-n0 p-[clamp(0.14rem,0.35vw,0.28rem)] shadow-[var(--shadow-well)] grid-cols-[repeat(var(--inv-cols),minmax(0,var(--inv-cell)))] grid-rows-[repeat(var(--inv-rows),minmax(0,var(--inv-cell)))] max-md:max-w-full"
+          class="session-inventory-grid grid w-fit gap-0 rounded-[0.6rem] p-[clamp(0.14rem,0.35vw,0.28rem)] grid-cols-[repeat(var(--inv-cols),minmax(0,var(--inv-cell)))] grid-rows-[repeat(var(--inv-rows),minmax(0,var(--inv-cell)))] max-md:max-w-full"
+          :class="shapedMask ? 'is-shaped' : 'bg-n0 shadow-[var(--shadow-well)]'"
           :style="{
             '--inv-cols': safeInventoryWidth,
             '--inv-rows': safeInventoryHeight,
@@ -813,9 +831,7 @@ function equipmentEntry(slot) {
           <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
             <div class="h-28 w-28 shrink-0 overflow-hidden rounded-[1.2rem] border-2 border-line bg-n1/66">
               <img v-if="detailImageUrl" :src="detailImageUrl" :alt="detailEntry.item?.name" class="h-full w-full object-cover" @error="markImageFailed(detailImageUrl)" />
-              <div v-else class="flex h-full w-full items-center justify-center font-heading text-[32px] font-bold text-faint">
-                {{ (detailEntry.item?.name || '?').charAt(0).toUpperCase() }}
-              </div>
+              <ImagePlaceholder v-else kind="item" :item="detailEntry.item" />
             </div>
 
             <div class="min-w-0 flex-1 pr-8">
@@ -946,6 +962,33 @@ function equipmentEntry(slot) {
   background: var(--color-n5);
   -webkit-mask: var(--sil) center / var(--sil-size) no-repeat;
   mask: var(--sil) center / var(--sil-size) no-repeat;
+}
+
+/* A shaped backpack: open cells sit in their own well, closed ones are left empty. */
+.session-inventory-grid.is-shaped {
+  isolation: isolate;
+}
+
+.session-inventory-grid.is-shaped .session-inventory-grid__cell:not(.is-closed) {
+  position: relative;
+}
+
+.session-inventory-grid.is-shaped .session-inventory-grid__cell:not(.is-closed)::before {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * clamp(0.14rem, 0.35vw, 0.28rem));
+  z-index: -1;
+  border-radius: 0.3rem;
+  background: var(--color-n0);
+}
+
+.session-inventory-grid__cell.is-closed {
+  background: transparent;
+}
+
+.session-inventory-grid__cell.is-refused {
+  border-style: dashed;
+  background: color-mix(in oklab, var(--color-danger) 12%, transparent);
 }
 
 </style>

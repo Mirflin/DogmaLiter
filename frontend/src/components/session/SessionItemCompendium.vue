@@ -1,4 +1,5 @@
 <script setup>
+import ImagePlaceholder from '@/components/ImagePlaceholder.vue'
 import {
   Check,
   Eye,
@@ -1440,15 +1441,6 @@ function resolvedItemImageUrl(item) {
   return itemImageUrl(item)
 }
 
-function itemGlyph(item) {
-  return item.name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(part => part.charAt(0).toUpperCase())
-    .join('') || 'IT'
-}
-
 function itemSizeLabel(item) {
   return `${item.grid_width}x${item.grid_height}`
 }
@@ -1605,7 +1597,7 @@ function itemSizeLabel(item) {
             <div class="flex items-start gap-4">
               <div class="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-[1.3rem] border text-[24px] font-bold uppercase" :class="itemFrameClass(item.rarity)">
                 <img v-if="itemImageUrl(item)" :src="itemImageUrl(item)" :alt="item.name" class="h-full w-full object-cover" @error="markImageFailed(itemImageUrl(item))" />
-                <span v-else>{{ itemGlyph(item) }}</span>
+                <ImagePlaceholder v-else kind="item" :item="item" />
                 <span class="absolute right-2 top-2 rounded-full border border-ink/16 bg-n1/82 px-2 py-0.5 text-[10px] font-semibold text-ink">
                   {{ itemSizeLabel(item) }}
                 </span>
@@ -1692,7 +1684,7 @@ function itemSizeLabel(item) {
             <div class="overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
               <div class="flex h-64 items-center justify-center" :class="itemFrameClass(inspectorItem.rarity)">
                 <img v-if="resolvedItemImageUrl(inspectorItem)" :src="resolvedItemImageUrl(inspectorItem)" :alt="inspectorItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(inspectorItem))" />
-                <span v-else class="font-heading text-[40px] font-bold">{{ itemGlyph(inspectorItem) }}</span>
+                <ImagePlaceholder v-else kind="item" :item="inspectorItem" />
               </div>
             </div>
 
@@ -1846,7 +1838,7 @@ function itemSizeLabel(item) {
                 <div class="flex items-start gap-4">
                   <div class="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[1.1rem] border text-[18px] font-bold uppercase" :class="itemFrameClass(line.item.rarity)">
                     <img v-if="itemImageUrl(line.item)" :src="itemImageUrl(line.item)" :alt="line.item.name" class="h-full w-full object-cover" @error="markImageFailed(itemImageUrl(line.item))" />
-                    <span v-else>{{ itemGlyph(line.item) }}</span>
+                    <ImagePlaceholder v-else kind="item" :item="line.item" />
                   </div>
 
                   <div class="min-w-0 flex-1">
@@ -1998,7 +1990,7 @@ function itemSizeLabel(item) {
                 <div class="overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
                   <div class="flex h-64 items-center justify-center" :class="itemFrameClass(detailPreviewItem.rarity)">
                     <img v-if="resolvedItemImageUrl(detailPreviewItem)" :src="resolvedItemImageUrl(detailPreviewItem)" :alt="detailPreviewItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(detailPreviewItem))" />
-                    <span v-else class="font-heading text-[40px] font-bold">{{ itemGlyph(detailPreviewItem) }}</span>
+                    <ImagePlaceholder v-else kind="item" :item="detailPreviewItem" />
                   </div>
                 </div>
 
@@ -2569,7 +2561,7 @@ function itemSizeLabel(item) {
                 <div class="mt-5 overflow-hidden rounded-[1.5rem] border border-line bg-n1/66">
                   <div class="flex h-64 items-center justify-center" :class="itemFrameClass(draftPreviewItem.rarity)">
                     <img v-if="resolvedItemImageUrl(draftPreviewItem)" :src="resolvedItemImageUrl(draftPreviewItem)" :alt="draftPreviewItem.name" class="h-full w-full object-cover" @error="markImageFailed(resolvedItemImageUrl(draftPreviewItem))" />
-                    <span v-else class="font-heading text-[40px] font-bold">{{ itemGlyph(draftPreviewItem) }}</span>
+                    <ImagePlaceholder v-else kind="item" :item="draftPreviewItem" />
                   </div>
                 </div>
 

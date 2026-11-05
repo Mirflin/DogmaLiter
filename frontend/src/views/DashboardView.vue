@@ -1,4 +1,5 @@
 <script setup>
+import ImagePlaceholder from '@/components/ImagePlaceholder.vue'
 import HomeLayout from '@/layouts/HomeLayout.vue'
 import JoinGameModal from '@/components/JoinGameModal.vue'
 import GameSettingsModal from '@/components/GameSettingsModal.vue'
@@ -171,7 +172,7 @@ function getPreviewText(content) {
               >
                 <div class="h-36 bg-n3 flex items-center justify-center relative overflow-hidden">
                   <img v-if="coverUrl(game)" :src="coverUrl(game)" :alt="game.title" class="w-full h-full object-cover" />
-                  <span v-else class="text-faint text-sm">No cover image</span>
+                  <ImagePlaceholder v-else kind="game" :seed="game.id" />
                   <div class="absolute inset-0 bg-linear-to-t from-n2/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <div class="p-4">
@@ -243,7 +244,7 @@ function getPreviewText(content) {
               >
                 <div class="h-32 bg-n3 flex items-center justify-center relative overflow-hidden">
                   <img v-if="newsImageUrl(post)" :src="newsImageUrl(post)" :alt="post.title" class="w-full h-full object-cover" />
-                  <span v-else class="text-faint text-sm">No image</span>
+                  <ImagePlaceholder v-else kind="news" />
                   <div class="absolute inset-0 bg-linear-to-t from-n2/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </div>
                 <div class="p-3">

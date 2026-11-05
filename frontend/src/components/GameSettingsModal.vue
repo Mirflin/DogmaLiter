@@ -1,4 +1,5 @@
 <script setup>
+import ImagePlaceholder from '@/components/ImagePlaceholder.vue'
 import { useAuthStore } from '@/stores/auth'
 import { API_URL } from '@/api'
 import { ref, watch, computed, onUnmounted } from 'vue'
@@ -268,7 +269,7 @@ function close() {
               <div class="gs-cover">
                 <div class="gs-cover__thumb">
                   <img v-if="coverPreview" :src="coverPreview" alt="" />
-                  <span v-else>No cover</span>
+                  <ImagePlaceholder v-else kind="game" :seed="gameId || ''" />
                 </div>
                 <label class="gs-btn">
                   {{ coverPreview ? 'Change cover' : 'Add cover' }}

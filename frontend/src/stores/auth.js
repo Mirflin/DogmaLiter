@@ -348,6 +348,31 @@ export const useAuthStore = defineStore('auth', () => {
     return data
   }
 
+  async function getInventoryPresets(gameID) {
+    const { data } = await api.get(`/games/${gameID}/inventory-presets`)
+    return data
+  }
+
+  async function createInventoryPreset(gameID, payload) {
+    const { data } = await api.post(`/games/${gameID}/inventory-presets`, payload)
+    return data
+  }
+
+  async function updateInventoryPreset(gameID, presetID, payload) {
+    const { data } = await api.put(`/games/${gameID}/inventory-presets/${presetID}`, payload)
+    return data
+  }
+
+  async function deleteInventoryPreset(gameID, presetID) {
+    const { data } = await api.delete(`/games/${gameID}/inventory-presets/${presetID}`)
+    return data
+  }
+
+  async function applyInventoryPreset(gameID, presetID, characterIDs) {
+    const { data } = await api.post(`/games/${gameID}/inventory-presets/${presetID}/apply`, { character_ids: characterIDs })
+    return data
+  }
+
   async function getTrades(gameID) {
     const { data } = await api.get(`/games/${gameID}/trades`)
     return data
@@ -453,6 +478,11 @@ export const useAuthStore = defineStore('auth', () => {
     splitInventoryItem,
     uploadCharacterPortrait,
     getGameActivity,
+    getInventoryPresets,
+    createInventoryPreset,
+    updateInventoryPreset,
+    deleteInventoryPreset,
+    applyInventoryPreset,
     getTrades,
     createTrade,
     acceptTrade,
